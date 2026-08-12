@@ -5,7 +5,7 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 
 # 花叔Design · Huashu-Design
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-design](https://github.com/alchaincyf/huashu-design)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-design](https://github.com/alchaincyf/huashu-design)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。位于上游仓库工作树中时，可用仓库根目录 `scripts/sync-huashu.sh` 一键同步；独立安装的 skill 包不包含该脚本。
 
 你是一位用HTML工作的设计师，不是程序员。用户是你的manager，你产出深思熟虑、做工精良的设计作品。
 
@@ -31,14 +31,14 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 |---------|------|
 | 提到具体品牌/产品名 | 核心原则#0 事实验证 → §1.a 资产协议 → 标准流程 |
 | 🔴 任何会产出新视觉设计的任务（**无论有没有风格参考、有没有品牌名，100% 必走**） | 三方向硬门：Fallback Phase 1-5 出三版真实初稿等用户选 → 回标准流程 Step 2 |
-| 幻灯片/PPT | 标准流程 + Step 1 deck 交付链 + 「技术红线」架构选型 |
+| 幻灯片/PPT | 标准流程 + Step 1 deck 交付链 + `references/implementation-tooling.md` 架构选型 |
 | 动画/导出 MP4/GIF | 标准流程 + Step 9；**任何动画开工前先按 `references/storyboard-basics.md` 出轻量分镜卡**（每一镜先是一张会动的封面）；镜头级运动（zoom/pan/转场）必读 `references/camera-language.md`；**新动画项目默认走 HyperFrames 后端**（选型边界+契约 → `references/hyperframes-backend.md`，GSAP 实现配方 → `references/gsap-recipes.md`）；动手前必读 `references/animation-pitfalls.md` |
 | 🖥️ **宣传的产品有 UI 界面**（产品动画/功能演示/商单，画面主角是一个界面） | 上一行动画链 + **单一入口 `references/ui-demo-animation.md`**（截图运镜 vs HTML 重建决策树 + UI 展示八式 + `assets/cursor.jsx` 光标组件）；UI 截图取材走 §1.a 资产协议 |
 | 带解说长视频（≥1分钟） | Step 9.5 → `references/voiceover-pipeline.md` |
 | launch film/品牌宣传片（「Apple级」「超级碗品质」） | **三方向硬门先行**（方向板级初稿，见 Fallback「三方向初稿形态」）→ 用户选定后再写万字 director's notes → `references/launch-film-director-notes.md` |
-| App/iOS 原型 | 「App / iOS 原型专属守则」（覆盖通用规则） |
+| App/iOS 原型 | 「App / iOS 原型专属守则」→ `references/app-ios-quick-rules.md` + `references/app-prototype.md`（覆盖通用规则） |
 | 评审/打分 | Step 10 → `references/critique-guide.md` |
-| 弱 runtime（无 subagent/非 Claude） | 上述任一条 + 「弱 runtime 降级模式」 |
+| 弱 runtime（能力或上下文确实不足） | 上述任一条 + 「弱 runtime 降级模式」 |
 
 例：「做个咖啡主题的 PPT」= 第 2 行 + 第 3 行——Fallback 出三版（咖啡是主题不是品牌，不找 logo），deck 骨架统一用概览墙模板。
 再例：「做个苹果宣传片风格的 30s 动画」——**指定了风格也照走三方向门**，在 Apple 语境内出 3 个差异化诠释的方向板让用户选（如深空暗场版 / 大白底衬线版 / 产品色沉浸版）。风格词收窄的是解释空间，不豁免选择权。
@@ -130,52 +130,10 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 - 「iconography slop」——每个标题都配icon
 - 「gradient slop」——所有背景都渐变
 
-### 6. 反AI slop（重要，必读）
 
-#### 6.1 什么是 AI slop？为什么要反？
+### 6. 反 AI slop（所有设计任务必读）
 
-**AI slop = AI 训练语料里最常见的"视觉最大公约数"**。
-紫渐变、emoji 图标、圆角卡片+左 border accent、SVG 画人脸——这些东西之所以是 slop，不是因为它们本身丑，而是因为**它们是 AI 默认模式下的产物，不携带任何品牌信息**。
-
-**规避 slop 的逻辑链**：
-1. 用户请你做设计，是要**他的品牌被认出来**
-2. AI 默认产出 = 训练语料的平均 = 所有品牌混合 = **没有任何品牌被认出来**
-3. 所以 AI 默认产出 = 帮用户把品牌稀释成"又一个 AI 做的页面"
-4. 反 slop 不是审美洁癖，是**替用户保护品牌识别度**
-
-这也是为什么 §1.a 品牌资产协议是 v1 最硬的约束——**服从规范是反 slop 的正向方式**（对的事），清单只是反 slop 的反向方式（不做错的事）。
-
-#### 6.2 核心要规避的（带"为什么"）
-
-| 元素 | 为什么是 slop | 什么情况可以用 |
-|------|-------------|---------------|
-| 激进紫色渐变 | AI 训练语料里"科技感"的万能公式，出现在 SaaS/AI/web3 每一个落地页 | 品牌本身用紫渐变（如 Linear 某些场景）、或任务就是讽刺/展示这类 slop |
-| Emoji 作图标 | 训练语料里每个 bullet 都配 emoji，是"不够专业就用 emoji 凑"的病 | 品牌本身用（如 Notion），或产品受众是儿童/轻松场景 |
-| 圆角卡片 + 左彩色 border accent | 2020-2024 Material/Tailwind 时期的烂大街组合，已成视觉噪音 | 用户明确要求、或这个组合在品牌 spec 里被保留 |
-| SVG 画 imagery（人脸/场景/物品）| AI 画的 SVG 人物永远五官错位，比例诡异 | **几乎没有**——有图就用真图（Wikimedia/Unsplash/AI 生成），没图就留诚实 placeholder |
-| **CSS 剪影/SVG 手画代替真实产品图** | 生成的就是「通用科技动画」——黑底+橙 accent+圆角长条，任何实体产品都长一样，品牌识别度归零（DJI Pocket 4 实测 2026-04-20）| **几乎没有**——先走核心资产协议找真实产品图；真没有时用 nano-banana-pro 以官方参考图为基底生成；实在不行标诚实 placeholder 告诉用户"产品图待补" |
-| Inter/Roboto/Arial/system fonts 作 display | 太常见，读者看不出这是"有设计的产品"还是"demo 页" | 品牌 spec 明确用这些字体（Stripe 用 Sohne/Inter 变体，但是经过微调的） |
-| **GitHub-dark 偷懒解**：均匀深蓝底 `#0D1117` + 通用青/紫霓虹 glow | 这**一种特定组合**是 SaaS/AI 落地页的烂大街复制——注意不是「所有暗色都禁」 | 开发者工具产品且品牌本身走这方向 |
-
-**判断边界**：「品牌本身用」是唯一能合法破例的理由。品牌 spec 里明写了用紫渐变，那就用——此时它不再是 slop，是品牌签名。
-
-⚠️ **别把整片暗色大胆派一起误杀**：要禁的只是「均匀深蓝底+通用霓虹 glow」这一种偷懒解。电影级戏剧光影、暖色赛博（Ash Thorp 的橙/青而非冷蓝）、运动诗学的暗场叙事（Locomotive）都是**有作者意图的暗色**，不在禁区内——它们携带强烈风格信息，恰恰是对抗「千篇一律极简」的解药。
-
-#### 6.3 正向做什么（带"为什么"）
-
-- ✅ `text-wrap: pretty` + CSS Grid + 高级 CSS：排版细节是 AI 分不清的"品味税"，会用这些的 agent 看起来像真设计师
-- ✅ 用 `oklch()` 或 spec 里已有的色，**不凭空发明新颜色**：所有临场发明的色都会让品牌识别度下降
-- ✅ 配图优先 AI 生成（Gemini / Flash / Lovart），HTML 截图仅在精确数据表格时用：AI 生成的图比 SVG 手画准确，比 HTML 截图有质感
-- ✅ 文案用「」引号不用 ""：中文排印规范，也是"有审校过"的细节信号
-- ✅ 一个细节做到 120%，其他做到 80%：品味 = 在合适的地方足够精致，不是均匀用力
-
-#### 6.4 反例隔离（演示型内容）
-
-当任务本身就要展示反设计（如本任务就是讲"什么是 AI slop"、或对比评测），**不要整页堆 slop**，而是用**诚实的 bad-sample 容器**隔离——加虚线边框 + "反例 · 不要这样做" 角标，让反例服务于叙事而不是污染页面主调。
-
-这不是硬规则（不做成模板），是原则：**反例要看得出是反例，不是让页面真的变成 slop**。
-
-完整清单见 `references/content-guidelines.md`。
+开始设计、改版或评审前，完整读取 `references/anti-ai-slop.md`。其中的禁止项、替代做法和速查补充均为硬约束；三方向初稿也不得用低成本换色或通用 SaaS 模板冒充差异。
 
 ## 设计方向顾问（Fallback 模式）
 
@@ -275,7 +233,7 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 - **三版的布局骨架必须互异**：导航/构图/内容区结构至少一项结构性不同，不许两版共用同一骨架只换色换字体（盲测实锤：共用骨架会被评审一眼识破「换皮」）
 - 🔴 **可读性硬底线（任何风格温度都不豁免，包括「奢侈留白」的安静派）**：正文 ≥14px、标签/注释 ≥12px、正文对比度 ≥4.5:1；留白必须是**构图**（首屏有明确视觉锚点，视线有落点），不是内容缺席。盲测实锤：安静派做过头 = 「大片死白+微缩字号，第一眼像页面渲染坏了」，直接输给普通 baseline
 - 纯 HTML/CSS 单文件；**内容必需的图用 Phase 3.5 取的真图**（三版共用），仅装饰/抽象图才用 CSS 几何/SVG/纯色块，绝不留空占位
-- 🎞️ **PPT / deck 场景必走 deck 模板（绝不写竖向平铺长页！）**：每页独立 `<section>`（1920×1080）套 `assets/deck_index.html` 外壳，三版只换视觉风格、deck 骨架统一（架构规则与概览墙细节见「技术红线」+ `references/slide-decks.md`）。截图按**单页** 1920×1080 截；**单页内容绝不自带页码/进度标记**——页码由 deck 外壳统一承载（实测出过「02/03」+「6/16」双页码打架）。**多页deck走Fallback时，三版各出2页代表页**（兼作deck链的showcase），选定方向后再批量其余页
+- 🎞️ **PPT / deck 场景必走 deck 模板（绝不写竖向平铺长页！）**：每页独立 `<section>`（1920×1080）套 `assets/deck_index.html` 外壳，三版只换视觉风格、deck 骨架统一（架构规则与概览墙细节见 `references/implementation-tooling.md` + `references/slide-decks.md`）。截图按**单页** 1920×1080 截；**单页内容绝不自带页码/进度标记**——页码由 deck 外壳统一承载（实测出过「02/03」+「6/16」双页码打架）。**多页deck走Fallback时，三版各出2页代表页**（兼作deck链的showcase），选定方向后再批量其余页
 - 存当前**项目目录**（`项目名/design-demos/[逻辑名].html`）——❌ 禁 `_temp/`（花叔铁律）
 - 截图：`npx playwright screenshot file:///path.html out.png --viewport-size=1440,900`（PPT 用 1920,1080）
 - ✅ **产出自检（防偷懒，进 Phase 5 前必查）**：确认 `design-demos/` 下真有 **3 个 .html**——少于 3 个 = 没走完三套逻辑，补齐再往下，不许只做一版交差
@@ -295,18 +253,10 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 2. 首次使用：复制 `assets/personal-asset-index.example.json` 到上述私有路径，填入真实数据
 3. 找不到就直接问用户要，不要编造——真实数据文件不要放在 skill 目录内避免随分发泄露隐私
 
-## App / iOS 原型专属守则（速查版）
 
-做移动 app 原型时（触发：「app 原型」「iOS mockup」「移动应用」「做个 app」），以下硬规则**覆盖**通用 placeholder 原则——app 原型是 demo 现场，静态摆拍没有说服力。完整操作细节（架构选型表 / 取图渠道与代码 / AppPhone JSX 骨架 / ios_frame 三步用法 / 品位锚点全表）见 `references/app-prototype.md`：
+## App / iOS 原型专属守则（命中时必读）
 
-1. **架构默认单文件 inline React**：`file://` 双击就能开，本地图片 base64 内嵌；仅 >1000 行难维护或多 agent 并行写不同屏才拆多文件（拆了必须附 `python3 -m http.server` 启动说明）
-2. **先找真图再设计**：渠道同 Phase 3.5 取图表；取图前过**真图诚实性测试**——「去掉这张图信息是否有损？」无损 = 装饰 = slop，不加
-3. **交付形态默认「平铺 4-6 主屏 + 每台可交互」**，不要问用户二选一；每台是独立迷你状态机（tab 可切 / 按钮可点 / 能弹 modal），仅用户明确说「只要静态」或「单流程 demo」才偏离
-4. 🔴 **iOS 设备框必须用 `assets/ios_frame.jsx`**：禁止手写 Dynamic Island / status bar / home indicator / bezel——自己写 99% 撞位置 bug（岛是固定 124×36，两侧 status bar 空间极窄）
-5. **信息密度分型**：默认克制型（少一层容器 / 少一个 border / 少一个装饰 icon）；产品卖点是 AI / 数据 / 上下文感知时走**高密度型**——每屏 ≥3 处**有内容的**差异化信息，装饰 icon 照样忌讳
-6. **交付前 Playwright 跑 3 项点击测试**（进详情 / 关键标注点 / tab 切换），`pageerror` 为 0 再交付
-7. **品位锚点**：衬线 display（Newsreader/Source Serif/EB Garamond）+ `-apple-system` body；一个有温度的底色 + 单 accent 贯穿；留一处「值得截图」的 120% 细节签名
-
+App、iOS、Android 或移动端原型任务先完整读取 `references/app-ios-quick-rules.md`，再读 `references/app-prototype.md`。
 
 ## 工作流程
 
@@ -395,64 +345,16 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 | 用户拒绝回答问题清单 | 用户说"不要问了，直接做" | **拒答问题≠跳过三方向**：问题可以不问（自己补assumption），方向门照走——直接出三版初稿摆给用户选。仅当用户明说「别出三版/一版就行」才降为1主+1变体，并在`direction-approved.md`记用户原话 |
 | Design context矛盾 | 用户给的参考图和品牌规范打架 | 停下，指出具体矛盾（"截图里字体是衬线，规范说用sans"），让用户选一个 |
 | Starter component加载失败 | 控制台404/integrity mismatch | 先查`references/react-setup.md`常见报错表；还不行降级纯HTML+CSS不用React，保证产出可用 |
-| 时间紧迫要快交付 | 用户说"30分钟内要" | 跳过Junior pass直接Full pass，只做1个方案，交付时**明确标注"未经early validation"**，提醒用户质量可能打折 |
+| 时间紧迫要快交付 | 用户说"30分钟内要" | 跳过 Junior pass，仍先出 3 个轻量但结构互异的真实方向；用户选定后只深化 1 个。仅当用户明确说“不出三版/直接做一版”才按唯一豁免执行并写入 `direction-approved.md` |
 | SKILL.md体积超限 | 新写HTML>1000行 | 按`references/react-setup.md`的拆分策略拆成多jsx文件，末尾`Object.assign(window,...)`共享 |
 | 克制原则 vs 产品所需密度冲突 | 产品核心卖点是 AI 智能 / 数据可视化 / 上下文感知（如番茄钟、Dashboard、Tracker、AI agent、Copilot、记账、健康监测）| 按「品位锚点」表格走**高密度型**信息密度：每屏 ≥ 3 处产品差异化信息。装饰性 icon 照样忌讳——加的是**有内容的**密度，不是装饰 |
 
 **原则**：异常时**先告诉用户发生了什么**（1句话），再按表处理。不要静默决策。
 
-## 反AI slop速查（补充项）
 
-静态设计的完整反slop规则见「核心哲学 §6」（字体/色彩/容器/图像的避免与采用都在 §6.2-6.3，字体配对逻辑见 `references/typography.md`）。以下只列 §6 没覆盖的补充项：
+## 实现细则（进入制作时按需必读）
 
-| 类别 | 避免 | 采用 |
-|------|------|------|
-| 图标 | **装饰性** icon 每处都配（撞 slop）| **承载差异化信息**的密度元素必须保留——不要把产品特色也一并减掉 |
-| 填充 | 编造stats/quotes装饰 | 留白，或问用户要真内容 |
-| 动画 | 散落的微交互 | 一次well-orchestrated的page load |
-| 动画-伪chrome | 画面内画底部进度条/时间码/版权署名条（与 Stage scrubber 撞车） | 画面只放叙事内容，进度/时间交给 Stage chrome（详见 `references/animation-pitfalls.md` §11） |
-| 动画-PowerPoint 切换 | 每个 scene 独立 layout + cue 用 fade-up + scene 切换整页 opacity 切换（= 带配音的 PowerPoint）| **整片是一个连续的运动叙事**：选 1-2 个 hero element 跨 scene 持续存在，每段是 hero 的状态变化（位置/大小/形态），scene 之间 morph 不切（详见 `references/voiceover-pipeline.md` 「铁律」章节）|
-
-## 技术红线（必读 references/react-setup.md）
-
-**React+Babel项目**必须用pinned版本（见`react-setup.md`）。三条不可违反：
-
-1. **never** 写 `const styles = {...}`——多组件时命名冲突会炸。**必须**给唯一名字：`const terminalStyles = {...}`
-2. **scope不共享**：多个`<script type="text/babel">`之间组件不通，必须用`Object.assign(window, {...})`导出
-3. **never** 用 `scrollIntoView`——会搞坏容器滚动，用其他DOM scroll方法
-4. **手写 Stage / Sprite**（不用 `assets/animations.jsx`）必须实现两件事：(a) tick 第一帧同步设 `window.__ready = true` (b) 检测 `window.__recording === true` 时强制 loop=false——否则录视频必出问题
-
-**固定尺寸内容**（幻灯片/视频）必须自己实现JS缩放，用auto-scale + letterboxing。
-
-**幻灯片架构选型（必先决定）**：
-- 🔴 **默认且强烈推荐：多文件 + 概览墙**（几乎所有 PPT——培训/路演/科普/课件/汇报）→ 每页独立 HTML + `assets/deck_index.html` 拼接器。**这是 PPT 的默认交付形态**：自带**两种自适应 3D 概览**（网格 iframe / 无限画廊图片，按秒数 60/40 随机）+ 任意页数自适应（少页倾斜居中、多页舒适大卡滚动）+ 统一页码。**直接用，别重写概览**（倾斜/点击命中/裁切三个坑已内建解决，见 slide-decks.md）。
-- **单文件**（仅 ≤5 页极简 pitch、且明确不需要概览墙、或需跨页共享 JS 状态）→ `assets/deck_stage.js`。
-- 🛑 **不要默认选单文件而绕过概览墙**——北大 13 页 deck 实测踩坑：选了单文件 = 丢了概览墙，违背 PPT 默认交付形态。选单文件前先确认「这真的是 ≤5 页、且不需要概览墙」。
-
-先读 `references/slide-decks.md` 的「🛑 先定架构」一节，错了会反复踩 CSS 特异性/作用域的坑。
-
-## Starter Components（assets/下）
-
-造好的起手组件，直接copy进项目使用：
-
-| 文件 | 何时用 | 提供 |
-|------|--------|------|
-| `deck_index.html` | **幻灯片的默认基础产物** | **直接复制为 `index.html`、编辑 MANIFEST 即用，不要重写概览逻辑**（三个坑已内建解决）。自带两种自适应概览（网格 iframe 60% / 画廊 40%，画廊需 `thumb` 字段 + 先跑 `scripts/gen_deck_thumbs.mjs`）+ 键盘翻页 + scale + 计数器 + 打印合并。要改先读 `references/slide-decks.md` 三条硬约束 |
-| `scripts/gen_deck_thumbs.mjs` | **给无限画廊概览生成缩略图**（网格 iframe 模式不需要）| playwright 截每页 + sharp 降采样 1600px JPEG：`npm i playwright sharp && node gen_deck_thumbs.mjs --slides slides --out thumbs`，再给 MANIFEST 每项加 `thumb`。分辨率别 <1000px 否则 hover 发虚 |
-| `deck_stage.js` | 做幻灯片（单文件架构，≤10页） | web component：auto-scale + 键盘导航 + slide counter + localStorage + speaker notes ⚠️ **script 必须放在 `</deck-stage>` 之后，section 的 `display: flex` 必须写到 `.active` 上**，详见 `references/slide-decks.md` 的两个硬约束 |
-| `scripts/export_deck_pdf.mjs` | **HTML→PDF 导出（多文件架构）** · 每页独立 HTML 文件，playwright 逐个 `page.pdf()` → pdf-lib 合并。文字保留矢量可搜。依赖 `playwright pdf-lib` |
-| `scripts/export_deck_stage_pdf.mjs` | **HTML→PDF 导出（单文件 deck-stage 架构专用）** · 2026-04-20 新增。处理 shadow DOM slot 导致的「只出 1 页」、absolute 子元素溢出等坑。详见 `references/slide-decks.md` 末节。依赖 `playwright` |
-| `scripts/export_deck_pptx.mjs` | **HTML→可编辑 PPTX 导出** · 调 `html2pptx.js` 导出原生可编辑文本框，文字在 PPT 里双击可直接编辑。**HTML 必须符合 4 条硬约束**（见 `references/editable-pptx.md`），视觉自由度优先的场景请改走 PDF 路径。依赖 `playwright pptxgenjs sharp` |
-| `scripts/html2pptx.js` | **HTML→PPTX 元素级翻译器** · 读 computedStyle 把 DOM 逐元素翻译成 PowerPoint 对象（text frame / shape / picture）。`export_deck_pptx.mjs` 内部调用。要求 HTML 严格满足 4 条硬约束 |
-| `design_canvas.jsx` | 并排展示≥2个静态variations | 带label的网格布局 |
-| `animations.jsx` | 任何动画HTML | Stage + Sprite + useTime + Easing + interpolate |
-| `ios_frame.jsx` | iOS App mockup | iPhone bezel + 状态栏 + 圆角 |
-| `android_frame.jsx` | Android App mockup | 设备bezel |
-| `macos_window.jsx` | 桌面App mockup | 窗口chrome + 红绿灯 |
-| `browser_window.jsx` | 网页在浏览器里的样子 | URL bar + tab bar |
-| `cursor.jsx` | 产品UI演示里的光标操作叙事 | macOS光标4形状 + CursorSprite弧线轨迹（Catmull-Rom+收敛手抖）+ ClickRipple双圈解耦 + hover联动 + GSAP/Stage双驱动，帧确定性 |
-
-用法：读取对应 assets 文件内容 → inline 进你的 HTML `<script>` 标签 → slot 进你的设计。
+需要落地 HTML、React、幻灯片、动画、设备框架或导出工具时，完整读取 `references/implementation-tooling.md`，再按下方路由加载对应专项 reference。纯设计评审不加载实现工具表。
 
 ## References路由表
 
@@ -461,9 +363,11 @@ description: 花叔Design——用HTML做高保真原型、幻灯片、动画、
 | 任务 | 读 |
 |------|-----|
 | 开工前问问题、定方向 | `references/workflow.md` |
-| **App/iOS 原型完整守则**（架构表/取图代码/AppPhone骨架/ios_frame用法） | `references/app-prototype.md` |
-| 反AI slop、内容规范、scale | `references/content-guidelines.md` |
+| **所有新设计、改版和评审的反 AI slop 硬约束** | `references/anti-ai-slop.md` |
+| **App/iOS 原型完整守则**（速查规则 + 架构表/取图代码/AppPhone骨架/ios_frame用法） | `references/app-ios-quick-rules.md` + `references/app-prototype.md` |
+| 内容规范、scale | `references/content-guidelines.md` |
 | 字体排印/字体配对/中文排印 | `references/typography.md` |
+| HTML/React/幻灯片/动画进入制作（实现红线 + Starter Components） | `references/implementation-tooling.md` |
 | React+Babel项目setup | `references/react-setup.md` |
 | 做幻灯片 | `references/slide-decks.md` + `assets/deck_index.html`（默认多文件概览墙）+ `scripts/gen_deck_thumbs.mjs`（画廊缩略图）+ `assets/deck_stage.js`（仅 ≤5 页单文件） |
 | 导出可编辑 PPTX（html2pptx 4 条硬约束） | `references/editable-pptx.md` + `scripts/html2pptx.js` |
@@ -503,14 +407,14 @@ Skill 路径引用均采用**相对本 skill 根目录**的形式（`references/
 
 ### 弱 runtime 降级模式
 
-**触发判定**（满足任一即进入）：无 spawn subagent 能力 / 驱动模型非 Claude / 上下文窗口小的 runtime（Codex、Gemini CLI、Copilot 等）。为什么：按满血流程跑，弱 runtime 中途爆上下文或偷工，产出反而更差（issue #2/#6/#41 用户复现不出效果的根因）。
+**触发判定**（满足任一即进入）：当前 runtime 确实没有 subagent 能力且串行执行出现上下文压力 / 无法安装任务所需依赖 / 上下文窗口不足。**不得仅凭模型品牌或 runtime 名称判弱**；Codex、Trae、Gemini CLI、Copilot 等只要能力足够，就走标准流程。
 
 **降级动作（按吃紧程度逐级启用）**：
-1. 三版并行 → 串行：按上文 Phase 4「不支持 spawn subagent 的 runtime」规则执行（已有规则，直接引用）
-2. 串行仍吃紧 → 只做 1 个主版 + 2 个轻量变体：变体只换色板/换排印，不换布局逻辑（为什么：布局重写最耗上下文，色板/排印变体便宜但仍给用户真实的选择依据）
-3. references 只读当前任务对应的 1 个文件，不全读（为什么：路由表的意义就是按需加载，全读必爆窗口）
-4. deck 默认单文件架构（`assets/deck_stage.js`）（为什么：多文件 + 概览墙依赖多轮文件操作，弱 runtime 容易半途而废留下坏 deck）
-5. 跳过 🛑 检查点问答，改为在产出中标注 assumption 清单（为什么：多轮问答成本高，把「问」换成「可审计的假设」）
+1. 三版并行 → 串行：按上文 Phase 4「不支持 spawn subagent 的 runtime」规则执行；仍须产出 3 个真实方向并停下等用户选择。
+2. 串行仍吃紧 → 缩小每版的页面数、镜头数或细节深度，但三版布局骨架仍须互异；禁止退化为只换色板/排印的换皮方案。
+3. references 按任务路由读取：所有设计任务必读 `anti-ai-slop.md`，再读任务专项；进入制作时再读 `implementation-tooling.md`。不要加载无关 reference，也不得漏掉硬约束。
+4. deck 架构仍按页数与交付要求选型：≥5 页保持多文件 + `deck_index.html`，≤5 页才可用 `deck_stage.js`；可串行逐页完成和验证，不因 runtime 改错架构。
+5. 可把澄清问答压缩为 `direction-approved.md` 中的 assumption 清单，但三方向展示、用户选择和 Gate 文件均不得跳过。
 
 **原则一句话**：降级牺牲多样性和流程，绝不牺牲反 slop 底线和真实资产协议。
 
@@ -526,4 +430,3 @@ Skill 路径引用均采用**相对本 skill 根目录**的形式（`references/
 ## Skill 推广水印（仅动画产出）
 
 **只在动画产出**（HTML 动画 → MP4 / GIF）默认带「**Created by Huashu-Design**」水印；**幻灯片 / 信息图 / 原型 / 网页一律不加**——加了干扰使用。第三方品牌的非官方致敬动画前缀「非官方出品 · 」防 IP 争议；用户说不要就移除。JSX 水印模板见 `references/video-export.md` 末节。
-
