@@ -15,6 +15,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [pe-lecture](#pe-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#pe-lecture) |
 | [pe-trial](#pe-trial) | 体育试讲稿教学产物全流程生成 | [查看](#pe-trial) |
 | [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
+| [tiyu-bishi-meiri](#tiyu-bishi-meiri) | "每天一个体育笔试知识点"帖子 docx 自动生成 | [查看](#tiyu-bishi-meiri) |
 | [zhankai](#zhankai) | "展开说说"系列小红书长帖 docx 自动生成 | [查看](#zhankai) |
 
 ### 🌟 社区精选 · 转载
@@ -113,6 +114,14 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 自动化生成"结构化每日一练"小红书/公众号帖子 docx。基于固定 docx 模板 + python-docx 脚本，自动替换题目文本框、正文段落、分页符并保留配图/引流段样式，答题须经 human-writing 去 AI 味儿（v1.3.2：新增 Pre-flight 三项检查、分题型高分要素、用语禁忌与 IMA 笔记上传）。
 
 触发词：答一道、出题、做一篇结构化帖子、每日一练。
+
+#### tiyu-bishi-meiri
+
+自动化生成「每天一个体育笔试知识点」小红书帖子 docx。基于「体育笔试每日一练」固定模板 + python-docx 脚本，从「讲义库举一反三讲稿」（128 篇）中按模块顺序选题，自动套版式：封面大标题 + 单选题引出知识点，中间 2 页考点解析（图表优先，表格自适应列宽），最后一页考法提醒 + 话题标签 + 引流段，答题须经 human-writing 去 AI 味儿。内置选题进度追踪、快照回滚与全字段校验。
+
+触发词：每天一个体育笔试知识点、体育笔试每日一练、出一期体育笔试知识点。
+
+> 注意：本 skill 涉及大量业务工作区路径，文档中为本机绝对路径，使用前请替换为实际路径。
 
 #### zhankai
 
