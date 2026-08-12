@@ -32,7 +32,7 @@ description: 自动化生成「每天一个体育笔试知识点」小红书帖�
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/progress_sports.json` | 选题进度 |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/_snapshots_sports/` | 快照（回退用） |
 
-> 项目镜像与 skill 自带脚本逐字节一致，二选一运行皆可。若使用 skill 自带脚本，需先设置 `SPORTS_DAILY_WORKSPACE` 指向真实项目根（`体育教师编` 的父目录，即 `.../01-Projects/自媒体内容库-持续项目`）；脚本会据此定位模板、进度与输出目录。未设置时默认取脚本所在目录的父目录，通常只适用于 skill 自带脚本的隔离自测。
+> 项目镜像与 skill 自带脚本逐字节一致，二选一运行皆可。若使用 skill 自带脚本，需先设置 `SPORTS_DAILY_WORKSPACE` 指向 `体育教师编` 项目目录本身（即 `.../01-Projects/自媒体内容库-持续项目/体育教师编`）；脚本以它为根定位 `模板文件/`、`desktop-attachments/` 与 `scripts/`。注意指向其父目录会导致模板、pending JSON、快照路径全部解析错误。未设置时默认取 `scripts/` 的父目录（即 skill 根目录），仅适用于隔离自测。
 
 Python：优先用当前会话提供的捆绑 Python（已装 python-docx 1.2.0）；若运行时缺失，可临时装到 /tmp 环境（`python3 -m venv /tmp/tyt_venv && /tmp/tyt_venv/bin/python -m pip install python-docx`，需要联网授权），只用临时环境，不许改系统。系统 python3 默认没有 docx，别直接用它。
 
@@ -93,7 +93,7 @@ Python：优先用当前会话提供的捆绑 Python（已装 python-docx 1.2.0�
 
 ### 步骤 4：去 AI 味儿（必跑）
 
-触发 human-writing skill，对 `points`、`exam_tips` 及 `answer` 中固定答案前缀之后的解析句重写。若 human-writing 不可用，🔴 STOP，不得静默降级。硬禁令：
+触发去 AI 味儿 skill（Codex 环境为 human-writing，WorkBuddy 环境为 humanizer-zh），对 `points`、`exam_tips` 及 `answer` 中固定答案前缀之后的解析句重写。若当前环境没有任何等价 skill，🔴 STOP，不得静默降级。硬禁令：
 
 - `answer` 必须保留 `答案：X。` 固定前缀；这个冒号是唯一例外。其余正文中的冒号、破折号（——）清零，改逗号或句号。
 - 禁「体现/彰显/凸显/值得注意的是/此外/综上所述」等 AI 腔。
@@ -103,7 +103,15 @@ Python：优先用当前会话提供的捆绑 Python（已装 python-docx 1.2.0�
 
 ```bash
 cd "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目"
-/Users/shawn/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 体育教师编/scripts/fill_sports_daily_post.py
+# 按优先级选第一个能 import docx 的 Python：会话捆绑 > 项目历史路径 > 临时 venv
+PY=""
+for cand in "$BUNDLED_PYTHON" \
+  "/Users/shawn/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3" \
+  /tmp/tyt_venv/bin/python; do
+  if [ -n "$cand" ] && [ -x "$cand" ] && "$cand" -c "import docx" 2>/dev/null; then PY="$cand"; break; fi
+done
+[ -n "$PY" ] || { echo "无可用 python-docx 环境，按关键路径节建 /tmp/tyt_venv 后重试"; exit 1; }
+"$PY" 体育教师编/scripts/fill_sports_daily_post.py
 ```
 
 只有输出同时出现 `✅ 全部通过` 和 `✅ pending_sports_daily.json 已删除`，才算生成成功。
@@ -121,8 +129,8 @@ cd "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目
 | 指定讲稿重复、定位不唯一或全库已完成 | 🔴 STOP，报告已完成项或列出候选 | 请领导改选；不得覆盖、重复追加或自行换题 |
 | 讲稿事实冲突，或找不到能满足表格规格的单一考点 | 🔴 STOP，引用具体冲突或缺口 | 等领导裁决；不得凭外部知识补齐 |
 | JSON 字段、字数或表格校验失败 | 根据原始错误只修 `pending_sports_daily.json`，再重跑 | 不改脚本阈值，不删字段，不用 `|| true` 绕过 |
-| 提示“表格锚点未唯一命中” | 让 `points[1]`、`points[3]` 分别成为正文中的唯一文本；即使只有 1 张表，两处也都要唯一 | 若源模板占位符异常，🔴 STOP 并报告；不得修改源模板 |
-| 写入或自动验证失败 | 先确认终端是否打印“已回滚工作副本到快照”；已回滚则不要再手工复制 | 自动回滚失败时复制本次日志明确指出的快照；首次运行无快照时，用只读源模板重置工作副本 |
+| 提示“表格锚点 {POINT_2}/{POINT_4} 命中 N 处（期望 1）” | 🔴 STOP 并报告错误原文。锚点取自源模板占位符、与 points 文本无关；预检通过后此错误只可能是源模板损坏 | 交由模板维护者恢复源模板；不得修改源模板，也不得靠改 points 文本绕过 |
+| 写入或自动验证失败 | 无需回滚：构建与验证全程在临时副本上进行，失败时终端打印“旧工作副本未改动”（首次运行为“未留下半成品”），工作副本保持失败前状态 | 只修 `pending_sports_daily.json` 后重跑；若怀疑工作副本早已损坏（与本次运行无关），才从 `_snapshots_sports/` 最新快照或只读源模板手工恢复 |
 | 失败后找不到 `pending_sports_daily.json` | 🔴 STOP，保留现场并核对完整日志 | 不从半成品 DOCX 反推 JSON，不继续更新进度 |
 | DOCX 成功但进度写入失败 | 保留成功 DOCX，只修复并复核进度 JSON | 不重跑填充脚本，避免重复覆盖和制造误导快照 |
 
@@ -131,16 +139,16 @@ cd "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目
 ## 🔴 STOP 与反例黑名单
 
 - 不把 `last_done` 当自动续题游标；默认始终补 `done` 中全库第一篇缺口。
-- 不在进度缺失、重复选题、定位不唯一、源材料冲突或 human-writing 不可用时继续写文件。
+- 不在进度缺失、重复选题、定位不唯一、源材料冲突或去 AI 味儿 skill 不可用时继续写文件。
 - 不修改讲稿源、源模板、品牌底版、固定引流段或脚本校验阈值。
-- 不把脚本已完成的自动回滚再覆盖成目录里笼统的“最新快照”。
+- 不在脚本失败后用手工快照覆盖工作副本；失败时它从未被修改，覆盖只会制造误导现场。
 - 不在脚本成功前更新进度，也不为补写进度而重跑成功的填充脚本。
 - 不绕过校验、不静默降级、不用外部常识修补讲稿没有给出的事实。
 
 ## 模板与脚本铁律
 
 - 源模板、底版、讲稿源只读；只允许新增/覆盖 `desktop-attachments/` 工作副本与 `scripts/` 下自己的文件。
-- 脚本每次跑前自动快照到 `_snapshots_sports/`（保留最近 10），写入或验证失败时会自动恢复本轮快照。仅当日志显示自动恢复失败时，才按“失败恢复”表手工处理。
+- 脚本在提交前一刻把旧工作副本快照到 `_snapshots_sports/`（保留最近 10），仅供事后回退。构建与验证全程在临时副本上进行、通过后才原子替换工作副本，因此失败时旧副本从未被触碰，不存在也不需要自动回滚。
 - 固定引流段、封面大标题、页眉页脚、封面背景不许改；脚本验证发现改动会失败。
 - 脚本验证失败时 JSON 会原样保留，终端打印 `[KEEP]` 提示；按错误修 JSON 重跑，不许绕过校验、不许 `|| true`、不许改脚本阈值。
 - 同篇讲稿不许重复出帖；重复会破坏「每天一个」的连续感。
@@ -161,5 +169,5 @@ cd "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目
 □ 答案、4 段解析、5 条考法提醒、话题标签全部命中
 □ 脚本两条成功提示均出现后，progress_sports.json 才更新且回读通过
 □ 已完成讲稿未重复，讲稿内部无待裁决事实冲突
-□ human-writing 已实际执行，无静默降级
+□ 去 AI 味儿 skill 已实际执行，无静默降级
 ```

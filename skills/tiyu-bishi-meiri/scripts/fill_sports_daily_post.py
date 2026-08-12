@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-fill_sports_daily_post.py v1.4
+fill_sports_daily_post.py v1.5
 ==============================
 
 「体育笔试每日一练」帖子填充脚本。
+
+v1.5 变更：封面输出校验改为按段落拼接比对（与源模板预检口径一致），
+容忍 WPS 编辑造成的单段多 run，避免预检通过、输出校验必败的死循环。
 
 流程：
   1. agent 把新一篇内容写到 scripts/pending_sports_daily.json
@@ -428,8 +431,14 @@ def validate_output(data, path=TEMPLATE_PATH):
     if len(txbx_list) != EXPECTED_TXBX:
         errors.append(f"文本框数异常：{len(txbx_list)}（期望 {EXPECTED_TXBX}）")
     else:
-        t0 = [t.text or "" for t in txbx_list[0].findall('.//' + qn('w:t'))]
-        t1 = [t.text or "" for t in txbx_list[1].findall('.//' + qn('w:t'))]
+        def _cover_lines(txbx):
+            return [
+                "".join(t.text or "" for t in p.findall(".//" + qn("w:t")))
+                for p in txbx.findall(qn("w:p"))
+            ]
+
+        t0 = _cover_lines(txbx_list[0])
+        t1 = _cover_lines(txbx_list[1])
         if t0 != t1:
             errors.append("封面文本框 2 处镜像不一致")
         if not t0 or t0[0] != COVER_TITLE:
