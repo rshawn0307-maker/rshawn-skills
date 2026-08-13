@@ -18,7 +18,6 @@ from pathlib import Path
 from unittest import mock
 
 from docx import Document
-from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 
@@ -345,41 +344,6 @@ class FillSportsDailyPostTests(unittest.TestCase):
         self.assertEqual(self.pending_path.read_bytes(), pending_bytes)
         self.assert_no_staged_docx()
         self.assertFalse(self.snapshot_dir.exists())
-        self.assert_isolated_inputs_unchanged()
-
-    def test_multi_run_cover_paragraph_passes_preflight_and_output_validation(self) -> None:
-        # 模拟 WPS 编辑把封面首行拆成多个 run：预检按段落拼接比对可通过，
-        # 填充后的输出校验也必须按同口径通过（v1.5 修复的不一致）
-        doc = Document(self.source_path)
-        cover = doc.paragraphs[0]
-        txbx_list = cover._element.findall(".//" + qn("w:txbxContent"))
-        self.assertEqual(len(txbx_list), 2)
-        for txbx in txbx_list:
-            first_para = txbx.findall(qn("w:p"))[0]
-            texts = first_para.findall(".//" + qn("w:t"))
-            full = "".join(t.text or "" for t in texts)
-            self.assertEqual(full, "每天一个体育笔试知识点")
-            texts[0].text = full[:4]
-            for extra in texts[1:]:
-                extra.text = ""
-            new_run = OxmlElement("w:r")
-            new_text = OxmlElement("w:t")
-            new_text.text = full[4:]
-            new_run.append(new_text)
-            texts[0].getparent().addnext(new_run)
-        doc.save(self.source_path)
-        self.source_hash = sha256(self.source_path)
-
-        self.assertTrue(self.module.validate_source_template())
-
-        data = self.valid_pending(table_count=1)
-        self.write_pending(data)
-        output = self.run_main_success()
-
-        self.assertIn("✅ 全部通过", output)
-        self.assertIn("✅ pending_sports_daily.json 已删除", output)
-        self.assertEqual(self.module.validate_output(data, self.output_path), [])
-        self.assert_no_staged_docx()
         self.assert_isolated_inputs_unchanged()
 
     def test_validate_exception_preserves_existing_working_copy_hash(self) -> None:

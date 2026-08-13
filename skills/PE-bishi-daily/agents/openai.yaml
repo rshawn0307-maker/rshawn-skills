@@ -1,4 +1,4 @@
 interface:
   display_name: "体育笔试每日一练"
   short_description: "从举一反三讲稿自动生成体育教师编每日知识点帖子文档"
-  default_prompt: "Use $tiyu-bishi-meiri to generate the next 体育笔试每日一练 DOCX from the lecture library."
+  default_prompt: "Use $PE-bishi-daily to generate the next 体育笔试每日一练 DOCX from the lecture library."
