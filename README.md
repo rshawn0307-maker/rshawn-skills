@@ -1,4 +1,4 @@
-# 🧰 rshawn-skills
+﻿# 🧰 rshawn-skills
 
 Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每个 skill 都是自包含目录（`SKILL.md` + 可选 `scripts/`、`references/`），适用于 Claude Code、Codex、Cursor、Trae 等支持 Agent Skills 的工具。
 
@@ -12,8 +12,8 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | --- | --- | --- |
 | [gongkao](#gongkao) | 公考面试结构化讲义全产品工具（6 个工作流） | [查看](#gongkao) |
 | [ima-skill](#ima-skill) | 统一的 IMA 笔记与知识库操作技能 | [查看](#ima-skill) |
-| [pe-lecture](#pe-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#pe-lecture) |
-| [pe-trial](#pe-trial) | 体育试讲稿教学产物全流程生成 | [查看](#pe-trial) |
+| [PE-lecture](#PE-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#PE-lecture) |
+| [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成 | [查看](#PE-trial) |
 | [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
 | [zhankai](#zhankai) | "展开说说"系列小红书长帖 docx 自动生成 | [查看](#zhankai) |
@@ -97,13 +97,13 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 触发词：知识库、笔记、备忘录、帮我记一下、上传文件到知识库、搜一下知识库里有没有 XX。
 
-#### pe-lecture
+#### PE-lecture
 
 教师编体育笔试"举一反三"讲稿的成体系生成与反例沉淀。基于招教体育讲义库，按 8 节结构 + 引用/口诀/双链硬约束批量产出讲稿；内置 R1-R20 实战反例（拆分为独立 references/核心反例_R1-R20.md）、六维度横评机制（全库审核打分）、双视角授课提示与 v2 修订说明模板，md→Word 采用通用提示词（v3.8 替代旧合并脚本，v3.9 新增代码思维导图/时间线转图提示词）。另有讲义库完整 SOP v3.4 与版本记录/专项经验两个维护型 reference。
 
 > 注意：本 skill 涉及大量业务工作区路径，文档中统一使用 `<项目根>`、`<用户目录>`、`<临时目录>`、`<Python 环境>` 占位符，使用前请替换为实际路径。
 
-#### pe-trial
+#### PE-trial
 
 生成体育试讲稿教学产物（教学设计/试讲稿/队形图/自检表），含初始化、子技术识别、并行生产、六维度横评、问题修复、备考讲义生成全流程，支持基于教材批量开发新运动项目。
 

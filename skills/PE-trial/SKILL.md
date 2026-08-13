@@ -1,5 +1,5 @@
----
-name: "pe-trial"
+﻿---
+name: "PE-trial"
 description: "生成体育试讲稿教学产物（教学设计/试讲稿/队形图/自检表），含初始化、子技术识别、并行生产、六维度横评、问题修复、备考讲义生成全流程。当用户需基于教材生成体育试讲稿或开发新运动项目时调用。"
 ---
 
@@ -627,7 +627,7 @@ Phase 1: 项目初始化 → Phase 2: 子技术识别 → Phase 3: 并行生产 
 │   └── 进度_01_篮球.md
 ├── 02排球/
 │   └── ...
-└── skills/pe-trial/
+└── skills/PE-trial/
     ├── SKILL.md
     └── generate_lecture.py              ← Phase 6 脚本
 ```
