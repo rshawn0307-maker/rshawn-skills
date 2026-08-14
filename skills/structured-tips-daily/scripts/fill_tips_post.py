@@ -47,8 +47,8 @@ BACKUP_PATH = SCRIPT_DIR / "_backup_template_技巧原版.docx"
 SNAPSHOT_DIR = SCRIPT_DIR / "_snapshots_tips"
 MAX_SNAPSHOTS = 10
 
-COVER_PREFIX = "答题技巧："      # 段[0] 文本框前缀（2 镜像同步）
-HASHTAG_COLOR = "85120F"        # 引流段颜色（品牌铁律，段[15] 固定）
+COVER_PREFIX = "结构化答题技巧："  # 段[0] 文本框前缀（2 镜像同步）
+HASHTAG_COLOR = "85120F"        # 引流段颜色（品牌铁律，段[16] 固定）
 
 
 def take_snapshot():
@@ -64,22 +64,25 @@ def take_snapshot():
     return snapshot_path
 
 
-# ===== 段位映射（技巧教学型） =====
+# ===== 段位映射（技巧教学型，段[7] 为"怎么答？"蓝色标题，不动） =====
 REPLACE_MAP = [
     (2, "question_type"),
     (3, "tip_intro"),
     (4, "step1"),
     (5, "step2"),
     (6, "step3"),
-    (7, "case_normal"),
-    (8, "case_normal_note"),
-    (9, "case_high"),
-    (10, "case_high_note"),
-    (11, "pitfalls_lead"),
-    (12, "pitfalls"),
-    (13, "tip_takeaway"),
-    (14, "hashtags"),
+    (8, "case_normal"),
+    (9, "case_normal_note"),
+    (10, "case_high"),
+    (11, "case_high_note"),
+    (12, "pitfalls_lead"),
+    (13, "pitfalls"),
+    (14, "tip_takeaway"),
+    (15, "hashtags"),
 ]
+
+# 普通答法 / 高分答法 段首固定 emoji（用户指定）
+EMOJI_PREFIX = {8: "🙅♂️", 10: "👍"}
 
 
 def resolve_content(content: dict, key: str):
@@ -152,19 +155,19 @@ def validate_output():
     doc = Document(TEMPLATE_PATH)
     errors = []
 
-    if len(doc.paragraphs) != 17:
-        errors.append(f"段数异常: {len(doc.paragraphs)} (期望 17)")
+    if len(doc.paragraphs) != 18:
+        errors.append(f"段数异常: {len(doc.paragraphs)} (期望 18)")
 
     img_total = sum(len(p._element.findall('.//' + qn('w:drawing'))) for p in doc.paragraphs)
-    if img_total != 5:
-        errors.append(f"图片总数: {img_total} (期望 5)")
+    if img_total != 4:
+        errors.append(f"图片总数: {img_total} (期望 4)")
 
-    p15 = doc.paragraphs[15]
-    r0 = p15.runs[0]
-    if not (p15.alignment == 1 and r0.bold is True and str(r0.font.color.rgb) == HASHTAG_COLOR):
-        errors.append("引流段样式丢失（段[15] 须加粗 + #85120F + 居中）")
+    p16 = doc.paragraphs[16]
+    r0 = p16.runs[0]
+    if not (p16.alignment == 1 and r0.bold is True and str(r0.font.color.rgb) == HASHTAG_COLOR):
+        errors.append("引流段样式丢失（段[16] 须加粗 + #85120F + 居中）")
 
-    # 段[0] 文本框：2 个 + 前缀"答题技巧："
+    # 段[0] 文本框：2 个 + 前缀"结构化答题技巧："
     txbx_count = 0
     for txbx in doc.paragraphs[0]._element.iter(qn('w:txbxContent')):
         txbx_count += 1
@@ -176,10 +179,13 @@ def validate_output():
     if txbx_count != 2:
         errors.append(f"段[0] 文本框数: {txbx_count} (期望 2)")
 
-    # 段[7] 应有 pageBreakBefore（正文从第 3 页开始）
-    p7_pPr = doc.paragraphs[7]._element.find(qn('w:pPr'))
-    if p7_pPr is None or p7_pPr.find(qn('w:pageBreakBefore')) is None:
-        errors.append("段[7] 缺 pageBreakBefore（正文应从第 3 页开始）")
+    # 段[7] 应为"怎么答？"蓝色标题（Heading 2），且不再强制分页
+    p7 = doc.paragraphs[7]
+    if p7.style.name != "Heading 2" or "怎么答" not in p7.text:
+        errors.append(f"段[7] 应为'怎么答？'蓝色标题，当前: {p7.text!r} / {p7.style.name}")
+    p7_pPr = p7._element.find(qn('w:pPr'))
+    if p7_pPr is not None and p7_pPr.find(qn('w:pageBreakBefore')) is not None:
+        errors.append("段[7] 不应有 pageBreakBefore（普通答法不另起一页）")
 
     return errors
 
@@ -220,10 +226,9 @@ def main():
     for para_idx, key in REPLACE_MAP:
         para = doc.paragraphs[para_idx]
         new_text = resolve_content(content, key)
+        if para_idx in EMOJI_PREFIX:
+            new_text = EMOJI_PREFIX[para_idx] + new_text
         replace_run_text_safely(para, new_text)
-
-    print(f"[2.6/4] 锁定版式：段[7] 正文首段强制 pageBreakBefore")
-    ensure_pagebreak_before(doc.paragraphs[7])
 
     print(f"[3/4] 保存到 {TEMPLATE_PATH.name}")
     doc.save(TEMPLATE_PATH)
@@ -238,8 +243,8 @@ def main():
         sys.exit(1)
 
     print(f"[OK] 全部验证通过！")
-    print(f"     ✅ 段数 17")
-    print(f"     ✅ 5 张图片全在")
+    print(f"     ✅ 段数 18")
+    print(f"     ✅ 4 张图片全在")
     print(f"     ✅ 引流段样式保留")
     print(f"[CLEAN] 清理 pending_tips.json")
     PENDING_JSON.unlink()
