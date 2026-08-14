@@ -1,0 +1,4 @@
+interface:
+  display_name: "体育试讲设计每日一练"
+  short_description: "从教师用书自动拆解教学环节并生成体育试讲设计每日帖子文档"
+  default_prompt: "Use $PE-trial-daily to generate the next 体育试讲设计每日一练 DOCX from the teacher's book activities."

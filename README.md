@@ -14,6 +14,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [ima-skill](#ima-skill) | 统一的 IMA 笔记与知识库操作技能 | [查看](#ima-skill) |
 | [PE-lecture](#PE-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#PE-lecture) |
 | [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成 | [查看](#PE-trial) |
+| [PE-trial-daily](#PE-trial-daily) | 体育试讲设计每日一练：拆解教学环节 + 图例 + 试讲逐字稿 docx 自动生成 | [查看](#PE-trial-daily) |
 | [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
 | [zhankai](#zhankai) | "展开说说"系列小红书长帖 docx 自动生成 | [查看](#zhankai) |
@@ -108,6 +109,16 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 生成体育试讲稿教学产物（教学设计/试讲稿/队形图/自检表），含初始化、子技术识别、并行生产、六维度横评、问题修复、备考讲义生成全流程，支持基于教材批量开发新运动项目。
 
 > 注意：`generate_lecture.py` 顶部的 `BASE_DIR` / `OUTPUT_PATH` 使用 `<项目根>` 占位符，运行前请替换为实际路径。
+
+#### PE-trial-daily
+
+自动化生成「体育试讲设计每日一练」小红书帖子 docx，并可同步上传 ima 知识库「A-00 体育试讲设计每日一练」。基于 python-docx 从零构建品牌化 DOCX（深蓝封面 + 图例区 + 六维度环节拆解 + 易犯错误表格 + 试讲逐字稿 + 引流页），从人教版教师用书 313 个活动中每日拆解一个教学环节（热身游戏/体能游戏/练习环节），拆解成环节名称、活动方法、规则、设计意图、组织形式，练习环节另含易犯错误与纠正，最后串联成试讲逐字稿。内置选题进度追踪、快照回滚、原子提交与全字段校验。
+
+图例处理：教师用书 PDF 均为纯扫描件（无文本层），内置 `build_ocr_index.py`（macOS Swift Vision OCR）+ `extract_pdf_image.py` 建立页索引并把 MD 中的「图3-2-7」映射到 PDF 页码渲染整页图，自动修正 180° 旋转。
+
+触发词：体育试讲每日一练、试讲设计每日一练、出一期体育试讲设计。
+
+> 注意：本 skill 涉及大量业务工作区路径，文档中为本机绝对路径，使用前请替换为实际路径。
 
 #### structured-post
 
