@@ -1,0 +1,4 @@
+interface:
+  display_name: "结构化答题技巧每日一练"
+  short_description: "从公考结构化题库索引自动选题并生成答题技巧小红书爆款图文帖子文档"
+  default_prompt: "Use $structured-tips-daily to generate the next 结构化答题技巧每日一练 DOCX from the question bank tips index."

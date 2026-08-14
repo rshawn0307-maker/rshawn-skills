@@ -117,11 +117,48 @@ def run_test():
         checks["试讲逐字稿"] = "试讲逐字稿" in text
         checks["引流段"] = CYAN_LEGACY in text
         checks["话题标签"] = pending["hashtags"] in text
-        # 图例图片数
+        # 图例图片数（仅统计行内 figure，封面底层背景图为锚定图不计入）
         img_count = sum(
-            len(p._element.findall(".//" + qn("w:drawing"))) for p in doc.paragraphs
+            len(p._element.findall(".//" + qn("wp:inline"))) for p in doc.paragraphs
         )
         checks["图例图片"] = img_count == 1
+        # 封面底层背景图（behindDoc 锚定）
+        anchors = doc.element.body.findall(".//" + qn("wp:anchor"))
+        checks["封面底层图"] = any(a.get("behindDoc") == "1" for a in anchors)
+        # 页眉斜向水印
+        checks["页眉水印"] = all(
+            "PowerPlusWaterMarkObject" in s.header._element.xml for s in doc.sections
+        )
+        # 封面大标题字号 48
+        title_sizes = [
+            r.font.size.pt for p in doc.paragraphs for r in p.runs
+            if r.text.strip() == "体育试讲设计每日一练" and r.font.size
+        ]
+        for tb in doc.tables:
+            for row in tb.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        title_sizes += [
+                            r.font.size.pt for r in p.runs
+                            if r.text.strip() == "体育试讲设计每日一练" and r.font.size
+                        ]
+        checks["封面标题48pt"] = any(s >= 47 for s in title_sizes)
+        # 有图例时环节拆解另起一页
+        titles = [i for i, p in enumerate(doc.paragraphs) if p.text.strip() == "环节拆解"]
+        checks["环节拆解另起一页"] = bool(titles) and bool(
+            doc.paragraphs[titles[0] - 1]._element.findall(".//" + qn("w:br"))
+        )
+        # 引流两行不另起一页：hashtags 段前紧邻段落不得含分页符
+        body = [p for p in doc.paragraphs if p.text.strip()]
+        hs_p = body[-2] if body and body[-1].text.strip() == CYAN_LEGACY else None
+        no_page_break = True
+        if hs_p is not None:
+            prev = hs_p._element.getprevious()
+            if prev is not None and prev.tag == qn("w:p"):
+                for br in prev.findall(".//" + qn("w:br")):
+                    if br.get(qn("w:type")) == "page":
+                        no_page_break = False
+        checks["引流不另起页"] = no_page_break
 
         failed = [k for k, v in checks.items() if not v]
         for k, v in checks.items():

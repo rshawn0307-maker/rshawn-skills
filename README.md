@@ -16,8 +16,8 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成 | [查看](#PE-trial) |
 | [PE-trial-daily](#PE-trial-daily) | 体育试讲设计每日一练：拆解教学环节 + 图例 + 试讲逐字稿 docx 自动生成 | [查看](#PE-trial-daily) |
 | [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
+| [structured-tips-daily](#structured-tips-daily) | "结构化答题技巧·每日一练"小红书爆款图文帖子 docx 自动生成 | [查看](#structured-tips-daily) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
-| [zhankai](#zhankai) | "展开说说"系列小红书长帖 docx 自动生成 | [查看](#zhankai) |
 
 ### 🌟 社区精选 · 转载
 
@@ -78,7 +78,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 复制 `SKILL.md` 的内容作为项目规则文件（如 `CLAUDE.md` / `AGENTS.md`）的参考，或直接粘贴给 Agent 作为系统提示词。
 
-> 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、zhankai 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
+> 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
 > 提示：huashu-design 体积较大（约 30MB，含动画模板、音效与案例资源），请整目录复制，不要只拷 SKILL.md。
 
@@ -134,11 +134,11 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 注意：本 skill 涉及大量业务工作区路径，文档中为本机绝对路径，使用前请替换为实际路径。
 
-#### zhankai
+#### structured-tips-daily
 
-自动化生成"考官想听的·展开说说"系列小红书长帖 docx。站在公务员结构化面试考官视角剖析答题思路，按小红书节奏打磨（标题钩子/短句/emoji/互动钩子/话题标签），基于固定 docx 模板（48 段 + 1 表格）自动替换内容。
+自动化生成"结构化答题技巧·每日一练"小红书爆款图文帖子 docx。围绕公考结构化面试的答题技巧和思路，用上岸过来人 + 考官视角，按小红书爆款节奏（标题钩子/短句/emoji/普通 vs 高分对照/避坑提醒/话题标签）打磨。基于固定 docx 模板（17 段）+ python-docx 脚本自动替换，从题库索引（tips_index.json，36 条覆盖六大题型）选题防重复，答题须经 human-writing 去 AI 味儿，可同步 ima 知识库「总分总」→「00_结构化答题技巧」。
 
-触发词：展开说说、做一篇考官想听的、出一期长帖、跑第 N 期。
+触发词：出一期答题技巧、技巧每日一练、答题思路、结构化答题技巧。
 
 ### 🌟 社区精选 · 转载
 
@@ -257,7 +257,7 @@ bash scripts/sync-khazix.sh --push # 更新并自动 commit + push
 
 脚本会从 khazix-skills 拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。
 
-`gongkao`、`structured-post`、`zhankai` 三个 skill 的工作流依赖 human-writing，其规则引用一律以 human-writing 最新版为准（不锁版本号）。human-writing 更新后运行同步脚本，脚本会自动校验这三个 skill 的引用与硬禁令要点（冒号/破折号/翻案腔）是否齐全，缺失会明确提示。
+`gongkao`、`structured-post`、`structured-tips-daily` 三个 skill 的工作流依赖 human-writing，其规则引用一律以 human-writing 最新版为准（不锁版本号）。human-writing 更新后运行同步脚本，脚本会自动校验这三个 skill 的引用与硬禁令要点（冒号/破折号/翻案腔）是否齐全，缺失会明确提示。
 
 ## 同步花叔来源 skill
 
