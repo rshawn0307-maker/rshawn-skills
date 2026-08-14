@@ -10,7 +10,7 @@
  *   argv[2] = Markdown 文件路径（临时生成的 md 文件）
  *   argv[3] = 笔记标题（含时间戳，如 "应急排序_20260814_153000"）
  *
- * 流程：读取 md -> 创建 IMA 笔记 -> 搜索"总分总"知识库 -> 搜索"考官思维"文件夹 -> 添加到知识库
+ * 流程：读取 md -> 创建 IMA 笔记 -> 搜索"总分总"知识库 -> 搜索"00_结构化考官思维"文件夹 -> 添加到知识库
  * 上传失败不阻断主流程，在 stderr 输出警告即可。
  */
 const fs = require('fs');
@@ -18,7 +18,7 @@ const path = require('path');
 const { imaApi } = require(path.join(__dirname, '..', '..', 'ima-skill', 'ima_api.cjs'));
 
 const FOLDER_NAME = '结构化答题技巧';
-const KB_FOLDER = '考官思维';
+const KB_FOLDER = '00_结构化考官思维';
 
 async function main() {
   const mdPath = process.argv[2];
