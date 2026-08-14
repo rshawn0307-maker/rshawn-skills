@@ -213,7 +213,7 @@ python scripts/fill_tips_post.py
 ```bash
 node <skill目录>/scripts/upload_to_ima.js "<临时md文件路径>" "<笔记标题>"
 ```
-5. 脚本自动同步到「总分总」知识库的「00_结构化答题技巧」文件夹（找不到文件夹降级到根目录，不阻断）
+5. 脚本自动同步到「总分总」知识库的「考官思维」文件夹（找不到文件夹降级到根目录，不阻断）
 
 **IMA 失败重试**：返回 `⚠️ IMA上传失败` 则检查 ima_api.cjs 存在 + 登录状态，重试 1 次；仍失败跳过上传，本地已跑完不受影响，报告标注"IMA 未同步"。
 
@@ -261,7 +261,7 @@ node <skill目录>/scripts/upload_to_ima.js "<临时md文件路径>" "<笔记标
 □ 去 AI 味儿标记：无 human-writing_fallback.txt（有=走了降级）
 □ progress_tips.json 已追加本次 id
 □ IMA 笔记已上传（note_id 已记录在报告中）
-□ IMA 知识库已同步（笔记已关联"总分总"→"00_结构化答题技巧"）
+□ IMA 知识库已同步（笔记已关联"总分总"→"考官思维"）
 ```
 
 ## 失败回退
