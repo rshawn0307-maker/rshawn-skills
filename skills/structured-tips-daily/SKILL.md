@@ -2,7 +2,7 @@
 name: structured-tips-daily
 description: 自动化生成"结构化答题技巧·每日一练"小红书爆款图文帖子 docx。围绕公考结构化面试的答题技巧和思路，用上岸过来人+考官视角，按小红书爆款节奏（标题钩子/短句/emoji/普通vs高分对照/避坑提醒/话题标签）产出。基于固定 docx 模板（18 段）+ python-docx 引擎原子替换，从题库索引选题防重复，答题须经 human-writing 去 AI 味儿。触发词：出一期答题技巧、技巧每日一练、答题思路、结构化答题技巧。
 author: Shawn × AI（2026-08 沉淀）
-version: 2.0.0
+version: 2.1.0
 metadata:
   triggers:
     - 出一期答题技巧
@@ -72,6 +72,8 @@ ls "<项目根>/desktop-attachments/3 结构化答题技巧-帖子内容编辑�
 python3 -c "import docx; print('docx', docx.__version__)"   # 期望 1.2.0
 ```
 
+**【命令陷阱】**：本机默认 `python` 命令不存在，一律用 `python3` / `pip3`（含所有文档示例与手工操作）。
+
 **【包名陷阱】**：`pip install docx` 会装同名垃圾包。必须 `pip install python-docx`。
 
 ## 文件清单
@@ -120,6 +122,8 @@ python3 -c "import docx; print('docx', docx.__version__)"   # 期望 1.2.0
 
 重点扫：公考 AI 高危词（体现/彰显/凸显/深入推进/全面落实）、三段式凑数、破折号清零、否定式排比最多 1 处、模糊归因、万能收束。
 
+**边界（冲突处理）**：human-writing 的"正文严禁冒号"等通用红线**不适用于本 skill 的固定格式**。各字段前缀（"适用题型：""第一步：""普通答法：""点评：""避坑提醒："）是模板契约的一部分，human-writing 只改**冒号后的正文措辞**；不得动前缀、不得删改 hashtag 内容与数量、不得给标签行加标点、不得动 emoji 摆位。
+
 **优先路径**：触发 human-writing skill 对 14 个字段逐个/合并重写。**降级**：调用失败时按 content-strategy.md「去 AI 化红线」手动改写，并在工作目录写 `human-writing_fallback.txt` 标注。
 
 **🔴 CHECKPOINT · STOP** -> 把前后对比关键改写点（3-5 处）展示给用户，弹窗确认（"够自然，继续" / "还是像AI，再调"）。
@@ -162,9 +166,10 @@ python3 <本skill目录>/scripts/fill_tips_post.py --project-root "<项目根>"
 | 0 | 成功，模板已原子替换，pending 已清理 | 进步骤 5 |
 | 1 | 环境错误（pending 缺失 / 模板缺失或损坏） | 修环境后重跑，模板未被动过 |
 | 2 | pending JSON 无效（语法 / UTF-8 / 缺字段 / 多字段 / 标题超 20 字） | 按报错改 JSON 后重跑 |
-| 3 | 写入后验证失败 | 模板字节不变，按 errors 改内容后重跑 |
+| 3 | 写入后验证失败（结构 / 内容 / **样式指纹漂移**） | 模板字节不变，按 errors 改内容后重跑 |
+| 4 | 模板已替换但 pending 清理失败 | 模板已**自动回滚**为写入前字节，pending 保留；修 scripts 目录权限后重跑即可 |
 
-**安全保证**：引擎先写临时文件、验证通过后才原子替换模板；任何失败模板字节不变，pending 保留排查。写入前自动生成快照。
+**安全保证**：引擎先写临时文件、验证（结构 + 内容 + 逐段样式指纹 pPr/rPr 零漂移）通过后才原子替换模板；任何失败（含退出码 4 的清理失败，自动回滚）模板字节不变，pending 保留排查。写入前自动生成快照。
 
 ### 步骤 5：更新完成记录 + 报告
 
@@ -179,11 +184,11 @@ python3 <本skill目录>/scripts/fill_tips_post.py --project-root "<项目根>"
 2. 写临时 md 到系统临时目录，调用：
 
 ```bash
-node <本skill目录>/scripts/upload_to_ima.js "<临时md路径>" "<笔记标题>"
+node <本skill目录>/scripts/upload_to_ima.js "<临时md路径>" "<笔记标题>" [--fresh]
 ```
 
-3. 退出码：0 = 笔记 + 知识库同步成功（文件夹缺失降级库根目录仍为 0）；1 = 用法/文件错；2 = 依赖缺失或笔记创建失败；3 = 笔记成功但知识库同步失败（note_id 已给出，报告中如实标注）
-4. 失败重试 1 次；仍失败则跳过并在报告标注"IMA 未同步"，本地产物不受影响
+3. 退出码：0 = 笔记 + 知识库同步成功（含幂等复用；文件夹缺失降级库根目录仍为 0）；1 = 用法/文件错；2 = 依赖缺失或笔记创建失败；3 = 笔记成功但知识库同步失败（note_id 已给出，报告中如实标注）
+4. **幂等保证（防重复建笔记）**：脚本在 md 同目录维护 `.ima_upload_state.json`。笔记创建成功立即落盘，此后任何失败重试都**复用 note_id 续做，绝不重复创建**；已完全成功的同 md 同标题重跑 = 零 API 调用直接成功（JSON 含 `"reused": true`）。确要重建新笔记时加 `--fresh`。失败重试无需等待，直接重跑同一条命令即可。
 
 ## 模板铁律（唯一结构契约）
 
@@ -222,7 +227,8 @@ python3 <本skill目录>/scripts/test_fill_tips_post.py
 ```
 
 - 测 skill 内引擎，真实项目通过 `TIPS_TEST_PROJECT_ROOT` 环境变量注入（默认为 Pre-flight ① 的路径），**全程只写临时副本**，结束校验真实模板 sha256 不变
-- 12 个用例：黄金路径全契约 / 缺字段 / 多字段 / 超长标题 / 坏 JSON / 模板损坏 / 无 pending / 模板缺失 / env 传根 / IMA 用法错误 / IMA 文件缺失 / IMA 依赖缺失
+- 18 个用例：黄金路径全契约+样式指纹零漂移 / 缺字段 / 多字段 / 超长标题 / 坏 JSON / 模板损坏 / 无 pending / 模板缺失 / env 传根 / **样式损坏拦截** / **pending 清理失败回滚（exit 4）** / IMA 用法错误 / IMA 文件缺失 / IMA 依赖缺失 / **IMA 笔记失败** / **IMA KB 失败重试不重复建笔记** / **IMA 成功幂等复用** / **IMA --fresh 强制重建**
+- **沙箱纪律**：所有 IMA 用例强制 `IMA_API_PATH` 指向本地 fake stub（`_fake_ima_api.cjs`），**绝无真实网络调用、绝不创建真实笔记**；筛选 0 用例即失败退出（exit 1），不允许假绿
 - `test-prompts.json` 已冻结（TP1 指定题型 / TP2 轮转 / TP3 失败边界），修改需开新版本
 
 ## 脚本行为要点（避坑）
@@ -234,3 +240,4 @@ python3 <本skill目录>/scripts/test_fill_tips_post.py
 5. **看 docx 段数**：`python3 -c "from docx import Document; print(len(Document('路径').paragraphs))"`
 6. **看文本框/图片/分页**：分别搜 `<w:txbxContent>` / `<w:drawing>` / `<w:pageBreakBefore>`
 7. **写 json 用 Python `json.dump`**，避免手写引号嵌套错
+8. **样式指纹零漂移**：引擎写入前后逐段对比 pPr/rPr XML（含封面文本框内段落），任何字体/字号/颜色/对齐变化即验证失败（exit 3），杜绝"文本对了样式坏了"的假绿

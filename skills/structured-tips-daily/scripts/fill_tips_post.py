@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""fill_tips_post.py v2 -- 结构化答题技巧·每日一练 帖子生成引擎
+"""fill_tips_post.py v2.1 -- 结构化答题技巧·每日一练 帖子生成引擎
 
 用法:
     python3 fill_tips_post.py [--project-root DIR]
@@ -17,12 +17,17 @@ pending JSON schema（硬性，恰好 14 个顶层 key，全部非空字符串�
     pitfalls_lead pitfalls tip_takeaway hashtags
 
 退出码:
-    0 成功    1 环境错误（pending 缺失/模板缺失或损坏）    2 pending JSON 无效    3 写入后验证失败
+    0 成功
+    1 环境错误（pending 缺失/模板缺失或损坏）
+    2 pending JSON 无效
+    3 写入后验证失败（含样式指纹不一致）
+    4 模板已替换但 pending 清理失败 -> 模板已自动回滚为原字节，pending 保留
 
 安全设计:
     1) schema 全量校验先于任何写盘
-    2) 先写临时文件并验证，通过后 os.replace 原子替换；任何失败模板字节不变
-    3) 快照在写入前生成；失败保留 pending 便于排查
+    2) 先写临时文件并验证（结构 + 内容 + 样式指纹），通过后 os.replace 原子替换
+    3) 快照在写入前生成；任何失败（含 pending 清理失败）模板字节不变
+    4) 样式指纹 = 逐段 pPr/rPr XML 对比（含封面文本框），文本可换、样式零漂移
 """
 
 import argparse
@@ -192,8 +197,32 @@ def fill_document(doc: Document, content: dict) -> int:
     return modified
 
 
-def validate_doc(path: Path, content: dict) -> list:
-    """结构契约 + 内容命中双重验证（对临时文件执行，通过才替换模板）。"""
+def capture_style_fingerprint(doc: Document) -> list:
+    """逐段捕获样式指纹: 每段 (pPr XML, 各 run rPr XML 元组)，含封面文本框内段落。
+
+    写入只允许改 <w:t> 文本；任何 pPr/rPr 变化（字体/字号/颜色/加粗/对齐等）
+    都会造成指纹不一致，据此拦截"文本对了但样式坏了"的假绿输出。
+    """
+    def para_fp(p_el) -> tuple:
+        ppr = p_el.find(qn("w:pPr"))
+        run_fps = []
+        for r_el in p_el.findall(qn("w:r")):
+            rpr = r_el.find(qn("w:rPr"))
+            run_fps.append(rpr.xml if rpr is not None else "<none>")
+        return (ppr.xml if ppr is not None else "<none>", tuple(run_fps))
+
+    fp = []
+    for p in doc.paragraphs:
+        el = p._element
+        fp.append(para_fp(el))
+        for txbx in el.iter(qn("w:txbxContent")):
+            for tp in txbx.iter(qn("w:p")):
+                fp.append(para_fp(tp))
+    return fp
+
+
+def validate_doc(path: Path, content: dict, fp_before: list) -> list:
+    """结构契约 + 内容命中 + 样式指纹三重验证（对临时文件执行，通过才替换模板）。"""
     errors = []
     doc = Document(str(path))
     paras = doc.paragraphs
@@ -241,7 +270,28 @@ def validate_doc(path: Path, content: dict) -> list:
         expect = EMOJI_PREFIX.get(idx, "") + content[key]
         if expect not in (paras[idx].text or ""):
             errors.append(f"字段未写入或被改动: {key} (段[{idx}])")
+
+    # 样式指纹: 填充前后逐段 pPr/rPr 必须零漂移
+    fp_after = capture_style_fingerprint(doc)
+    if len(fp_after) != len(fp_before):
+        errors.append(f"样式指纹条目数变化: {len(fp_after)} (期望 {len(fp_before)})")
+    else:
+        for i, (a, b) in enumerate(zip(fp_after, fp_before)):
+            if a != b:
+                errors.append(f"样式指纹漂移 @条目{i}: pPr 或 run rPr 与模板不一致（字体/字号/颜色/对齐被改动）")
+                break
     return errors
+
+
+def rollback_template(tpl: Path, original_bytes: bytes) -> bool:
+    """把模板字节回滚为写入前内容（原子写回）。"""
+    try:
+        rb = tpl.with_name(tpl.name + ".rollback.tmp")
+        rb.write_bytes(original_bytes)
+        os.replace(rb, tpl)
+        return True
+    except OSError:
+        return False
 
 
 def main() -> None:
@@ -261,11 +311,13 @@ def main() -> None:
     content = load_pending(pending)
     print(f"[1/5] schema 校验通过: {len(content)} 字段 / 标题 {len(content['tip_title'])} 字")
 
+    original_bytes = tpl.read_bytes()  # 任何后续失败以此回滚
     try:
         doc = Document(str(tpl))
     except Exception as e:  # noqa: BLE001 模板损坏/非 docx 一律走环境错误
         fail(1, f"[ERROR] 模板无法解析（已损坏或不是 docx）: {tpl}", f"        {type(e).__name__}: {e}",
              "        模板未被改动；请从快照或备份恢复模板后重试")
+    fp_before = capture_style_fingerprint(doc)
 
     snap = take_snapshot(root)
     print(f"[2/5] 快照备份: {snap.name if snap else '无（模板不存在）'}")
@@ -278,8 +330,8 @@ def main() -> None:
     tmp_path = Path(tmp_name)
     doc.save(str(tmp_path))
 
-    print("[4/5] 验证临时文件（未动模板）")
-    errors = validate_doc(tmp_path, content)
+    print("[4/5] 验证临时文件（结构 + 内容 + 样式指纹，未动模板）")
+    errors = validate_doc(tmp_path, content, fp_before)
     if errors:
         tmp_path.unlink(missing_ok=True)
         print(f"[FAIL] 写入后验证发现 {len(errors)} 个问题:")
@@ -292,10 +344,22 @@ def main() -> None:
 
     os.replace(tmp_path, tpl)
     print("[5/5] 原子替换完成")
+
+    try:
+        pending.unlink()
+    except OSError as e:
+        print(f"[ERROR] pending 清理失败: {e}")
+        if rollback_template(tpl, original_bytes):
+            print("[ROLLBACK] 模板已回滚为写入前字节（本次写入作废，pending 保留可重试）")
+            fail(4, f"[EXIT-4] pending 清理失败，已回滚模板避免\"模板已变 + pending 残留\"的中间态",
+                 f"        排查 scripts 目录权限后重跑即可；快照留档: {snap}")
+        fail(4, f"[EXIT-4] pending 清理失败且回滚失败，请手工从快照恢复模板: {snap}",
+             f"        当前 pending 保留: {pending}")
+
     print("[OK] 全部验证通过！")
     print("     ✅ 段数 18 / 图片 4 / 引流段样式 / 封面前缀双镜像")
-    print(f"     ✅ 14 字段全部命中（含段[8]🙅 / 段[10]👍 前缀）")
-    pending.unlink()
+    print("     ✅ 14 字段全部命中（含段[8]🙅 / 段[10]👍 前缀）")
+    print("     ✅ 样式指纹零漂移（逐段 pPr/rPr 与模板一致）")
     print(f"[CLEAN] 已清理 pending_tips.json")
     print(f"\n{'=' * 50}\n模板已更新: {tpl}\n{'=' * 50}")
 
