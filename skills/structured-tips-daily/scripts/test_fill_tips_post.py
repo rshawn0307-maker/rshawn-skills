@@ -6,7 +6,7 @@
 真实项目 P 只作只读 fixture（模板来源），通过环境变量注入，测试全程只写临时副本。
 
 用法：
-    python3 test_fill_tips_post.py                     # 全量（17 用例）
+    python3 test_fill_tips_post.py                     # 全量（18 用例）
     python3 test_fill_tips_post.py golden atomic       # 按关键字筛选用例
 
 环境变量：
@@ -360,6 +360,7 @@ def case_style_tamper_detected(ws):
     """样式损坏必须被拦截（不再假绿）：人为改字号 -> validate_doc 报指纹漂移；纯文本写入不误报。"""
     import importlib.util
     from docx.shared import Pt
+    sys.dont_write_bytecode = True  # 不在 skill 目录留 __pycache__ 噪音
     spec = importlib.util.spec_from_file_location("fill_engine", ENGINE)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
