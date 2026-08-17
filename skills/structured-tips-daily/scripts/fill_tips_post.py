@@ -1,70 +1,59 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-fill_tips_post.py v1
-==========================
+"""fill_tips_post.py v2 -- 结构化答题技巧·每日一练 帖子生成引擎
 
-「结构化答题技巧·每日一练」帖子生成脚本（技巧教学型）。
+用法:
+    python3 fill_tips_post.py [--project-root DIR]
+    项目根解析优先级: --project-root > 环境变量 TIPS_PROJECT_ROOT > 脚本所在目录上一级（随项目安装）
 
-自动化流程：
-  1. agent 把新技巧稿写到 scripts/pending_tips.json
-  2. agent 调本脚本
-  3. 脚本读 json → 写 docx → 验证 → 删 json
+项目根内路径布局:
+    desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx  模板（成功时原子替换）
+    scripts/pending_tips.json   待写入内容（成功后删除，任何失败保留）
+    scripts/_snapshots_tips/    写入前快照（最多保留 10 个）
 
-输入文件：scripts/pending_tips.json
-输出文件：模板位置 .docx（原地覆盖）
+pending JSON schema（硬性，恰好 14 个顶层 key，全部非空字符串）:
+    tip_title(≤20字) question_type tip_intro step1 step2 step3
+    case_normal case_normal_note case_high case_high_note
+    pitfalls_lead pitfalls tip_takeaway hashtags
 
-JSON schema（硬性，13 个顶层 key）：
-  tip_title          封面钩子标题（≤20 字，不带"答题技巧："前缀）
-  question_type      适用题型（如 综合分析题）
-  tip_intro          技巧一句话（破题角度）
-  step1..step3       思路步骤拆解（3 条）
-  case_normal        普通答法（真题片段）
-  case_normal_note   普通答法点评
-  case_high          高分答法（同题对照）
-  case_high_note     高分答法点评
-  pitfalls           避坑提醒
-  tip_takeaway       一句话总结
-  hashtags           话题标签（#标签 #标签）
+退出码:
+    0 成功    1 环境错误（pending 缺失/模板缺失或损坏）    2 pending JSON 无效    3 写入后验证失败
+
+安全设计:
+    1) schema 全量校验先于任何写盘
+    2) 先写临时文件并验证，通过后 os.replace 原子替换；任何失败模板字节不变
+    3) 快照在写入前生成；失败保留 pending 便于排查
 """
 
+import argparse
 import json
+import os
 import shutil
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 from docx import Document
-from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-
-# ===== 路径配置 =====
-SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE = SCRIPT_DIR.parent
-TEMPLATE_PATH = WORKSPACE / "desktop-attachments" / "3 结构化答题技巧-帖子内容编辑模板.docx"
-PENDING_JSON = SCRIPT_DIR / "pending_tips.json"
-BACKUP_PATH = SCRIPT_DIR / "_backup_template_技巧原版.docx"
-SNAPSHOT_DIR = SCRIPT_DIR / "_snapshots_tips"
+TEMPLATE_REL = Path("desktop-attachments") / "3 结构化答题技巧-帖子内容编辑模板.docx"
+PENDING_REL = Path("scripts") / "pending_tips.json"
+SNAPSHOTS_REL = Path("scripts") / "_snapshots_tips"
 MAX_SNAPSHOTS = 10
 
+SCHEMA_KEYS = [
+    "tip_title", "question_type", "tip_intro",
+    "step1", "step2", "step3",
+    "case_normal", "case_normal_note", "case_high", "case_high_note",
+    "pitfalls_lead", "pitfalls", "tip_takeaway", "hashtags",
+]
+TITLE_MAX_CHARS = 20
+
 COVER_PREFIX = "结构化答题技巧："  # 段[0] 文本框前缀（2 镜像同步）
-HASHTAG_COLOR = "85120F"        # 引流段颜色（品牌铁律，段[16] 固定）
+DRAIN_COLOR = "85120F"           # 引流段颜色（段[16] 固定）
 
-
-def take_snapshot():
-    SNAPSHOT_DIR.mkdir(exist_ok=True)
-    if not TEMPLATE_PATH.exists():
-        return None
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    snapshot_path = SNAPSHOT_DIR / f"snapshot_{ts}.docx"
-    shutil.copy(TEMPLATE_PATH, snapshot_path)
-    snapshots = sorted(SNAPSHOT_DIR.glob("snapshot_*.docx"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for old in snapshots[MAX_SNAPSHOTS:]:
-        old.unlink()
-    return snapshot_path
-
-
-# ===== 段位映射（技巧教学型，段[7] 为"怎么答？"蓝色标题，不动） =====
+# 段位映射（技巧教学型；段[7]="怎么答？"蓝色标题不动；段[16] 引流段不动；段[17] 末图不动）
 REPLACE_MAP = [
     (2, "question_type"),
     (3, "tip_intro"),
@@ -80,178 +69,235 @@ REPLACE_MAP = [
     (14, "tip_takeaway"),
     (15, "hashtags"),
 ]
-
-# 普通答法 / 高分答法 段首固定 emoji（用户指定）
-EMOJI_PREFIX = {8: "🙅♂️", 10: "👍"}
+EMOJI_PREFIX = {8: "🙅\u200d♂️", 10: "👍"}
 
 
-def resolve_content(content: dict, key: str):
-    return content[key]
+def fail(code: int, *msgs) -> None:
+    for m in msgs:
+        print(m)
+    sys.exit(code)
 
 
-def replace_textbox_question(paragraph, new_question: str):
-    """替换段内所有文本框的第 2 个 <w:t>（封面大标题），保留第 1 个前缀。"""
+def resolve_project_root(cli_value: str) -> Path:
+    if cli_value:
+        root = Path(cli_value).expanduser()
+    elif os.environ.get("TIPS_PROJECT_ROOT"):
+        root = Path(os.environ["TIPS_PROJECT_ROOT"]).expanduser()
+    else:
+        root = Path(__file__).resolve().parent.parent  # 随项目安装: <root>/scripts/本脚本
+    if not root.is_dir():
+        fail(1, f"[ERROR] 项目根不存在: {root}")
+    return root
+
+
+def load_pending(path: Path) -> dict:
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        fail(2, f"[ERROR] pending JSON 不是有效 UTF-8: {e}", "        请以 UTF-8 无 BOM 重新保存")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        fail(2, f"[ERROR] pending JSON 语法错误: {e}")
+    if not isinstance(data, dict):
+        fail(2, f"[ERROR] pending JSON 顶层必须是对象，实际: {type(data).__name__}")
+
+    keys = set(data.keys())
+    expected = set(SCHEMA_KEYS)
+    missing, extra = sorted(expected - keys), sorted(keys - expected)
+    if missing:
+        fail(2, f"[ERROR] 缺少 {len(missing)} 个必填字段: {', '.join(missing)}",
+             f"        恰好需要 {len(SCHEMA_KEYS)} 个顶层 key: {', '.join(SCHEMA_KEYS)}")
+    if extra:
+        fail(2, f"[ERROR] 发现 {len(extra)} 个多余字段: {', '.join(extra)}",
+             f"        恰好需要 {len(SCHEMA_KEYS)} 个顶层 key，多余字段一律拒绝")
+    for k in SCHEMA_KEYS:
+        v = data[k]
+        if not isinstance(v, str) or not v.strip():
+            fail(2, f"[ERROR] 字段 {k} 必须为非空字符串，实际: {v!r}")
+    if len(data["tip_title"]) > TITLE_MAX_CHARS:
+        fail(2, f"[ERROR] tip_title 超长: {len(data['tip_title'])} 字（上限 {TITLE_MAX_CHARS} 字）: {data['tip_title']!r}")
+    return data
+
+
+def take_snapshot(root: Path) -> Path | None:
+    snap_dir = root / SNAPSHOTS_REL
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    tpl = root / TEMPLATE_REL
+    if not tpl.exists():
+        return None
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    snap = snap_dir / f"snapshot_{ts}.docx"
+    shutil.copy(tpl, snap)
+    for old in sorted(snap_dir.glob("snapshot_*.docx"), key=lambda p: p.stat().st_mtime, reverse=True)[MAX_SNAPSHOTS:]:
+        old.unlink()
+    return snap
+
+
+def replace_textbox_question(paragraph, new_text: str) -> int:
+    """替换段内所有文本框第 2 个 <w:t>（封面大标题），保留第 1 个前缀。"""
     modified = 0
-    for txbx in paragraph._element.iter(qn('w:txbxContent')):
-        text_runs = txbx.findall('.//' + qn('w:t'))
-        if len(text_runs) >= 2:
-            text_runs[1].text = new_question
+    for txbx in paragraph._element.iter(qn("w:txbxContent")):
+        runs = txbx.findall(".//" + qn("w:t"))
+        if len(runs) >= 2:
+            runs[1].text = new_text
             modified += 1
-        elif len(text_runs) == 1:
-            text_runs[0].text = new_question
+        elif len(runs) == 1:
+            runs[0].text = new_text
             modified += 1
     return modified
 
 
-def set_textbox_prefix(paragraph, prefix: str):
-    """段[0] 文本框前缀统一设为 prefix（2 镜像同步）。"""
-    for txbx in paragraph._element.iter(qn('w:txbxContent')):
-        text_runs = txbx.findall('.//' + qn('w:t'))
-        if text_runs:
-            text_runs[0].text = prefix
+def set_textbox_prefix(paragraph, prefix: str) -> None:
+    for txbx in paragraph._element.iter(qn("w:txbxContent")):
+        runs = txbx.findall(".//" + qn("w:t"))
+        if runs:
+            runs[0].text = prefix
 
 
-def ensure_pagebreak_before(paragraph):
-    pPr = paragraph._element.find(qn('w:pPr'))
-    if pPr is None:
-        pPr = paragraph._element.makeelement(qn('w:pPr'), {})
-        paragraph._element.insert(0, pPr)
-    if pPr.find(qn('w:pageBreakBefore')) is None:
-        pgBreak = OxmlElement('w:pageBreakBefore')
-        pPr.append(pgBreak)
-
-
-def replace_run_text_safely(paragraph, new_text: str):
-    """找第一个纯文本 run（无 drawing）写入，图片 run 完全不动。"""
+def replace_run_text_safely(paragraph, new_text: str) -> None:
+    """找第一个纯文本 run（无 drawing）写入，图片 run 完全不动，其余文本 run 清空。"""
     runs = paragraph.runs
     if not runs:
         paragraph.add_run(new_text)
         return
-
     target = None
     for r in runs:
-        has_t = bool(r._element.findall('.//' + qn('w:t')))
-        has_d = bool(r._element.findall('.//' + qn('w:drawing')))
+        has_t = bool(r._element.findall(".//" + qn("w:t")))
+        has_d = bool(r._element.findall(".//" + qn("w:drawing")))
         if has_t and not has_d:
             target = r
             break
-
     if target is None:
         paragraph.add_run(new_text)
         return
-
     target.text = new_text
-
     for r in runs:
         if r is target:
             continue
-        has_d = bool(r._element.findall('.//' + qn('w:drawing')))
-        if has_d:
-            continue
-        r.text = ""
+        if not r._element.findall(".//" + qn("w:drawing")):
+            r.text = ""
 
 
-def validate_output():
-    doc = Document(TEMPLATE_PATH)
+def fill_document(doc: Document, content: dict) -> int:
+    """按段位映射写入全部 14 字段，返回封面文本框修改数（期望 2）。"""
+    set_textbox_prefix(doc.paragraphs[0], COVER_PREFIX)
+    modified = replace_textbox_question(doc.paragraphs[0], content["tip_title"])
+    for idx, key in REPLACE_MAP:
+        text = content[key]
+        if idx in EMOJI_PREFIX:
+            text = EMOJI_PREFIX[idx] + text
+        replace_run_text_safely(doc.paragraphs[idx], text)
+    return modified
+
+
+def validate_doc(path: Path, content: dict) -> list:
+    """结构契约 + 内容命中双重验证（对临时文件执行，通过才替换模板）。"""
     errors = []
+    doc = Document(str(path))
+    paras = doc.paragraphs
 
-    if len(doc.paragraphs) != 18:
-        errors.append(f"段数异常: {len(doc.paragraphs)} (期望 18)")
-
-    img_total = sum(len(p._element.findall('.//' + qn('w:drawing'))) for p in doc.paragraphs)
+    if len(paras) != 18:
+        errors.append(f"段数异常: {len(paras)} (期望 18)")
+        return errors
+    img_total = sum(len(p._element.findall(".//" + qn("w:drawing"))) for p in paras)
     if img_total != 4:
         errors.append(f"图片总数: {img_total} (期望 4)")
 
-    p16 = doc.paragraphs[16]
-    r0 = p16.runs[0]
-    if not (p16.alignment == 1 and r0.bold is True and str(r0.font.color.rgb) == HASHTAG_COLOR):
-        errors.append("引流段样式丢失（段[16] 须加粗 + #85120F + 居中）")
+    # 段[0]: 2 个文本框 + 前缀 + 新标题镜像
+    txbx_n = 0
+    for txbx in paras[0]._element.iter(qn("w:txbxContent")):
+        txbx_n += 1
+        ts = txbx.findall(".//" + qn("w:t"))
+        if len(ts) < 2:
+            errors.append(f"段[0] 文本框结构异常: <w:t> 数量 {len(ts)}")
+            continue
+        if ts[0].text != COVER_PREFIX:
+            errors.append(f"段[0] 前缀被改动: {ts[0].text!r}")
+        if ts[1].text != content["tip_title"]:
+            errors.append("段[0] 封面标题未生效")
+    if txbx_n != 2:
+        errors.append(f"段[0] 文本框数: {txbx_n} (期望 2)")
 
-    # 段[0] 文本框：2 个 + 前缀"结构化答题技巧："
-    txbx_count = 0
-    for txbx in doc.paragraphs[0]._element.iter(qn('w:txbxContent')):
-        txbx_count += 1
-        text_runs = txbx.findall('.//' + qn('w:t'))
-        if len(text_runs) < 2:
-            errors.append(f"段[0] 文本框结构异常：<w:t> 数量 {len(text_runs)}")
-        elif text_runs[0].text != COVER_PREFIX:
-            errors.append(f"段[0] 文本框前缀被改动: {text_runs[0].text!r}")
-    if txbx_count != 2:
-        errors.append(f"段[0] 文本框数: {txbx_count} (期望 2)")
-
-    # 段[7] 应为"怎么答？"蓝色标题（Heading 2），且不再强制分页
-    p7 = doc.paragraphs[7]
+    # 段[7]: 怎么答？Heading 2 且无分页
+    p7 = paras[7]
     if p7.style.name != "Heading 2" or "怎么答" not in p7.text:
-        errors.append(f"段[7] 应为'怎么答？'蓝色标题，当前: {p7.text!r} / {p7.style.name}")
-    p7_pPr = p7._element.find(qn('w:pPr'))
-    if p7_pPr is not None and p7_pPr.find(qn('w:pageBreakBefore')) is not None:
-        errors.append("段[7] 不应有 pageBreakBefore（普通答法不另起一页）")
+        errors.append(f"段[7] 应为'怎么答？'蓝色标题: {p7.text!r} / {p7.style.name}")
+    pPr = p7._element.find(qn("w:pPr"))
+    if pPr is not None and pPr.find(qn("w:pageBreakBefore")) is not None:
+        errors.append("段[7] 不应有 pageBreakBefore")
 
+    # 段[16]: 引流段样式
+    p16 = paras[16]
+    r16 = p16.runs[0] if p16.runs else None
+    if r16 is None or not (p16.alignment == 1 and r16.bold is True and str(r16.font.color.rgb) == DRAIN_COLOR):
+        errors.append("引流段样式丢失（段[16] 须居中 + 加粗 + #85120F）")
+    if "关注我" not in (p16.text or ""):
+        errors.append("段[16] 引流段原文被改动")
+
+    # 内容命中: 14 字段全部落盘
+    for idx, key in REPLACE_MAP:
+        expect = EMOJI_PREFIX.get(idx, "") + content[key]
+        if expect not in (paras[idx].text or ""):
+            errors.append(f"字段未写入或被改动: {key} (段[{idx}])")
     return errors
 
 
-def main():
-    if not PENDING_JSON.exists():
-        print(f"[ERROR] 待写入文件不存在: {PENDING_JSON}")
-        print("        请先 agent 把新内容写到 pending_tips.json")
-        sys.exit(1)
+def main() -> None:
+    ap = argparse.ArgumentParser(description="结构化答题技巧·每日一练 帖子生成引擎")
+    ap.add_argument("--project-root", help="项目根目录（默认: TIPS_PROJECT_ROOT 环境变量，其次脚本上一级）")
+    args = ap.parse_args()
 
-    if not TEMPLATE_PATH.exists():
-        print(f"[ERROR] 模板不存在: {TEMPLATE_PATH}")
-        sys.exit(1)
+    root = resolve_project_root(args.project_root)
+    tpl = root / TEMPLATE_REL
+    pending = root / PENDING_REL
 
-    print(f"[0/4] 快照备份")
-    snap = take_snapshot()
-    if snap:
-        print(f"      {snap.name}")
+    if not pending.exists():
+        fail(1, f"[ERROR] 待写入文件不存在: {pending}", "        请先把新技巧稿写到 pending_tips.json 再运行本脚本")
+    if not tpl.exists():
+        fail(1, f"[ERROR] 模板不存在: {tpl}")
 
-    with open(PENDING_JSON, 'r', encoding='utf-8') as f:
-        content = json.load(f)
+    content = load_pending(pending)
+    print(f"[1/5] schema 校验通过: {len(content)} 字段 / 标题 {len(content['tip_title'])} 字")
 
-    print(f"[1/4] 读取待写入内容: {PENDING_JSON}")
-    print(f"      字段数: {len(content)} (期望 13)")
+    try:
+        doc = Document(str(tpl))
+    except Exception as e:  # noqa: BLE001 模板损坏/非 docx 一律走环境错误
+        fail(1, f"[ERROR] 模板无法解析（已损坏或不是 docx）: {tpl}", f"        {type(e).__name__}: {e}",
+             "        模板未被改动；请从快照或备份恢复模板后重试")
 
-    doc = Document(TEMPLATE_PATH)
+    snap = take_snapshot(root)
+    print(f"[2/5] 快照备份: {snap.name if snap else '无（模板不存在）'}")
 
-    if "tip_title" not in content:
-        print(f"[ERROR] pending_tips.json 缺 'tip_title' 字段")
-        sys.exit(1)
+    print("[3/5] 写入 14 字段（段位映射 + 封面双镜像）")
+    modified = fill_document(doc, content)
 
-    print(f"[2/4] 写入 段[0] 文本框封面标题（前缀改 {COVER_PREFIX}）")
-    set_textbox_prefix(doc.paragraphs[0], COVER_PREFIX)
-    modified = replace_textbox_question(doc.paragraphs[0], content["tip_title"])
-    print(f"      修改了 {modified} 个文本框（期望 2：drawing 镜像 + VML fallback）")
+    tmp_fd, tmp_name = tempfile.mkstemp(suffix=".docx", prefix=".fill_tips_tmp_", dir=str(tpl.parent))
+    os.close(tmp_fd)
+    tmp_path = Path(tmp_name)
+    doc.save(str(tmp_path))
 
-    print(f"[2.5/4] 写入 {len(REPLACE_MAP)} 个段位（正文）")
-    for para_idx, key in REPLACE_MAP:
-        para = doc.paragraphs[para_idx]
-        new_text = resolve_content(content, key)
-        if para_idx in EMOJI_PREFIX:
-            new_text = EMOJI_PREFIX[para_idx] + new_text
-        replace_run_text_safely(para, new_text)
-
-    print(f"[3/4] 保存到 {TEMPLATE_PATH.name}")
-    doc.save(TEMPLATE_PATH)
-
-    print(f"[4/4] 自动验证")
-    errors = validate_output()
+    print("[4/5] 验证临时文件（未动模板）")
+    errors = validate_doc(tmp_path, content)
     if errors:
-        print(f"[FAIL] 发现 {len(errors)} 个问题:")
+        tmp_path.unlink(missing_ok=True)
+        print(f"[FAIL] 写入后验证发现 {len(errors)} 个问题:")
         for e in errors:
             print(f"  - {e}")
-        print(f"[KEEP] pending_tips.json 保留，便于排查")
-        sys.exit(1)
+        print(f"[KEEP] 模板未被替换（字节不变），pending 保留排查: {pending}")
+        sys.exit(3)
+    if modified != 2:
+        print(f"[WARN] 封面文本框修改数 {modified}（期望 2），已验证镜像内容正确，继续")
 
-    print(f"[OK] 全部验证通过！")
-    print(f"     ✅ 段数 18")
-    print(f"     ✅ 4 张图片全在")
-    print(f"     ✅ 引流段样式保留")
-    print(f"[CLEAN] 清理 pending_tips.json")
-    PENDING_JSON.unlink()
-
-    print(f"\n{'='*50}")
-    print(f"模板已更新: {TEMPLATE_PATH}")
-    print(f"{'='*50}")
+    os.replace(tmp_path, tpl)
+    print("[5/5] 原子替换完成")
+    print("[OK] 全部验证通过！")
+    print("     ✅ 段数 18 / 图片 4 / 引流段样式 / 封面前缀双镜像")
+    print(f"     ✅ 14 字段全部命中（含段[8]🙅 / 段[10]👍 前缀）")
+    pending.unlink()
+    print(f"[CLEAN] 已清理 pending_tips.json")
+    print(f"\n{'=' * 50}\n模板已更新: {tpl}\n{'=' * 50}")
 
 
 if __name__ == "__main__":
