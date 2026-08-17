@@ -1,0 +1,15 @@
+{
+  "exam_type": "tuhuan",
+  "region_year": "unknown",
+  "stage_grade": "小学五年级",
+  "standard": "《义务教育体育与健康课程标准（2022 年版）》",
+  "textbook_pages": "人教版《体育与健康》五年级全一册 P66-68",
+  "deliverable_type": "full_lesson",
+  "prep_minutes": null,
+  "trial_minutes": 10,
+  "defense": "none",
+  "skill_demo": false,
+  "student_mode": "no_student",
+  "equipment": {"list": ["实心球 8 个", "平整场地"], "media_allowed": false},
+  "word_target": [1800, 2200]
+}
