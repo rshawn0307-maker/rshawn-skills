@@ -712,13 +712,19 @@ def extract_project_pages(pdf, proj_labels):
     if r.returncode != 0:
         raise GenError(5, f"pdftotext 失败: {r.stderr.strip()[:200]}")
     pages_text = r.stdout.split("\f")
-    # 目录页指纹：单页同时出现 >=2 个项目标签 => 是目录页，不算章节起始页。
+    # 目录页指纹（主）：页内出现前置标题「目录」且同页出现>=1个项目标签。
+    # 单项目讲义只有 1 个标签，故不能用"标签数>=2"作唯一判据（会误判 exit 5）。
+    # 兼容（次）：单页同时出现 >=2 个项目标签也视为目录页。
     # 正文各项目页眉含本标签（每 section 独立页眉），跳过目录页后首现页即章节起始页。
-    toc_pages = [pno for pno, ptext in enumerate(pages_text, start=1)
-                 if sum(1 for l in proj_labels if l in ptext) >= 2]
+    def _is_toc(ptext):
+        hit = sum(1 for l in proj_labels if l in ptext)
+        if hit >= 2:
+            return True
+        return hit >= 1 and re.search(r"^\s*目\s*录\s*$", ptext, re.M) is not None
+    toc_pages = [pno for pno, ptext in enumerate(pages_text, start=1) if _is_toc(ptext)]
     last_toc = max(toc_pages) if toc_pages else 0
     if not toc_pages:
-        raise GenError(5, "渲染 PDF 中未识别到目录页（无任何单页含>=2个项目标签）")
+        raise GenError(5, "渲染 PDF 中未识别到目录页（无「目录」标题页且无单页含>=2个项目标签）")
     found = {}
     for label in proj_labels:
         for pno, ptext in enumerate(pages_text, start=1):
