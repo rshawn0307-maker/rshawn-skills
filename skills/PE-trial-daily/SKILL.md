@@ -56,6 +56,19 @@ description: 自动化生成「体育试讲设计每日一练」小红书帖子 
 Python：使用当前会话提供的 python3（已装 python-docx；未装 PyMuPDF/fitz，图像提取走 pdftoppm/poppler 链）。
 调用统一加 `env -u PYTHONHOME -u PYTHONPATH`（外层会话注入的 PYTHONHOME/PYTHONPATH 会让 bundled python 崩溃）。
 
+## 工作流编排（v3，任务3）
+
+`scripts/ptd_workflow.py` 提供带锁 + 原子状态机的流水线编排：
+
+- 依赖预检：`python3 ptd_workflow.py --check-deps`（docx/soffice/poppler/fc-match/swift，缺失即报，不装新依赖）。
+- 工作区锁：`O_EXCL` 原子抢占，双进程只有一个成功；持锁失败者退出码非0，不删 pending。
+- 状态机：`select → extract → factlock → rewrite_review → render_verify → docx_commit → progress_commit → upload_done`；
+  状态文件临时写 + `os.replace` 原子提交；按 `(stable_id, content_hash)` 幂等，终态不重跑。
+- OCR 缓存：`build_ocr_cache()` 原子写、记录 PDF 指纹(sha256)/页数/覆盖率；子进程非0 不落缓存。
+- 图例：视图策略驱动——`figure_required_but_pdf_missing` → STOP；`misattributed_treat_as_none`/无引用 → 空图；
+  `needs_ocr_verify`/`use_extracted` → OCR 索引精确匹配 caption 并裁图（`ocr_batch.swift` 已输出 bbox），失败 STOP。
+- IMA：`FakeIMA` 本地 fake adapter 按 content_hash 幂等（记录 note_id/remote_id/stage，重复运行不新建笔记），仅本地验证不真实调用。
+
 ## 工作流（6 步）
 
 ### 步骤 1：选题
@@ -121,8 +134,9 @@ Python：使用当前会话提供的 python3（已装 python-docx；未装 PyMuP
 ### 步骤 5：跑脚本 + 验证 + 收尾
 
 ```bash
-TRIAL_DAILY_WORKSPACE="/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编" python3 /Users/shawn/.trae-cn/skills/PE-trial-daily/scripts/fill_trial_daily_post.py
+TRIAL_DAILY_WORKSPACE="/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编" python3 "$(dirname "$0")/fill_trial_daily_post.py"
 ```
+> 说明：一律从「当前 skill 路径」运行脚本（`$(dirname "$0")`），不使用任何 `.trae-cn` 等环境绝对路径。
 
 只有输出同时出现 `✅ 全部通过` 和 `✅ pending_trial_daily.json 已删除`，才算生成成功。
 

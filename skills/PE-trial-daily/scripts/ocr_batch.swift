@@ -4,7 +4,8 @@ import PDFKit
 import AppKit
 
 // 用法: swift ocr_batch.swift <pdf> <startPage> <endPage>
-// 输出每行: "PAGE\t<页码>\t<识别文本>"
+// 输出每行: "PAGE\t<页码>\t<识别文本>\t<x>\t<y>\t<w>\t<h>"
+// 其中 x/y/w/h 为归一化坐标（0-1，Vision 原点在左下），供精确裁图定位 caption。
 let args = CommandLine.arguments
 guard args.count >= 4 else {
     print("USAGE: ocr_batch <pdf> <startPage> <endPage>")
@@ -22,7 +23,7 @@ guard let doc = PDFDocument(url: URL(fileURLWithPath: pdfPath)) else {
 let colorSpace = CGColorSpaceCreateDeviceRGB()
 let scale: CGFloat = 3.0
 
-func ocrPage(_ page: PDFPage) -> String {
+func ocrPage(_ page: PDFPage) -> [(String, CGFloat, CGFloat, CGFloat, CGFloat)] {
     let bounds = page.bounds(for: .mediaBox)
     let width = Int(bounds.width * scale)
     let height = Int(bounds.height * scale)
@@ -30,13 +31,13 @@ func ocrPage(_ page: PDFPage) -> String {
                               bitsPerComponent: 8, bytesPerRow: 0,
                               space: colorSpace,
                               bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-        return ""
+        return []
     }
     ctx.setFillColor(CGColor(gray: 1, alpha: 1))
     ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
     ctx.scaleBy(x: scale, y: scale)
     page.draw(with: .mediaBox, to: ctx)
-    guard let cgImage = ctx.makeImage() else { return "" }
+    guard let cgImage = ctx.makeImage() else { return [] }
 
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
@@ -44,19 +45,24 @@ func ocrPage(_ page: PDFPage) -> String {
     request.usesLanguageCorrection = true
     let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
     try? handler.perform([request])
-    var lines: [String] = []
+    var out: [(String, CGFloat, CGFloat, CGFloat, CGFloat)] = []
     for obs in request.results ?? [] {
         if let cand = obs.topCandidates(1).first {
-            lines.append(cand.string)
+            let bb = obs.boundingBox
+            // Vision 归一化坐标原点在左下；转成图像坐标（左上原点）便于裁图
+            let x = bb.origin.x
+            let yTop = 1.0 - bb.origin.y - bb.size.height
+            out.append((cand.string, x, yTop, bb.size.width, bb.size.height))
         }
     }
-    return lines.joined(separator: "\n")
+    return out
 }
 
 for p in start..<min(end, doc.pageCount) {
     guard let page = doc.page(at: p) else { continue }
-    let text = ocrPage(page)
-    // 每行输出，用 \t 分隔页码，文本内换行替换为 ␊
-    let flat = text.replacingOccurrences(of: "\n", with: "␊")
-    print("PAGE\t\(p)\t\(flat)")
+    let lines = ocrPage(page)
+    for (text, x, y, w, h) in lines {
+        let flat = text.replacingOccurrences(of: "\n", with: "␊")
+        print(String(format: "PAGE\t%d\t%@\t%.5f\t%.5f\t%.5f\t%.5f", p, flat, x, y, w, h))
+    }
 }

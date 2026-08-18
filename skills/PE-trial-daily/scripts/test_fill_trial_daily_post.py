@@ -27,6 +27,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 import ptd_core  # noqa: E402
 import build_fixtures  # noqa: E402
+import ptd_workflow  # noqa: E402
 
 CYAN_LEGACY = "关注我，每天一个体育试讲设计，帮你备考上岸"
 FILL_SCRIPT = SCRIPT_DIR / "fill_trial_daily_post.py"
@@ -546,6 +547,182 @@ def render_full_checks_pass():
         capture_output=True, text=True, env=dict(os.environ),
     )
     _assert(r.returncode == 0, f"渲染检查失败:\n{r.stdout}\n{r.stderr}")
+
+
+# ===========================================================================
+# 任务3：工作流（锁 / 状态机 / OCR缓存 / 图例STOP / IMA幂等）
+# ===========================================================================
+
+
+@case
+def wf_deps_check_runs():
+    missing = ptd_workflow.check_deps()
+    _assert(isinstance(missing, list), "check_deps 应返回 list")
+    _assert("python-docx 不可导入" not in missing, f"docx 缺失: {missing}")
+
+
+@case
+def wf_lock_exclusive_two_processes():
+    ws = Path(tempfile.mkdtemp(prefix="wf_lock_"))
+    try:
+        _assert(ptd_workflow.acquire_lock(ws, timeout=1), "主进程应拿到锁")
+        # 子进程尝试拿同一把锁 -> 必须失败（双进程只有一个成功）
+        code = ("import sys; sys.path.insert(0, %r); import ptd_workflow as w;"
+                "ok = w.acquire_lock(__import__('pathlib').Path(%r), timeout=1);"
+                "print('LOCK', ok); sys.exit(0)")
+        r = subprocess.run([sys.executable, "-c", code % (str(SCRIPT_DIR), str(ws))],
+                           capture_output=True, text=True, env=dict(os.environ))
+        _assert(r.returncode == 0 and r.stdout.strip() == "LOCK False",
+                f"并发锁应只有一个成功: rc={r.returncode} out={r.stdout!r}")
+        ptd_workflow.release_lock(ws)
+        # 释放后子进程能拿到
+        r2 = subprocess.run([sys.executable, "-c", code % (str(SCRIPT_DIR), str(ws))],
+                            capture_output=True, text=True, env=dict(os.environ))
+        _assert(r2.returncode == 0 and r2.stdout.strip() == "LOCK True",
+                f"释放后应能拿到锁: {r2.stdout!r}")
+    finally:
+        ptd_workflow.release_lock(ws)
+
+
+@case
+def wf_state_idempotent_terminal():
+    ws = Path(tempfile.mkdtemp(prefix="wf_state_"))
+    ch = ptd_workflow.content_hash({"a": 1})
+    _assert(not ptd_workflow.is_idempotent_done(ws, "PTD-X", ch), "初始不应幂等")
+    ptd_workflow.advance(ws, "PTD-X", ch, "progress_commit")
+    _assert(ptd_workflow.is_idempotent_done(ws, "PTD-X", ch), "终态应幂等跳过")
+    ch2 = ptd_workflow.content_hash({"a": 2})
+    _assert(not ptd_workflow.is_idempotent_done(ws, "PTD-X", ch2), "content_hash 变则应重跑")
+
+
+@case
+def wf_state_write_atomic_valid():
+    ws = Path(tempfile.mkdtemp(prefix="wf_atom_"))
+    for i in range(5):
+        ptd_workflow.advance(ws, f"PTD-{i}", ptd_workflow.content_hash({"n": i}), "docx_commit")
+        st = json.loads(ptd_workflow.state_path(ws).read_text(encoding="utf-8"))
+        _assert(f"PTD-{i}" in st["entries"], f"第{i}次写入后状态应有效")
+    _assert(not list(ws.glob(".wf_*")), "临时状态文件应清理")
+
+
+@case
+def wf_content_hash_stable():
+    a = ptd_workflow.content_hash({"x": [1, 2], "s": "中文"})
+    b = ptd_workflow.content_hash({"s": "中文", "x": [1, 2]})
+    _assert(a == b, "content_hash 应稳定（与键序无关）")
+
+
+@case
+def wf_ocr_cache_hit_fingerprint():
+    ws = Path(tempfile.mkdtemp(prefix="wf_ocr_"))
+    pdf = ptd_core.BOOKS_DIR_DEFAULT / "人教版教师用书-乒乓球.pdf"
+    _assert(pdf.exists(), "缺测试 PDF")
+    cache_path = ws / "ocr_test.json"
+    fp = ptd_workflow.pdf_fingerprint(pdf)
+    cache_path.write_text(json.dumps({
+        "fingerprint": fp, "page_count": 9, "coverage": 1.0, "pages": {"0": [{"text": "图3-2-7 原地低运球", "bbox": [0.1, 0.2, 0.5, 0.3]}]},
+    }, ensure_ascii=False), encoding="utf-8")
+    got = ptd_workflow.build_ocr_cache(pdf, cache_path, ws / "no.swift", log=lambda *a: None)
+    _assert(got.get("fingerprint") == fp and got["page_count"] == 9, "指纹命中应直接读缓存")
+
+
+@case
+def wf_ocr_no_cache_on_subprocess_fail():
+    ws = Path(tempfile.mkdtemp(prefix="wf_ocrf_"))
+    pdf = ptd_core.BOOKS_DIR_DEFAULT / "人教版教师用书-乒乓球.pdf"
+    cache_path = ws / "ocr_fail.json"
+    got = ptd_workflow.build_ocr_cache(pdf, cache_path, ws / "nonexistent.swift", log=lambda *a: None)
+    _assert(got == {}, "子进程非0 应返回空缓存")
+    _assert(not cache_path.exists(), "子进程非0 不得落缓存")
+    _assert(not list(ws.glob(".ocr_*")), "临时 OCR 文件应清理")
+
+
+@case
+def wf_ocr_cache_records_fingerprint_pages_coverage():
+    ws = Path(tempfile.mkdtemp(prefix="wf_ocrf2_"))
+    cache_path = ws / "ocr2.json"
+    cache_path.write_text(json.dumps({
+        "fingerprint": {"sha256_head": "abc", "size": 1, "mtime": 2},
+        "page_count": 12, "coverage": 0.75, "pages": {},
+    }), encoding="utf-8")
+    pdf = ptd_core.BOOKS_DIR_DEFAULT / "人教版教师用书-乒乓球.pdf"
+    # 指纹不匹配 -> 触发重建 -> swift 失败 -> 空且不落新缓存
+    got = ptd_workflow.build_ocr_cache(pdf, cache_path, ws / "nonexistent.swift", log=lambda *a: None)
+    _assert(got == {} and cache_path.exists(), "指纹不匹配时应重建；失败保留旧缓存")
+    old = json.loads(cache_path.read_text(encoding="utf-8"))
+    _assert("fingerprint" in old and "page_count" in old and "coverage" in old,
+            "OCR 缓存必须记录指纹/页数/覆盖率")
+
+
+@case
+def wf_figure_stop_rule_pdf_missing():
+    ws = Path(tempfile.mkdtemp(prefix="wf_fig_"))
+    entry = {"id": "PTD-090-武术-抱拳礼", "figure_policy": "figure_required_but_pdf_missing",
+             "figures": [{"ref": "图3-1-1"}]}
+    try:
+        ptd_workflow.resolve_figures(entry, None, {"pages": {}}, ws / "fig", log=lambda *a: None)
+        _assert(False, "有引用但缺 PDF 应 STOP")
+    except ptd_workflow.FigureStop:
+        pass
+
+
+@case
+def wf_figure_needs_ocr_stop_when_no_caption():
+    ws = Path(tempfile.mkdtemp(prefix="wf_fig2_"))
+    entry = {"id": "PTD-001", "figure_policy": "needs_ocr_verify",
+             "figures": [{"ref": "图3-2-3"}]}
+    try:
+        ptd_workflow.resolve_figures(entry, Path("/tmp/x.pdf"), {"pages": {}}, ws / "fig",
+                                     log=lambda *a: None)
+        _assert(False, "needs_ocr_verify 但 OCR 未命中 caption 应 STOP")
+    except ptd_workflow.FigureStop:
+        pass
+
+
+@case
+def wf_figure_no_refs_empty_figure_ok():
+    ws = Path(tempfile.mkdtemp(prefix="wf_fig3_"))
+    entry = {"id": "PTD-000", "figure_policy": "none", "figures": []}
+    paths, note = ptd_workflow.resolve_figures(entry, None, {"pages": {}}, ws / "fig",
+                                               log=lambda *a: None)
+    _assert(paths == [] and note == "no_refs_empty_figure", f"无引用应空图: {note}")
+
+
+@case
+def wf_figure_misattributed_empty_ok():
+    ws = Path(tempfile.mkdtemp(prefix="wf_fig4_"))
+    entry = {"id": "PTD-048", "figure_policy": "misattributed_treat_as_none",
+             "figures": [{"ref": "图3-2-3", "match": "suspect"}]}
+    paths, note = ptd_workflow.resolve_figures(entry, None, {"pages": {}}, ws / "fig",
+                                               log=lambda *a: None)
+    _assert(paths == [] and note == "misattributed_treat_as_none", f"误收应空图: {note}")
+
+
+@case
+def wf_ima_idempotent_no_duplicate_note():
+    ws = Path(tempfile.mkdtemp(prefix="wf_ima_"))
+    ima = ptd_workflow.FakeIMA(ws)
+    content = {"title": "体育试讲设计每日一练｜原地运球", "body": "逐字稿…"}
+    r1 = ima.upload("PTD-000", content)
+    r2 = ima.upload("PTD-000", content)
+    _assert(not r1["replayed"], "首次应新建")
+    _assert(r2["replayed"], "重复运行应幂等重放，不新建笔记")
+    recs = json.loads((ws / "ima_records.json").read_text(encoding="utf-8"))
+    _assert(len(recs) == 1, f"应只有 1 条 IMA 记录: {len(recs)}")
+    rec = r2["record"]
+    _assert(rec["content_hash"] and rec["note_id"] and rec["stage"], "IMA 记录缺字段")
+    _assert(rec["stable_id"] == "PTD-000", "IMA 记录缺 stable_id")
+
+
+@case
+def wf_workflow_dryrun_advances_states():
+    ws = Path(tempfile.mkdtemp(prefix="wf_run_"))
+    view = {"id": "PTD-000", "figure_policy": "none", "figures": []}
+    rc = ptd_workflow.run_workflow(ws, "PTD-000", view, dry_run=True)
+    _assert(rc == 0, f"dry-run 退出码 {rc}")
+    st = ptd_workflow.read_state(ws)
+    _assert("PTD-000" in st["entries"], "dry-run 应写入状态")
+    _assert(not (ws / "workflow.lock").exists(), "运行结束应释放锁")
 
 
 # ===========================================================================
