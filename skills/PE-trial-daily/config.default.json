@@ -10,6 +10,7 @@
   "segment_duration_sec": [120, 240],
   "speech_rate_chars_per_min": 230,
   "page": {
+    "size_cm": [15, 20],
     "ratio": [3, 4],
     "body_min_pt": 18,
     "column_title_pt_range": [24, 28],
@@ -21,7 +22,8 @@
     "figure_min_width_pct_of_body": 85,
     "table_cols_pct": [42, 58],
     "table_autofit": false,
-    "watermark_opacity_pct": [8, 12]
+    "watermark_opacity_pct": [8, 12],
+    "font_contract": ["Hiragino Sans GB", "Heiti SC", "Songti SC", "PingFang SC", "Microsoft YaHei"]
   },
   "product_claim": "2-4分钟可嵌入完整无生试讲的教学片段，不冒充完整试讲"
 }

@@ -14,6 +14,7 @@
 import copy
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -416,6 +417,138 @@ def excerpt_at_wrong_line_rejected():
 
 
 # ===========================================================================
+# 任务2：3:4 版式契约（XML 级快查 + 官方渲染集成）
+# ===========================================================================
+
+LAYOUT_TITLES = {"环节拆解", "易犯错误与纠正", "试讲逐字稿", "图例直观"}
+
+
+def _doc_runs(doc):
+    """遍历段落与表格单元格里的所有 run。"""
+    for p in doc.paragraphs:
+        for r in p.runs:
+            yield r
+    for t in doc.tables:
+        for row in t.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    for r in p.runs:
+                        yield r
+
+
+@case
+def layout_page_size_3_4():
+    fr = _fill_result()
+    _assert(fr["doc"] is not None)
+    for si, sec in enumerate(fr["doc"].sections):
+        ratio = sec.page_width / sec.page_height
+        _assert(abs(ratio - 0.75) / 0.75 <= 0.01, f"第{si+1}节页宽高比 {ratio:.4f}")
+
+
+@case
+def layout_font_cjk_contract():
+    fr = _fill_result()
+    style = fr["doc"].styles["Normal"]
+    rpr = style._element.rPr
+    east = rpr.rFonts.get(qn("w:eastAsia")) if rpr is not None and rpr.rFonts is not None else None
+    _assert(east and any(c in east for c in
+            ("Hiragino", "Heiti", "Songti", "PingFang", "Microsoft YaHei", "Noto", "WenQuanYi")),
+            f"Normal eastAsia 字体 {east} 不在 CJK 契约")
+
+
+@case
+def layout_body_min_18pt():
+    fr = _fill_result()
+    for r in _doc_runs(fr["doc"]):
+        t = (r.text or "").strip()
+        if t in LAYOUT_TITLES or t.startswith("#") or t in ("易犯错误", "纠正方法"):
+            continue
+        if r.font.size and any(k in t for k in ("两腿微屈", "同学们好", "降低重心", "好收球")):
+            _assert(r.font.size.pt >= 18, f"正文 {t[:12]} 字号 {r.font.size.pt}")
+
+
+@case
+def layout_section_title_24_28pt():
+    fr = _fill_result()
+    for r in _doc_runs(fr["doc"]):
+        if (r.text or "").strip() in LAYOUT_TITLES:
+            _assert(r.font.size and 24 <= r.font.size.pt <= 28,
+                    f"栏目 {r.text} 字号 {r.font.size and r.font.size.pt}")
+
+
+@case
+def layout_caption_label_min_16pt():
+    fr = _fill_result()
+    for r in _doc_runs(fr["doc"]):
+        t = (r.text or "").strip()
+        if t.startswith("图") and "3-2-7" in t:
+            _assert(r.font.size and r.font.size.pt >= 16, f"图注 {t[:12]} {r.font.size and r.font.size.pt}")
+        if t.startswith("#"):
+            _assert(r.font.size and r.font.size.pt >= 16, f"标签 {t[:12]} {r.font.size and r.font.size.pt}")
+
+
+@case
+def layout_cta_min_18pt():
+    fr = _fill_result()
+    for r in _doc_runs(fr["doc"]):
+        if (r.text or "").strip() == CYAN_LEGACY:
+            _assert(r.font.size and r.font.size.pt >= 18, f"CTA 字号 {r.font.size and r.font.size.pt}")
+
+
+@case
+def layout_script_split_short_lines():
+    fr = _fill_result()
+    scripts = [p.text for p in fr["doc"].paragraphs
+               if p.text and any(k in p.text for k in ("同学们好", "看我示范", "跟我做", "低运球", "好收球"))]
+    _assert(len(scripts) >= 3, f"逐字稿仅 {len(scripts)} 段（应按短段拆分）")
+    for s in scripts:
+        _assert(len(s) <= 45, f"短段过长 {len(s)} 字")
+
+
+@case
+def layout_table_fixed_42_58():
+    fr = _fill_result()
+    err_tbl = None
+    for t in fr["doc"].tables:
+        if len(t.columns) == 2 and t.cell(0, 0).text.strip() == "易犯错误":
+            err_tbl = t
+            break
+    _assert(err_tbl is not None, "未找到易犯错误表")
+    tblPr = err_tbl._tbl.tblPr
+    layout = tblPr.find(qn("w:tblLayout"))
+    _assert(layout is not None and layout.get(qn("w:type")) == "fixed", "表格须固定布局(fixed)")
+    grid = err_tbl._tbl.tblGrid.findall(qn("w:gridCol"))
+    _assert(len(grid) == 2, f"gridCol={len(grid)}")
+    w1, w2 = int(grid[0].get(qn("w:w"))), int(grid[1].get(qn("w:w")))
+    _assert(abs(w1 / (w1 + w2) - 0.42) < 0.03, f"列宽比 {w1}/{w1 + w2}")
+    _assert(len(err_tbl._tbl.findall(".//" + qn("w:cantSplit"))) >= 2, "表格行缺 cantSplit（行会跨页）")
+
+
+@case
+def layout_watermark_opacity_8_12():
+    fr = _fill_result()
+    for sec in fr["doc"].sections:
+        x = sec.header._element.xml
+        m = re.search(r'opacity="([0-9a-fA-F]{6})"', x)
+        _assert(m, "水印无 opacity 属性")
+        frac = int(m.group(1), 16) / 0xFFFFFF
+        _assert(0.08 <= frac <= 0.12, f"水印透明度 {frac:.3f}（期望 8%–12%）")
+
+
+@case
+def render_full_checks_pass():
+    """官方 render_docx.py --emit_pdf --check 全页检查（3:4/无方框/无裁切/CTA不孤页/水印）。"""
+    fr = _fill_result()
+    _assert(fr["docx_path"].exists(), "缺少输出 DOCX")
+    r = subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "render_docx.py"), str(fr["docx_path"]),
+         "--emit_pdf", "--check", "--out", str(fr["ws"] / "rendered")],
+        capture_output=True, text=True, env=dict(os.environ),
+    )
+    _assert(r.returncode == 0, f"渲染检查失败:\n{r.stdout}\n{r.stderr}")
+
+
+# ===========================================================================
 # 填充管线集成（原入口，单例缓存）
 # ===========================================================================
 
@@ -551,7 +684,7 @@ def fill_pipeline_docx_structure():
     checks["封面标题48pt"] = any(s >= 47 for s in title_sizes)
     titles = [i for i, p in enumerate(doc.paragraphs) if p.text.strip() == "环节拆解"]
     checks["环节拆解另起一页"] = bool(titles) and bool(
-        doc.paragraphs[titles[0] - 1]._element.findall(".//" + qn("w:br"))
+        doc.paragraphs[titles[0]].paragraph_format.page_break_before
     )
     body = [p for p in doc.paragraphs if p.text.strip()]
     hs_p = body[-2] if body and body[-1].text.strip() == CYAN_LEGACY else None
