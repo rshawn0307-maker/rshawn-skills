@@ -1,0 +1,27 @@
+{
+  "region": "通用（未指定地区，按通用教师编面试需求设计；如需地区化请覆盖此项）",
+  "grade_band_default": "水平三（五至六年级）",
+  "grade_band_evidence": {
+    "note": "教材为义务教育教师用书全一册，覆盖水平二至水平四（三至九年级）；默认示范学段取水平三，可按选题覆盖",
+    "book_file": "人教版教师用书-体能.md",
+    "line": 38,
+    "excerpt": "这三章的内容是依据《课程标准(2022年版)》达到水平二、水平三、水平四目标要求构建的三至四年级、五至六年级、七至九年级的体能教学内容。"
+  },
+  "segment_duration_sec": [120, 240],
+  "speech_rate_chars_per_min": 230,
+  "page": {
+    "ratio": [3, 4],
+    "body_min_pt": 18,
+    "column_title_pt_range": [24, 28],
+    "caption_min_pt": 16,
+    "cta_min_pt": 18,
+    "normal_page_effective_height_pct": [65, 90],
+    "page_bottom_max_blank_pct": 25,
+    "cta_min_body_lines_same_page": 2,
+    "figure_min_width_pct_of_body": 85,
+    "table_cols_pct": [42, 58],
+    "table_autofit": false,
+    "watermark_opacity_pct": [8, 12]
+  },
+  "product_claim": "2-4分钟可嵌入完整无生试讲的教学片段，不冒充完整试讲"
+}

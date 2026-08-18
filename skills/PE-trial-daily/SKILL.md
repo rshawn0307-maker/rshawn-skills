@@ -13,6 +13,17 @@ description: 自动化生成「体育试讲设计每日一练」小红书帖子 
 - 第 2 页起：图例区（如教师用书有图例，放大 ≥14cm 宽铺满首屏）+ 环节拆解（名称/类型/方法/规则/意图/组织形式）+ 易犯错误与纠正表格（仅 practice 环节）+ 试讲逐字稿 + 引流页
 - 引流页：#标签行 居中 + 灰色（#808080），固定引流段 居中 + 深蓝（#0B3289），两者均加粗
 
+## 内容事实层（v2，任务1）
+
+本技能已引入 v2「内容事实层」，核心库 `scripts/ptd_core.py` 负责稳定 ID、可生成视图、dry-run 迁移、事实锁定与 100 分量表，细节见 `references/r1-schema-and-scale.md`。要点：
+
+- 稳定 ID `PTD-{seq}-{sport}-{name}`：重跑按 ID 幂等；原 313 条索引只读保留，新增视图是派生层。
+- 字段区分 `provenance`：`textbook`（教材原文，必带 `book_file+行号+excerpt`）与 `adapted`（明确教学加工，事实 token 必须被证据覆盖或显式登记 `adapted_facts`）。
+- 难度缺失绝不编星（`index_empty_adapted`）；practice 无教材纠错时，纠错不得标教材原文。
+- 图例策略：`use_extracted`（确认归属+有 PDF）/ `misattributed_treat_as_none`（误收留证）/ `needs_ocr_verify`（无法核验，生成须 OCR 确认否则 STOP）/ `figure_required_but_pdf_missing`（有引用但缺 PDF/图 → STOP，非可生成）。
+- 100 分量表（教材30/考编可用20/安全20/教学15/口语10/证据5），放行线总分≥85、教材≥27、安全≥16、硬门0；human-writing 改写后必须重跑事实锁定复核。
+- 可生成视图 + dry-run 迁移表用 `scripts/build_generatable_view.py` 生成（默认输出到 /tmp，只读源数据）。
+
 封面版式铁律（与「2 体育试讲每日一练-帖子内容编辑模板.docx」一致）：
 - 封面大标题字号 48pt（浅青 #9FD8E8），整页铺底层背景图 `scripts/cover_bg.png`（behindDoc=1 锚定，置于文字下层）
 - 封面必须恰好一页：封面表格浮动锚定整页（vertAnchor=page、行高 15290 atLeast），放大字号后仍不溢出到第 2 页
@@ -31,13 +42,18 @@ description: 自动化生成「体育试讲设计每日一练」小红书帖子 
 | 路径 | 说明 |
 |------|------|
 | `/Users/shawn/Desktop/AI工作区/03-Resources/各版本体育教材/人教版/` | 教师用书源（MD + PDF，只读，9 本） |
-| `本 skill 的 scripts/fill_trial_daily_post.py` | 填充脚本（自带源，随 skill 分发） |
+| 本 skill 的 `scripts/fill_trial_daily_post.py` | 填充脚本（自带源，随 skill 分发） |
+| 本 skill 的 `scripts/ptd_core.py` | 核心库（稳定 ID/可生成视图/事实锁定/100 分量表） |
+| 本 skill 的 `scripts/build_generatable_view.py` | 生成可生成视图 + dry-run 迁移表 |
+| 本 skill 的 `config.default.json` | 显式配置（地区/学段/片段时长/3:4 版式阈值） |
+| 本 skill 的 `references/r1-schema-and-scale.md` | v2 内容层规范（schema/量表/流程/图例策略） |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/activity_index.json` | 活动索引（313 条，只读） |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/ocr_index/` | OCR 页索引（缓存，用于图例定位） |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/progress_trial.json` | 选题进度 |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/_snapshots_trial/` | 快照（回退用） |
 
-Python：使用当前会话提供的 python3（已装 python-docx 和 PyMuPDF）。若运行时缺失，可临时安装到 /tmp 环境。
+Python：使用当前会话提供的 python3（已装 python-docx；未装 PyMuPDF/fitz，图像提取走 pdftoppm/poppler 链）。
+调用统一加 `env -u PYTHONHOME -u PYTHONPATH`（外层会话注入的 PYTHONHOME/PYTHONPATH 会让 bundled python 崩溃）。
 
 ## 工作流（6 步）
 

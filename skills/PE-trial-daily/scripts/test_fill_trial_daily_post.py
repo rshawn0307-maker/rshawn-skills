@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
-"""test_fill_trial_daily_post.py v1.0
+"""PE-trial-daily 统一测试入口（任务1 扩展版）。
 
 隔离测试：在临时工作区构建 pending_trial_daily.json，运行 fill_trial_daily_post.py，
-验证生成 DOCX 的结构契约（封面、图例、环节拆解、易犯错误表格、试讲逐字稿、引流页）。
+验证生成 DOCX 的结构契约（封面、图例、环节拆解、易犯错误表格、试讲逐字稿、引流页）；
+并覆盖任务1 核心库 ptd_core 的可生成视图、dry-run 迁移、事实锁定、诚实性硬门、
+三类片段流程与 100 分量表放行线（含故意制造坏草稿的反向用例）。
 
 用法:
     python3 test_fill_trial_daily_post.py
+
+退出码 0 当且仅当全部用例通过；任一失败打印 ❌ 用例名 + 原因。skipped=0。
 """
+import copy
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,36 +23,446 @@ from docx import Document
 from docx.oxml.ns import qn
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-FILL_SCRIPT = SCRIPT_DIR / "fill_trial_daily_post.py"
+sys.path.insert(0, str(SCRIPT_DIR))
+import ptd_core  # noqa: E402
+import build_fixtures  # noqa: E402
 
 CYAN_LEGACY = "关注我，每天一个体育试讲设计，帮你备考上岸"
+FILL_SCRIPT = SCRIPT_DIR / "fill_trial_daily_post.py"
 
-# 生成一张测试用 PNG（覆盖图例插入路径）
-def make_test_png(path):
-    import struct, zlib
+# ---------------------------------------------------------------------------
+# 用例注册器
+# ---------------------------------------------------------------------------
+
+CASES = []
+
+
+def case(fn):
+    CASES.append((fn.__name__, fn))
+    return fn
+
+
+def _assert(cond, detail=""):
+    if not cond:
+        raise AssertionError(detail or "断言失败")
+
+
+# ---------------------------------------------------------------------------
+# 只读源缓存
+# ---------------------------------------------------------------------------
+
+_cache = {}
+
+
+def _view():
+    if "view" not in _cache:
+        _cache["view"] = ptd_core.build_generatable_view()
+    return _cache["view"]
+
+
+def _fixtures():
+    if "fixtures" not in _cache:
+        _cache["fixtures"] = build_fixtures.build_all()
+    return _cache["fixtures"]
+
+
+def _lib():
+    if "lib" not in _cache:
+        _cache["lib"] = ptd_core.BookLibrary()
+    return _cache["lib"]
+
+
+def _entry(view, rid):
+    return next(e for e in view["entries"] if e["id"] == rid)
+
+
+# ===========================================================================
+# 可生成视图 / 稳定 ID
+# ===========================================================================
+
+
+@case
+def view_total_313():
+    _assert(len(_view()["entries"]) == 313, f"entries={len(_view()['entries'])}")
+
+
+@case
+def view_ids_unique():
+    ids = [e["id"] for e in _view()["entries"]]
+    _assert(len(set(ids)) == len(ids), "稳定 ID 存在重复")
+
+
+@case
+def view_difficulty_missing_171():
+    st = _view()["stats"]
+    _assert(st["difficulty_missing"] == 171, f"difficulty_missing={st['difficulty_missing']}")
+
+
+@case
+def view_generatable_302_blockers_11():
+    st = _view()["stats"]
+    _assert(st["generatable"] == 302, f"generatable={st['generatable']}")
+    _assert(st["blockers"] == 11, f"blockers={st['blockers']}")
+
+
+@case
+def view_blockers_all_wushu_no_pdf():
+    blk = [e for e in _view()["entries"] if e["generatable_blockers"]]
+    _assert(len(blk) == 11, f"blocked={len(blk)}")
+    for e in blk:
+        _assert("武术" in e["book_file"], f"{e['id']} 阻塞非武术")
+        _assert("figure_required_but_pdf_missing" in e["generatable_blockers"], e["id"])
+        _assert(not e["book_pdf_available"], f"{e['id']} 应无 PDF")
+
+
+@case
+def view_use_extracted_implies_pdf():
+    for e in _view()["entries"]:
+        if e["figure_policy"] == "use_extracted":
+            _assert(e["book_pdf_available"], f"{e['id']} use_extracted 但缺 PDF")
+
+
+@case
+def view_needs_ocr_verify_15():
+    n = sum(1 for e in _view()["entries"] if "figure_needs_ocr_verify" in e["flags"])
+    _assert(n == 15, f"needs_ocr_verify={n}")
+
+
+@case
+def view_p1_no_figure_generatable():
+    e = _entry(_view(), "PTD-000-乒乓球-平击球")
+    _assert(e["figure_policy"] == "none", e["figure_policy"])
+    _assert(e["generatable"], "P1 应可生成")
+
+
+@case
+def view_p2_figures_ok():
+    e = _entry(_view(), "PTD-244-篮球-原地运球")
+    _assert(e["figure_policy"] == "use_extracted", e["figure_policy"])
+    _assert(e["figures"] and all(f["match"] == "ok" for f in e["figures"]), e["figures"])
+
+
+@case
+def view_p3_misattribution_kept_not_deleted():
+    e = _entry(_view(), "PTD-048-体能-照镜子")
+    _assert("figure_misattribution_suspect" in e["flags"], "照镜子误收应留证")
+    _assert(e["figure_policy"] == "misattributed_treat_as_none", e["figure_policy"])
+    _assert(e["generatable"], "误收按无图处理，仍可生成")
+
+
+@case
+def view_misattribution_suspect_total_28():
+    st = _view()["stats"]
+    _assert(st["figure_misattribution_suspect"] == 28, st["figure_misattribution_suspect"])
+
+
+# ===========================================================================
+# dry-run 迁移表（孤儿不丢）
+# ===========================================================================
+
+
+@case
+def migration_rows_3_dry_run():
+    m = _view()["migration_dryrun"]
+    _assert(m["mode"] == "dry-run", m["mode"])
+    _assert(len(m["rows"]) == 3, f"rows={len(m['rows'])}")
+
+
+@case
+def migration_orphan_kept_classified():
+    m = _view()["migration_dryrun"]
+    row = next(r for r in m["rows"] if r["progress_name"] == "技巧大赛")
+    _assert(row["disposition"] == "orphan_keep_classified", row["disposition"])
+    _assert(row["view_id"] is None, "孤儿不应被硬匹配")
+
+
+@case
+def migration_other_two_migrate():
+    m = _view()["migration_dryrun"]
+    by = {r["progress_name"]: r for r in m["rows"]}
+    _assert(by["半米字移动"]["view_id"] == "PTD-045-体能-半米字移动", by["半米字移动"])
+    _assert(by["抢背后滚球"]["view_id"] == "PTD-046-体能-抢背后滚球", by["抢背后滚球"])
+    _assert(by["半米字移动"]["disposition"] == by["抢背后滚球"]["disposition"] == "migrate")
+
+
+# ===========================================================================
+# 三类片段流程 / 片段要素 / 量表
+# ===========================================================================
+
+
+@case
+def flows_cover_three_types():
+    _assert({"practice", "game", "fitness"} <= set(ptd_core.FLOWS), set(ptd_core.FLOWS))
+
+
+@case
+def flow_stage_counts():
+    _assert(len(ptd_core.FLOWS["practice"]) == 5, len(ptd_core.FLOWS["practice"]))
+    _assert(len(ptd_core.FLOWS["game"]) == 5, len(ptd_core.FLOWS["game"]))
+    _assert(len(ptd_core.FLOWS["fitness"]) == 4, len(ptd_core.FLOWS["fitness"]))
+
+
+@case
+def flow_sec_ranges_valid():
+    for t, stages in ptd_core.FLOWS.items():
+        for s in stages:
+            lo, hi = s["sec_range"]
+            _assert(0 < lo <= hi <= 120, f"{t} {s['stage']} {s['sec_range']}")
+            _assert(s["stage"] and s["purpose"], f"{t} 缺 stage/purpose")
+
+
+@case
+def segment_fields_complete():
+    want = ["学段", "片段位置", "时长", "重点", "器材", "安全", "分层", "评价"]
+    _assert(ptd_core.SEGMENT_FIELDS == want, ptd_core.SEGMENT_FIELDS)
+
+
+@case
+def scale_matches_frozen_thresholds():
+    _assert(ptd_core.SCALE == {
+        "教材事实": 30, "考编可用": 20, "安全": 20, "教学": 15, "口语": 10, "证据": 5,
+    }, ptd_core.SCALE)
+    _assert(ptd_core.RELEASE == {
+        "total_min": 85, "textbook_min": 27, "safety_min": 16, "hard_gate_max": 0,
+    }, ptd_core.RELEASE)
+
+
+# ===========================================================================
+# fixture 正向：总分/分项/硬门/时长
+# ===========================================================================
+
+
+@case
+def fixture_all_release():
+    for f in _fixtures():
+        _assert(f["result"]["release"], f"{f['draft']['id']} 未放行")
+
+
+@case
+def fixture_total_ge85():
+    for f in _fixtures():
+        _assert(f["result"]["total"] >= 85, f"{f['draft']['id']} total={f['result']['total']}")
+
+
+@case
+def fixture_textbook_ge27():
+    for f in _fixtures():
+        _assert(f["result"]["scores"]["教材事实"] >= 27, f"{f['draft']['id']} 教材={f['result']['scores']['教材事实']}")
+
+
+@case
+def fixture_safety_ge16():
+    for f in _fixtures():
+        _assert(f["result"]["scores"]["安全"] >= 16, f"{f['draft']['id']} 安全={f['result']['scores']['安全']}")
+
+
+@case
+def fixture_hard_zero():
+    for f in _fixtures():
+        _assert(f["result"]["hard_gates"] == [], f"{f['draft']['id']} hard={f['result']['hard_gates']}")
+
+
+@case
+def fixture_factlock_unclassified_zero():
+    for f in _fixtures():
+        _assert(f["result"]["factlock"]["unclassified"] == 0,
+                f"{f['draft']['id']} unclassified={f['result']['factlock']['unclassified']}")
+
+
+@case
+def fixture_duration_in_2to4min():
+    for f in _fixtures():
+        d = f["result"]["estimated_duration_sec"]
+        _assert(120 <= d <= 240, f"{f['draft']['id']} dur={d}s")
+
+
+@case
+def fixture_flow_stages_match_template():
+    for f in _fixtures():
+        want = [s["stage"] for s in ptd_core.FLOWS[f["view"]["activity_type"]]]
+        got = [st["stage"] for st in f["draft"]["flow"]]
+        _assert(got == want, f"{f['draft']['id']} {got} != {want}")
+
+
+@case
+def fixture_covers_practice_and_fitness():
+    types = {f["view"]["activity_type"] for f in _fixtures()}
+    _assert("practice" in types and "fitness" in types, types)
+
+
+@case
+def difficulty_empty_no_fabricated_stars():
+    for f in _fixtures():
+        d = f["draft"]["fields"]["difficulty"]
+        if not f["view"]["index_difficulty"]:
+            _assert(d["kind"] != "index_stars", f"{f['draft']['id']} 空难度不得编星")
+            _assert("★" not in d.get("display", ""), f"{f['draft']['id']} display 含星")
+            _assert(d["kind"] == "index_empty_adapted", f"{f['draft']['id']} kind={d['kind']}")
+
+
+@case
+def p2_errors_textbook_legit_not_faked():
+    f = _fixtures()[1]  # P2 篮球原地运球（索引 has_errors=True）
+    _assert(f["view"]["index_has_errors"], "P2 应标记有教材纠错")
+    rows = f["draft"]["fields"]["errors"]["rows"]
+    _assert(len(rows) == 3, f"P2 纠错行数={len(rows)}")
+    for i, r in enumerate(rows):
+        _assert(r["error"]["provenance"] == "textbook", f"P2 纠错[{i}] 应教材原文")
+        _assert(r["fix"]["provenance"] == "textbook", f"P2 纠正[{i}] 应教材原文")
+    _assert(ptd_core.check_honesty(f["draft"], f["view"]) == [], "P2 教材纠错不应误判为造假")
+
+
+# ===========================================================================
+# 反向用例：坏草稿必须被拒绝（先红后绿已在修复期验证）
+# ===========================================================================
+
+
+def _neg_base():
+    return copy.deepcopy(_fixtures()[0]["draft"]), _fixtures()[0]["view"]
+
+
+@case
+def neg_textbook_no_evidence_rejected():
+    draft, view = _neg_base()
+    draft["fields"]["method"]["evidence"] = []
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "教材块缺证据仍放行")
+    _assert(res["scores"]["教材事实"] < 27, f"教材={res['scores']['教材事实']}")
+
+
+@case
+def neg_evidence_line_mismatch_rejected():
+    draft, view = _neg_base()
+    draft["fields"]["method"]["evidence"][0]["line"] = 999999
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "行号与摘录不符仍放行")
+
+
+@case
+def neg_adapted_unregistered_token_rejected():
+    draft, view = _neg_base()
+    draft["flow"][1]["script"] += "。每个人跳三次"
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "未归类事实 token 仍放行")
+    _assert("factlock_unclassified_gt0" in res["hard_gates"], res["hard_gates"])
+
+
+@case
+def neg_fabricated_difficulty_rejected():
+    draft, view = _neg_base()
+    draft["fields"]["difficulty"] = {"kind": "index_stars", "display": "★★", "provenance": "textbook"}
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "空难度编星仍放行")
+    _assert("fabricated_difficulty" in res["hard_gates"], res["hard_gates"])
+
+
+@case
+def neg_practice_errors_faked_rejected():
+    draft, view = _neg_base()
+    _assert(view["activity_type"] == "practice" and not view["index_has_errors"], "前置：P1 无教材纠错标记")
+    for r in draft["fields"]["errors"]["rows"]:
+        r["error"]["provenance"] = "textbook"
+        r["fix"]["provenance"] = "textbook"
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "practice 纠错冒充教材原文仍放行")
+    _assert(any(h.startswith("practice_errors_faked") for h in res["hard_gates"]), res["hard_gates"])
+
+
+@case
+def neg_duration_out_of_range_rejected():
+    draft, view = _neg_base()
+    draft["config"]["segment_duration_sec"] = [10, 20]
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "口播时长超范围仍放行")
+    _assert("script_duration_out_of_range" in res["hard_gates"], res["hard_gates"])
+
+
+@case
+def neg_no_textbook_block_rejected():
+    draft, view = _neg_base()
+    for k in ("method", "intent"):
+        draft["fields"][k]["provenance"] = "adapted"
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "无教材原文支撑仍放行")
+    _assert(res["scores"]["教材事实"] < 27, f"教材={res['scores']['教材事实']}")
+
+
+# ===========================================================================
+# excerpt_at 行级证据校验
+# ===========================================================================
+
+
+@case
+def excerpt_at_valid_line_true():
+    book = "人教版教师用书-乒乓球.md"
+    line = 952
+    raw = _lib().lines(book)[line]
+    _assert(_lib().excerpt_at(book, line, raw), "真实行+整行摘录应通过")
+
+
+@case
+def excerpt_at_empty_line_rejected():
+    book = "人教版教师用书-乒乓球.md"
+    lines = _lib().lines(book)
+    empty = next((i for i, ln in enumerate(lines) if not ln.strip()), None)
+    _assert(empty is not None, "教材中应存在空行供测试")
+    _assert(not _lib().excerpt_at(book, empty, "任意内容"), "空行不得通过行级校验")
+
+
+@case
+def excerpt_at_wrong_line_rejected():
+    book = "人教版教师用书-乒乓球.md"
+    _assert(not _lib().excerpt_at(book, 100, "完全不存在的内容内容内容"), "错误行不得通过")
+
+
+# ===========================================================================
+# 填充管线集成（原入口，单例缓存）
+# ===========================================================================
+
+_fill_cache = None
+
+
+def _fill_result():
+    global _fill_cache
+    if _fill_cache is not None:
+        return _fill_cache
+    tmp = Path(tempfile.mkdtemp(prefix="trial_test_"))
+    ws = tmp / "workspace"
+    (ws / "scripts").mkdir(parents=True)
+    (ws / "desktop-attachments").mkdir(parents=True)
+
+    # 生成一张测试用 PNG（覆盖图例插入路径）
     w = h = 64
     raw = b"".join(b"\x00" + b"\xff\x00\x00" * w for _ in range(h))
+
     def chunk(tag, data):
         c = tag + data
-        return struct.pack(">I", len(data)) + c + struct.pack(">I", zlib.crc32(c))
+        return struct_pack(len(data)) + c + zlib_crc(c)
+
+    import struct
+    import zlib
+    def struct_pack(n):
+        return struct.pack(">I", n)
+    def zlib_crc(c):
+        return struct.pack(">I", zlib.crc32(c))
+
+    fig = ws / "fig.png"
     png = (
         b"\x89PNG\r\n\x1a\n"
         + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
         + chunk(b"IDAT", zlib.compress(raw))
         + chunk(b"IEND", b"")
     )
-    Path(path).write_bytes(png)
+    fig.write_bytes(png)
 
-
-def build_pending(fig_path):
-    return {
+    pending = {
         "sport": "篮球",
         "chapter": "第三章 篮球运动教学内容 | 二、运球",
         "segment_name": "原地运球",
         "segment_type": "practice",
         "difficulty": "★★",
         "figure": "图3-2-7 原地低运球、图3-2-8 原地高运球",
-        "figure_images": [fig_path],
+        "figure_images": [str(fig)],
         "method": "两腿微屈上体稍前倾，以肘为轴前臂屈伸，用手指和指根触球，球落点在同侧脚外侧前方。",
         "rules": "降低重心抬头观察，不低头看球，另一侧手臂护球。",
         "intent": "建立正确手指触球手型与按压节奏，体会高低运球差异。",
@@ -61,117 +475,118 @@ def build_pending(fig_path):
         "cta": CYAN_LEGACY,
         "hashtags": "#教师编 #体育教师 #体育试讲 #试讲设计 #一次上岸",
     }
+    (ws / "scripts" / "pending_trial_daily.json").write_text(
+        json.dumps(pending, ensure_ascii=False), encoding="utf-8"
+    )
 
-
-def run_test():
-    tmp = Path(tempfile.mkdtemp(prefix="trial_test_"))
-    try:
-        ws = tmp / "workspace"
-        (ws / "scripts").mkdir(parents=True)
-        (ws / "desktop-attachments").mkdir(parents=True)
-        fig = ws / "fig.png"
-        make_test_png(fig)
-
-        pending = build_pending(str(fig))
-        (ws / "scripts" / "pending_trial_daily.json").write_text(
-            json.dumps(pending, ensure_ascii=False), encoding="utf-8"
-        )
-
-        env = dict(os.environ)
-        env["TRIAL_DAILY_WORKSPACE"] = str(ws)
-        result = subprocess.run(
-            [sys.executable, str(FILL_SCRIPT)],
-            capture_output=True, text=True, env=env,
-        )
-        out = result.stdout + result.stderr
-        passed = [
-            "✅ 全部通过" in out,
-            "✅ pending_trial_daily.json 已删除" in out,
-        ]
-        if result.returncode != 0 or not all(passed):
-            print("======== 测试失败：脚本输出 ========")
-            print(out)
-            return False
-
-        # 校验 DOCX 结构
-        docx_path = ws / "desktop-attachments" / "2 体育试讲每日一练-帖子内容编辑模板.docx"
-        if not docx_path.exists():
-            print("FAIL: 输出 DOCX 不存在")
-            return False
+    env = dict(os.environ)
+    env["TRIAL_DAILY_WORKSPACE"] = str(ws)
+    result = subprocess.run(
+        [sys.executable, str(FILL_SCRIPT)],
+        capture_output=True, text=True, env=env,
+    )
+    docx_path = ws / "desktop-attachments" / "2 体育试讲每日一练-帖子内容编辑模板.docx"
+    doc = None
+    if docx_path.exists():
         doc = Document(str(docx_path))
-        text = "\n".join(p.text or "" for p in doc.paragraphs)
-        for t in doc.tables:
-            for r in t.rows:
-                for c in r.cells:
-                    text += "\n" + (c.text or "")
+    _fill_cache = {
+        "ws": ws, "result": result, "docx_path": docx_path, "doc": doc,
+        "out": result.stdout + result.stderr,
+    }
+    return _fill_cache
 
-        checks = {}
-        checks["封面标题"] = "体育试讲设计每日一练" in text
-        checks["项目标签"] = "【篮球】练习环节" in text
-        checks["环节名"] = "原地运球" in text
-        checks["活动方法"] = pending["method"] in text
-        checks["规则"] = pending["rules"] in text
-        checks["设计意图"] = pending["intent"] in text
-        checks["组织形式"] = pending["organization"] in text
-        checks["易犯错误表"] = "易犯错误" in text and "纠正方法" in text
-        checks["试讲逐字稿"] = "试讲逐字稿" in text
-        checks["引流段"] = CYAN_LEGACY in text
-        checks["话题标签"] = pending["hashtags"] in text
-        # 图例图片数（仅统计行内 figure，封面底层背景图为锚定图不计入）
-        img_count = sum(
-            len(p._element.findall(".//" + qn("wp:inline"))) for p in doc.paragraphs
-        )
-        checks["图例图片"] = img_count == 1
-        # 封面底层背景图（behindDoc 锚定）
-        anchors = doc.element.body.findall(".//" + qn("wp:anchor"))
-        checks["封面底层图"] = any(a.get("behindDoc") == "1" for a in anchors)
-        # 页眉斜向水印
-        checks["页眉水印"] = all(
-            "PowerPlusWaterMarkObject" in s.header._element.xml for s in doc.sections
-        )
-        # 封面大标题字号 48
-        title_sizes = [
-            r.font.size.pt for p in doc.paragraphs for r in p.runs
-            if r.text.strip() == "体育试讲设计每日一练" and r.font.size
-        ]
-        for tb in doc.tables:
-            for row in tb.rows:
-                for cell in row.cells:
-                    for p in cell.paragraphs:
-                        title_sizes += [
-                            r.font.size.pt for r in p.runs
-                            if r.text.strip() == "体育试讲设计每日一练" and r.font.size
-                        ]
-        checks["封面标题48pt"] = any(s >= 47 for s in title_sizes)
-        # 有图例时环节拆解另起一页
-        titles = [i for i, p in enumerate(doc.paragraphs) if p.text.strip() == "环节拆解"]
-        checks["环节拆解另起一页"] = bool(titles) and bool(
-            doc.paragraphs[titles[0] - 1]._element.findall(".//" + qn("w:br"))
-        )
-        # 引流两行不另起一页：hashtags 段前紧邻段落不得含分页符
-        body = [p for p in doc.paragraphs if p.text.strip()]
-        hs_p = body[-2] if body and body[-1].text.strip() == CYAN_LEGACY else None
-        no_page_break = True
-        if hs_p is not None:
-            prev = hs_p._element.getprevious()
-            if prev is not None and prev.tag == qn("w:p"):
-                for br in prev.findall(".//" + qn("w:br")):
-                    if br.get(qn("w:type")) == "page":
-                        no_page_break = False
-        checks["引流不另起页"] = no_page_break
 
-        failed = [k for k, v in checks.items() if not v]
-        for k, v in checks.items():
-            print(f"  {'✅' if v else '❌'} {k}")
-        if failed:
-            print(f"FAIL: 未通过 {failed}")
-            return False
-        print("  ✅ 全部结构校验通过")
-        return True
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+@case
+def fill_pipeline_script_exit_green():
+    fr = _fill_result()
+    _assert(fr["result"].returncode == 0, f"退出码={fr['result'].returncode}\n{fr['out']}")
+    _assert("✅ 全部通过" in fr["out"], "缺成功提示\n" + fr["out"])
+    _assert("✅ pending_trial_daily.json 已删除" in fr["out"], "pending 未删除\n" + fr["out"])
+
+
+@case
+def fill_pipeline_docx_structure():
+    fr = _fill_result()
+    _assert(fr["doc"] is not None, "输出 DOCX 不存在")
+    doc = fr["doc"]
+    text = "\n".join(p.text or "" for p in doc.paragraphs)
+    for t in doc.tables:
+        for r in t.rows:
+            for c in r.cells:
+                text += "\n" + (c.text or "")
+
+    checks = {}
+    checks["封面标题"] = "体育试讲设计每日一练" in text
+    checks["项目标签"] = "【篮球】练习环节" in text
+    checks["环节名"] = "原地运球" in text
+    checks["活动方法"] = "两腿微屈上体稍前倾" in text
+    checks["规则"] = "降低重心抬头观察" in text
+    checks["设计意图"] = "建立正确手指触球手型" in text
+    checks["组织形式"] = "散点站位每人一球" in text
+    checks["易犯错误表"] = "易犯错误" in text and "纠正方法" in text
+    checks["试讲逐字稿"] = "试讲逐字稿" in text
+    checks["引流段"] = CYAN_LEGACY in text
+    checks["话题标签"] = "#教师编 #体育教师" in text
+    img_count = sum(
+        len(p._element.findall(".//" + qn("wp:inline"))) for p in doc.paragraphs
+    )
+    checks["图例图片"] = img_count == 1
+    anchors = doc.element.body.findall(".//" + qn("wp:anchor"))
+    checks["封面底层图"] = any(a.get("behindDoc") == "1" for a in anchors)
+    checks["页眉水印"] = all(
+        "PowerPlusWaterMarkObject" in s.header._element.xml for s in doc.sections
+    )
+    title_sizes = [
+        r.font.size.pt for p in doc.paragraphs for r in p.runs
+        if r.text.strip() == "体育试讲设计每日一练" and r.font.size
+    ]
+    for tb in doc.tables:
+        for row in tb.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    title_sizes += [
+                        r.font.size.pt for r in p.runs
+                        if r.text.strip() == "体育试讲设计每日一练" and r.font.size
+                    ]
+    checks["封面标题48pt"] = any(s >= 47 for s in title_sizes)
+    titles = [i for i, p in enumerate(doc.paragraphs) if p.text.strip() == "环节拆解"]
+    checks["环节拆解另起一页"] = bool(titles) and bool(
+        doc.paragraphs[titles[0] - 1]._element.findall(".//" + qn("w:br"))
+    )
+    body = [p for p in doc.paragraphs if p.text.strip()]
+    hs_p = body[-2] if body and body[-1].text.strip() == CYAN_LEGACY else None
+    no_page_break = True
+    if hs_p is not None:
+        prev = hs_p._element.getprevious()
+        if prev is not None and prev.tag == qn("w:p"):
+            for br in prev.findall(".//" + qn("w:br")):
+                if br.get(qn("w:type")) == "page":
+                    no_page_break = False
+    checks["引流不另起页"] = no_page_break
+
+    failed = [k for k, v in checks.items() if not v]
+    _assert(not failed, f"未通过: {failed}")
+
+
+# ===========================================================================
+# 主入口
+# ===========================================================================
+
+
+def main():
+    failed = 0
+    for name, fn in CASES:
+        try:
+            fn()
+        except Exception as exc:  # noqa: BLE001 - 用例隔离，吞异常会掩盖失败
+            failed += 1
+            print(f"  ❌ {name}: {exc}")
+        else:
+            print(f"  ✅ {name}")
+    total = len(CASES)
+    print(f"\n用例 {total} 个，通过 {total - failed}，失败 {failed}，跳过 0")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    ok = run_test()
-    sys.exit(0 if ok else 1)
+    sys.exit(main())
