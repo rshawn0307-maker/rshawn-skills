@@ -103,7 +103,7 @@ Python：优先用当前会话提供的捆绑 Python（已装 python-docx 1.2.0�
 
 ```bash
 cd "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目"
-/Users/shawn/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 体育教师编/scripts/fill_sports_daily_post.py
+python3 体育教师编/scripts/fill_sports_daily_post.py
 ```
 
 只有输出同时出现 `✅ 全部通过` 和 `✅ pending_sports_daily.json 已删除`，才算生成成功。
