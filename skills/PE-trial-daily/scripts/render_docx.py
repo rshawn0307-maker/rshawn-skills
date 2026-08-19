@@ -332,9 +332,10 @@ def check_cover_bg(docx: Path, page_w: float, page_h: float) -> list[str]:
     page_ratio = page_w / page_h
     if abs(img_ratio - page_ratio) / page_ratio > 0.02:
         bad.append(f"r8 封面背景宽高比 {img_ratio:.4f} vs 页面 {page_ratio:.4f}（可能被裁）")
-    # 铺满页高：cy ≈ page_h*914400/72
+    # 铺满页高：cy ≥ 页高即可，允许向下出血（COVER_BG_BLEED）以抵消渲染器对
+    # behindDoc 整页锚定图的垂直缩水，保证贴齐底边；出血部分被页面边界裁掉。
     want_h = page_h * 12700  # pt -> EMU (914400/72 = 12700)
-    if abs(cy - want_h) / want_h > 0.03:
+    if cy < want_h * 0.97 or cy > want_h * 1.20:
         bad.append(f"r8 封面背景高度 {cy/12700:.1f}pt 未铺满页高 {page_h:.1f}pt")
     return bad
 

@@ -63,6 +63,7 @@ MAX_SNAPSHOTS = 10
 COVER_TITLE = "体育试讲设计每日一练"
 DRAIN_TEXT = "关注我，每天一个体育试讲设计，帮你备考上岸"
 COVER_BG = SCRIPT_DIR / "cover_bg.png"   # 封面整页底层背景图（从用户模板提取）
+COVER_BG_BLEED = 0.12      # 底层背景图出血比例：LibreOffice 对 behindDoc 整页锚定图会垂直缩水 ~7%，加出血保证贴齐底边
 WATERMARK_TEXT = "世豪老师"              # 页眉水印文字（与用户模板一致）
 NAVY = RGBColor(0x0B, 0x32, 0x89)
 CYAN = RGBColor(0x9F, 0xD8, 0xE8)
@@ -288,12 +289,18 @@ def _add_watermark(header, text=WATERMARK_TEXT):
 
 
 def _anchor_cover_bg(para, image_path):
-    """在给定段落内插入整页底层背景图（behindDoc 锚定，等比满铺 3:4 整页）。"""
+    """在给定段落内插入整页底层背景图（behindDoc 锚定，等比满铺 3:4 整页）。
+
+    顶层左上对齐页边，并向下/向右略出血（COVER_BG_BLEED），以抵消 LibreOffice
+    渲染 behindDoc 整页锚定图时的垂直缩水，确保底层图贴齐页面下底边、无白色空隙；
+    出血部分被页面边界裁掉，其余渲染器（Word/WPS）按精确尺寸渲染时同样无副作用。
+    """
     w_cm, h_cm = PAGE_SIZE["size_cm"]
     page_w = int(w_cm * 360000)   # EMU
     page_h = int(h_cm * 360000)
+    scale = 1.0 + COVER_BG_BLEED
     run = para.add_run()
-    run.add_picture(str(image_path), width=Emu(page_w), height=Emu(page_h))
+    run.add_picture(str(image_path), width=Emu(int(page_w * scale)), height=Emu(int(page_h * scale)))
     drawing = run._element.find(qn("w:drawing"))
     inline = drawing.find(qn("wp:inline"))
     anchor = OxmlElement("wp:anchor")
@@ -554,16 +561,12 @@ def build_content(doc, data):
     _set_font(hr, size=10, bold=True, color=NAVY)
     _add_watermark(header)
 
-    # 页脚：页码
+    # 页脚：禁用页码（产品要求不显示页码，清空默认页脚文本）
     footer = section.footer
     footer.is_linked_to_previous = False
-    fp = footer.paragraphs[0]
-    fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    fld = OxmlElement("w:fldSimple")
-    fld.set(qn("w:instr"), "PAGE")
-    fp._element.append(fld)
-    for r in fp.runs:
-        _set_font(r, size=9, color=RGBColor(0x88, 0x88, 0x88))
+    for fpar in footer.paragraphs:
+        for r in list(fpar.runs):
+            r._element.getparent().remove(r._element)
 
     # ===== 图例区 =====
     if data["figure_images"]:
