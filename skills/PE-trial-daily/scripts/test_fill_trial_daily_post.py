@@ -22,12 +22,15 @@ from pathlib import Path
 
 from docx import Document
 from docx.oxml.ns import qn
+from docx.shared import RGBColor
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 import ptd_core  # noqa: E402
 import build_fixtures  # noqa: E402
 import ptd_workflow  # noqa: E402
+import render_docx  # noqa: E402
+import fill_trial_daily_post as fill  # noqa: E402
 
 CYAN_LEGACY = "关注我，每天一个体育试讲设计，帮你备考上岸"
 FILL_SCRIPT = SCRIPT_DIR / "fill_trial_daily_post.py"
@@ -726,6 +729,103 @@ def wf_workflow_dryrun_advances_states():
 
 
 # ===========================================================================
+# 任务4：反向验证（故意制造坏输入 → 先红；好输入全绿；正式数据哈希不变）
+# ===========================================================================
+
+
+@case
+def rev_short_script_rejected():
+    draft, view = _neg_base()
+    draft["flow"] = [{"stage": "导入与示范", "sec": 30, "provenance": "adapted",
+                      "evidence": [{"book_file": "人教版教师用书-乒乓球.md", "line": 952,
+                                    "excerpt": "正手平击球与正手平击发球动作相同。"}],
+                      "adapted_facts": [], "script": "同学们好，今天学平击球。看示范。"}]
+    res = ptd_core.score_draft(draft, view, _lib())
+    _assert(not res["release"], "短稿（口播不足 2 分钟）仍放行")
+    _assert("script_duration_out_of_range" in res["hard_gates"], res["hard_gates"])
+
+
+@case
+def rev_direction_reversed_rejected():
+    """human-writing 后教材方向被静默反转（同侧→对侧），事实锁定必须拒绝。"""
+    f = _fixtures()[1]  # P2 篮球原地运球（教材原文：同侧脚外侧前方）
+    draft = copy.deepcopy(f["draft"])
+    assert "同侧脚的外侧前方" in draft["flow"][3]["script"], "前置：原稿含同侧方向"
+    draft["flow"][3]["script"] = draft["flow"][3]["script"].replace("同侧脚的外侧前方", "对侧脚的外侧前方")
+    res = ptd_core.score_draft(draft, f["view"], _lib())
+    _assert(not res["release"], "方向被静默反转仍放行")
+    _assert(res["factlock"]["unclassified"] > 0, "反转后应有未归类事实 token")
+
+
+@case
+def rev_figure_width_1cm_rejected():
+    fr = _fill_result()
+    _assert(fr["doc"] is not None, "缺 docx")
+    # 把内联图例 extent 改为 1cm×1cm（图宽 1cm，既不够宽也不够高）
+    for p in fr["doc"].paragraphs:
+        for dw in p._element.findall(".//" + qn("w:drawing")):
+            inline = dw.find(qn("wp:inline"))
+            if inline is None:
+                continue
+            ext = inline.find(qn("wp:extent"))
+            if ext is not None:
+                ext.set("cx", "360000")
+                ext.set("cy", "360000")
+    errors = fill.validate_output(fr["doc"], fr["pending"])
+    _assert(any("图例未放大" in e for e in errors), f"1cm 图应被拒: {errors}")
+
+
+@case
+def rev_cta_color_changed_rejected():
+    fr = _fill_result()
+    _assert(fr["doc"] is not None)
+    changed = False
+    for p in fr["doc"].paragraphs:
+        if p.text.strip() == CYAN_LEGACY and p.runs:
+            p.runs[0].font.color.rgb = RGBColor(0xFF, 0x00, 0x00)
+            changed = True
+    _assert(changed, "未找到 CTA 段落")
+    errors = fill.validate_output(fr["doc"], fr["pending"])
+    _assert(any("固定引流段颜色" in e for e in errors), f"CTA 改色应被拒: {errors}")
+
+
+@case
+def rev_cta_orphan_page_rejected():
+    pages = ["逐字稿第一行\n逐字稿第二行\n#标签\n" + CYAN_LEGACY,
+             "只有 CTA 的孤页\n" + CYAN_LEGACY]
+    bad = render_docx.check_cta_not_alone(pages, CYAN_LEGACY)
+    _assert(bad, f"CTA 孤页应被拒: {bad}")
+    _assert(any("仅" in b for b in bad), f"应指出正文行数不足: {bad}")
+
+
+@case
+def rev_ocr_partial_failure_not_verifiable():
+    cache = {"page_count": 10, "coverage": 0.4, "pages": {"0": [{"text": "图3-2-7 原地低运球", "bbox": [0.1, 0.2, 0.5, 0.3]}]}}
+    hits = ptd_workflow.find_caption_in_ocr(cache, "图3-2-9")
+    _assert(hits == [], "部分 OCR 未覆盖的图例不应命中")
+    _assert(cache["coverage"] < 0.5, "覆盖率应被记录")
+    # needs_ocr_verify 且 OCR 未命中 → STOP
+    entry = {"id": "PTD-X", "figure_policy": "needs_ocr_verify", "figures": [{"ref": "图3-2-9"}]}
+    try:
+        ptd_workflow.resolve_figures(entry, Path("/tmp/x.pdf"), cache, Path("/tmp/xfig"),
+                                     log=lambda *a: None)
+        _assert(False, "部分 OCR 失败不应放行图例")
+    except ptd_workflow.FigureStop:
+        pass
+
+
+@case
+def rev_data_hashes_unchanged():
+    import hashlib
+    idx = hashlib.sha256(ptd_core.INDEX_DEFAULT.read_bytes()).hexdigest()
+    prog = hashlib.sha256(ptd_core.PROGRESS_DEFAULT.read_bytes()).hexdigest()
+    _assert(idx == "bd0e2adf2d4a284a052bb6eb252d630968d8db18c1392e61cc040dd737253856",
+            f"activity_index.json 哈希已变: {idx}")
+    _assert(prog == "4846fdb20879d989f65d0cf16b59910539d99356f7ef07d96086df4ecd3f52cf",
+            f"progress_trial.json 哈希已变: {prog}")
+
+
+# ===========================================================================
 # 填充管线集成（原入口，单例缓存）
 # ===========================================================================
 
@@ -801,7 +901,7 @@ def _fill_result():
         doc = Document(str(docx_path))
     _fill_cache = {
         "ws": ws, "result": result, "docx_path": docx_path, "doc": doc,
-        "out": result.stdout + result.stderr,
+        "out": result.stdout + result.stderr, "pending": pending,
     }
     return _fill_cache
 

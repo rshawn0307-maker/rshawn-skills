@@ -152,9 +152,12 @@ def load_pending():
     missing = [k for k in required if k not in data]
     if missing:
         raise ValueError(f"JSON 缺字段：{missing}")
-    for k in ("sport", "chapter", "segment_name", "segment_type", "difficulty", "figure",
+    for k in ("sport", "chapter", "segment_name", "segment_type", "difficulty",
               "method", "rules", "intent", "organization", "lecture_script", "cta", "hashtags"):
         _require_text(data[k], k)
+    # 无教材图例的活动允许 figure 为空串（任务2：无引用时允许空图）
+    if not isinstance(data["figure"], str):
+        raise ValueError("figure 必须是字符串")
     if data["segment_type"] not in SEGMENT_TYPES:
         raise ValueError(f"segment_type 必须是 {list(SEGMENT_TYPES)} 之一")
     if not isinstance(data["figure_images"], list):
@@ -721,6 +724,8 @@ def validate_output(doc, data):
             errors.append("#标签行必须居中")
         elif tag_p is not None and tag_p.runs and tag_p.runs[0].font.color.rgb != RGBColor(0x80, 0x80, 0x80):
             errors.append("#标签行颜色必须为灰色 #808080")
+        elif cta_p is not None and cta_p.runs and cta_p.runs[0].font.color.rgb != NAVY:
+            errors.append("固定引流段颜色必须为深蓝 #0B3289")
         # 引流两行不另起一页：hashtags 段之前紧邻的段落不得含分页符（应空一行直连逐字稿）
         hs_elem = tag_p._element
         prev = hs_elem.getprevious() if tag_p is not None else None
@@ -767,6 +772,8 @@ def validate_output(doc, data):
         min_h = 0.95 * avail_h_cm * 360000
         big_img = False
         for dw in doc.element.body.findall(".//" + qn("w:drawing")):
+            if dw.find(qn("wp:inline")) is None:
+                continue  # 封面底层锚定图不计入图例
             ext = dw.find(".//" + qn("wp:extent"))
             if ext is None or ext.get("cx") is None:
                 continue
