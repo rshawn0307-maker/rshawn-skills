@@ -33,6 +33,15 @@
 const fs = require('fs');
 const path = require('path');
 
+// VPN 透明代理环境下 Node fetch 需要绕过 TLS 证书校验 + 更新检查文件重定向到可写目录
+// 用户已设值时不覆盖，保留手动覆盖能力
+if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+if (!process.env.IMA_LAST_CHECK_FILE) {
+  process.env.IMA_LAST_CHECK_FILE = '/tmp/ima_last_check';
+}
+
 const IMA_API_PATH = process.env.IMA_API_PATH ||
   path.join(__dirname, '..', '..', 'ima-skill', 'ima_api.cjs');
 
