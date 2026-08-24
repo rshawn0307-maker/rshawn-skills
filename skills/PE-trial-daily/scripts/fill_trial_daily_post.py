@@ -63,7 +63,6 @@ MAX_SNAPSHOTS = 10
 COVER_TITLE = "体育试讲设计每日一练"
 DRAIN_TEXT = "关注我，每天一个体育试讲设计，帮你备考上岸"
 COVER_BG = SCRIPT_DIR / "cover_bg.png"   # 封面整页底层背景图（从用户模板提取）
-COVER_BG_BLEED = 0.12      # 底层背景图出血比例：LibreOffice 对 behindDoc 整页锚定图会垂直缩水 ~7%，加出血保证贴齐底边
 WATERMARK_TEXT = "世豪老师"              # 页眉水印文字（与用户模板一致）
 NAVY = RGBColor(0x0B, 0x32, 0x89)
 CYAN = RGBColor(0x9F, 0xD8, 0xE8)
@@ -289,25 +288,23 @@ def _add_watermark(header, text=WATERMARK_TEXT):
 
 
 def _anchor_cover_bg(para, image_path):
-    """在给定段落内插入整页底层背景图（behindDoc 锚定，等比满铺 3:4 整页）。
+    """插入整页底层背景图，按页面精确宽高显示且不裁切品牌区。
 
-    顶层左上对齐页边，并向下/向右略出血（COVER_BG_BLEED），以抵消 LibreOffice
-    渲染 behindDoc 整页锚定图时的垂直缩水，确保底层图贴齐页面下底边、无白色空隙；
-    出血部分被页面边界裁掉，其余渲染器（Word/WPS）按精确尺寸渲染时同样无副作用。
+    图片左上角锚定页边，layoutInCell=0 使锚点不受封面表格单元格裁切。
+    禁止放大出血，否则底部标语与右侧 SHTr 会被页面边界裁掉。
     """
     w_cm, h_cm = PAGE_SIZE["size_cm"]
     page_w = int(w_cm * 360000)   # EMU
     page_h = int(h_cm * 360000)
-    scale = 1.0 + COVER_BG_BLEED
     run = para.add_run()
-    run.add_picture(str(image_path), width=Emu(int(page_w * scale)), height=Emu(int(page_h * scale)))
+    run.add_picture(str(image_path), width=Emu(page_w), height=Emu(page_h))
     drawing = run._element.find(qn("w:drawing"))
     inline = drawing.find(qn("wp:inline"))
     anchor = OxmlElement("wp:anchor")
     for attr, val in (
         ("distT", "0"), ("distB", "0"), ("distL", "0"), ("distR", "0"),
         ("simplePos", "0"), ("relativeHeight", "251660288"), ("behindDoc", "1"),
-        ("locked", "1"), ("layoutInCell", "1"), ("allowOverlap", "1"),
+        ("locked", "1"), ("layoutInCell", "0"), ("allowOverlap", "1"),
     ):
         anchor.set(attr, val)
     simple_pos = OxmlElement("wp:simplePos"); simple_pos.set("x", "0"); simple_pos.set("y", "0")
@@ -410,10 +407,12 @@ def build_cover(doc, data):
         gc.set(qn("w:w"), "12232")
 
     cell = table.cell(0, 0)
-    # 底层背景图锚定封面单元格段落（behindDoc 铺满整页）；无图时回退纯深蓝底
+    # 底层背景图锚定封面单元格段落（behindDoc 铺满整页）；
+    # 有底图时保持单元格透明，避免底色遮住底部标语；无图时才回退纯深蓝底。
     if COVER_BG.exists():
         _anchor_cover_bg(cell.paragraphs[0], COVER_BG)
-    _shade_cell(cell, "0B3289")
+    else:
+        _shade_cell(cell, "0B3289")
     _set_cell_margins(cell, top="200", left="400", bottom="200", right="400")
     _cell_vertical_center(cell)
 
@@ -746,10 +745,34 @@ def validate_output(doc, data):
         if "z-index:-" not in hx.replace(" ", ""):
             errors.append(f"第 {si + 1} 节水印未锚定到内容之下")
 
-    # 封面整页底层背景图（behindDoc 锚定）
+    # 封面整页底层背景图（behindDoc 锚定，精确贴页且不受单元格裁切）
     anchors = doc.element.body.findall(".//" + qn("wp:anchor"))
-    if not any(a.get("behindDoc") == "1" for a in anchors):
+    cover_anchors = [a for a in anchors if a.get("behindDoc") == "1"]
+    if not cover_anchors:
         errors.append("封面底层背景图缺失")
+    else:
+        anchor = cover_anchors[0]
+        extent = anchor.find(qn("wp:extent"))
+        pos_h = anchor.find(qn("wp:positionH"))
+        pos_v = anchor.find(qn("wp:positionV"))
+        expected_w = int(PAGE_SIZE["size_cm"][0] * 360000)
+        expected_h = int(PAGE_SIZE["size_cm"][1] * 360000)
+        if anchor.get("layoutInCell") != "0":
+            errors.append("封面底图不得受表格单元格裁切（layoutInCell 须为 0）")
+        if extent is None or int(extent.get("cx") or 0) != expected_w or int(extent.get("cy") or 0) != expected_h:
+            errors.append("封面底图须按页面精确宽高显示，禁止放大出血或裁切")
+        if (pos_h is None or pos_h.get("relativeFrom") != "page" or
+                pos_h.find(qn("wp:posOffset")) is None or
+                pos_h.find(qn("wp:posOffset")).text != "0"):
+            errors.append("封面底图水平位置须贴齐页面左边界")
+        if (pos_v is None or pos_v.get("relativeFrom") != "page" or
+                pos_v.find(qn("wp:posOffset")) is None or
+                pos_v.find(qn("wp:posOffset")).text != "0"):
+            errors.append("封面底图垂直位置须贴齐页面上边界")
+        if COVER_BG.exists() and doc.tables:
+            cover_shading = doc.tables[0].cell(0, 0)._tc.get_or_add_tcPr().find(qn("w:shd"))
+            if cover_shading is not None:
+                errors.append("封面底图存在时单元格必须透明，避免遮住底部标语和 SHTr")
 
     # 封面大标题字号（48pt）
     title_ok = False

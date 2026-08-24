@@ -21,6 +21,7 @@ import tempfile
 from pathlib import Path
 
 from docx import Document
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor
 
@@ -450,6 +451,31 @@ def layout_page_size_3_4():
 
 
 @case
+def layout_cover_brand_bg_full_page():
+    fr = _fill_result()
+    doc = fr["doc"]
+    _assert(doc is not None)
+    anchors = [a for a in doc.element.body.findall(".//" + qn("wp:anchor"))
+               if a.get("behindDoc") == "1"]
+    _assert(anchors, "封面底层图缺失")
+    anchor = anchors[0]
+    _assert(anchor.get("layoutInCell") == "0", "封面底图仍受单元格裁切")
+    extent = anchor.find(qn("wp:extent"))
+    _assert(extent is not None, "封面底图缺少尺寸")
+    _assert(abs(int(extent.get("cx") or 0) - int(doc.sections[0].page_width)) <= 635,
+            "封面底图宽度未精确贴页")
+    _assert(abs(int(extent.get("cy") or 0) - int(doc.sections[0].page_height)) <= 635,
+            "封面底图高度未精确贴页")
+    for tag in ("wp:positionH", "wp:positionV"):
+        pos = anchor.find(qn(tag))
+        off = pos.find(qn("wp:posOffset")) if pos is not None else None
+        _assert(pos is not None and pos.get("relativeFrom") == "page" and
+                off is not None and off.text == "0", f"{tag} 未贴齐页边")
+    shd = doc.tables[0].cell(0, 0)._tc.get_or_add_tcPr().find(qn("w:shd"))
+    _assert(shd is None, "封面单元格底色会遮住底部标语和 SHTr")
+
+
+@case
 def layout_font_cjk_contract():
     fr = _fill_result()
     style = fr["doc"].styles["Normal"]
@@ -773,6 +799,33 @@ def rev_figure_width_1cm_rejected():
                 ext.set("cy", "360000")
     errors = fill.validate_output(fr["doc"], fr["pending"])
     _assert(any("图例未放大" in e for e in errors), f"1cm 图应被拒: {errors}")
+
+
+@case
+def rev_cover_bg_overflow_rejected():
+    fr = _fill_result()
+    anchor = next(a for a in fr["doc"].element.body.findall(".//" + qn("wp:anchor"))
+                  if a.get("behindDoc") == "1")
+    extent = anchor.find(qn("wp:extent"))
+    extent.set("cx", str(round(int(extent.get("cx")) * 1.12)))
+    extent.set("cy", str(round(int(extent.get("cy")) * 1.12)))
+    errors = fill.validate_output(fr["doc"], fr["pending"])
+    _assert(any("禁止放大出血" in e for e in errors), f"出血底图应被拒: {errors}")
+
+
+@case
+def rev_cover_bg_cell_clipping_rejected():
+    fr = _fill_result()
+    anchor = next(a for a in fr["doc"].element.body.findall(".//" + qn("wp:anchor"))
+                  if a.get("behindDoc") == "1")
+    anchor.set("layoutInCell", "1")
+    tc_pr = fr["doc"].tables[0].cell(0, 0)._tc.get_or_add_tcPr()
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:fill"), "0B3289")
+    tc_pr.append(shd)
+    errors = fill.validate_output(fr["doc"], fr["pending"])
+    _assert(any("layoutInCell" in e for e in errors), f"单元格裁切应被拒: {errors}")
+    _assert(any("单元格必须透明" in e for e in errors), f"不透明底色应被拒: {errors}")
 
 
 @case

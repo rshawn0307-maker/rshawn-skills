@@ -20,7 +20,7 @@
   r5 页底连续空白 ≤25%    : (页高-末墨行)/页高 ≤ 0.25
   r6 CTA 不孤页           : pdftotext 定位 CTA 所在页，CTA 行前正文行 ≥ 2
   r7 水印 8%–12%          : DOCX XML 解析 VML fill opacity（24bit 分数）∈ [0.08, 0.12]，且 z-index 为负（位于内容之下）
-  r8 封面背景等比满铺     : 封面锚定图 extent 宽高比 ≈ 页面比（±2%），且按页高铺满、不超出页高
+  r8 封面品牌底图完整贴页 : behindDoc 锚点按页面精确宽高定位，禁止出血、裁切和单元格遮挡
 """
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -315,28 +316,78 @@ def check_watermark_docx(docx: Path) -> list[str]:
 
 
 def check_cover_bg(docx: Path, page_w: float, page_h: float) -> list[str]:
-    """封面背景等比满铺：锚定图 extent 宽高比 ≈ 页面比，且铺满页高。"""
+    """封面品牌底图完整贴页，且不会被封面表格底色遮挡。"""
     bad = []
+    ns = {
+        "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+        "wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+        "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+    }
     try:
         with zipfile.ZipFile(docx) as z:
             xmls = [n for n in z.namelist() if n.startswith("word/document") and n.endswith(".xml")]
-            doc_xml = z.read(xmls[0]).decode("utf-8", "ignore") if xmls else ""
+            doc_xml = z.read(xmls[0]) if xmls else b""
+            root = ET.fromstring(doc_xml)
     except Exception as exc:  # noqa: BLE001
         return [f"r8 读取 DOCX 失败: {exc}"]
-    extents = re.findall(r'<wp:extent cx="(\d+)" cy="(\d+)"/>', doc_xml)
-    if not extents:
-        return ["r8 未找到锚定图 extent"]
-    # 选最大的 extent 作为封面背景
-    cx, cy = max(((int(a), int(b)) for a, b in extents), key=lambda p: p[0] * p[1])
-    img_ratio = cx / cy
-    page_ratio = page_w / page_h
-    if abs(img_ratio - page_ratio) / page_ratio > 0.02:
-        bad.append(f"r8 封面背景宽高比 {img_ratio:.4f} vs 页面 {page_ratio:.4f}（可能被裁）")
-    # 铺满页高：cy ≥ 页高即可，允许向下出血（COVER_BG_BLEED）以抵消渲染器对
-    # behindDoc 整页锚定图的垂直缩水，保证贴齐底边；出血部分被页面边界裁掉。
-    want_h = page_h * 12700  # pt -> EMU (914400/72 = 12700)
-    if cy < want_h * 0.97 or cy > want_h * 1.20:
-        bad.append(f"r8 封面背景高度 {cy/12700:.1f}pt 未铺满页高 {page_h:.1f}pt")
+
+    anchors = [a for a in root.findall(".//wp:anchor", ns) if a.get("behindDoc") == "1"]
+    if len(anchors) != 1:
+        return [f"r8 封面 behindDoc 锚点数量 {len(anchors)}（期望 1）"]
+    anchor = anchors[0]
+    if anchor.get("layoutInCell") != "0":
+        bad.append("r8 封面底图仍受表格单元格裁切（layoutInCell 须为 0）")
+
+    offsets = []
+    for tag, label in (("positionH", "水平"), ("positionV", "垂直")):
+        pos = anchor.find(f"wp:{tag}", ns)
+        off = pos.find("wp:posOffset", ns) if pos is not None else None
+        if pos is None or pos.get("relativeFrom") != "page" or off is None:
+            bad.append(f"r8 封面底图{label}位置未相对页面锚定")
+            offsets.append(0)
+            continue
+        try:
+            value = int(off.text or "0")
+        except ValueError:
+            value = 0
+            bad.append(f"r8 封面底图{label}偏移不是整数")
+        offsets.append(value)
+        if abs(value) > 635:  # 1 twip
+            bad.append(f"r8 封面底图{label}偏移 {value} EMU（须贴齐页边）")
+
+    extent = anchor.find("wp:extent", ns)
+    if extent is None:
+        return bad + ["r8 封面底图缺少 wp:extent"]
+    cx, cy = int(extent.get("cx") or 0), int(extent.get("cy") or 0)
+    want_w = round(page_w * 12700)  # pt -> EMU (914400/72 = 12700)
+    want_h = round(page_h * 12700)
+    tol = 635  # 1 twip，容纳 PDF MediaBox 的小数舍入
+    if abs(cx - want_w) > tol or abs(cy - want_h) > tol:
+        bad.append(
+            f"r8 封面底图 {cx/12700:.1f}×{cy/12700:.1f}pt "
+            f"未按页面 {page_w:.1f}×{page_h:.1f}pt 精确显示（禁止出血或裁切）"
+        )
+    if offsets and (offsets[0] + cx > want_w + tol or offsets[1] + cy > want_h + tol):
+        bad.append("r8 封面底图越过页面右边或下边，品牌区会被裁切")
+
+    for a_ext in anchor.findall(".//a:xfrm/a:ext", ns):
+        if abs(int(a_ext.get("cx") or 0) - cx) > tol or abs(int(a_ext.get("cy") or 0) - cy) > tol:
+            bad.append("r8 封面底图内部图形尺寸与锚点不一致")
+            break
+    for src_rect in anchor.findall(".//a:srcRect", ns):
+        if any(int(src_rect.get(k) or 0) != 0 for k in ("l", "t", "r", "b")):
+            bad.append("r8 封面底图含非零裁剪区域 a:srcRect")
+            break
+
+    body = root.find("w:body", ns)
+    first_table = body.find("w:tbl", ns) if body is not None else None
+    if first_table is None:
+        bad.append("r8 未找到封面表格")
+    else:
+        tbl_shd = first_table.find("w:tblPr/w:shd", ns)
+        cell_shd = first_table.find("w:tr/w:tc/w:tcPr/w:shd", ns)
+        if tbl_shd is not None or cell_shd is not None:
+            bad.append("r8 封面表格含不透明底色，会遮住底部标语和 SHTr")
     return bad
 
 
