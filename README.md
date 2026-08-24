@@ -13,7 +13,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [gongkao](#gongkao) | 公考面试结构化讲义全产品工具（6 个工作流） | [查看](#gongkao) |
 | [ima-skill](#ima-skill) | 统一的 IMA 笔记与知识库操作技能 | [查看](#ima-skill) |
 | [PE-lecture](#PE-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#PE-lecture) |
-| [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成 | [查看](#PE-trial) |
+| [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成（考试规则可配置 + 独立验真） | [查看](#PE-trial) |
 | [PE-trial-daily](#PE-trial-daily) | 体育试讲设计每日一练：拆解教学环节 + 图例 + 试讲逐字稿 docx 自动生成 | [查看](#PE-trial-daily) |
 | [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
 | [structured-tips-daily](#structured-tips-daily) | "结构化答题技巧·每日一练"小红书爆款图文帖子 docx 自动生成 | [查看](#structured-tips-daily) |
@@ -106,9 +106,11 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 #### PE-trial
 
-生成体育试讲稿教学产物（教学设计/试讲稿/队形图/自检表），含初始化、子技术识别、并行生产、六维度横评、问题修复、备考讲义生成全流程，支持基于教材批量开发新运动项目。
+生成体育试讲稿教学产物（教学设计/试讲稿/队形图/自检表），含初始化、子技术识别、并行生产、六维度横评、问题修复、备考讲义生成全流程，支持基于教材批量开发新运动项目。考试规则由 `references/exam-profile.md` 的 EXAM_PROFILE 驱动（时长/是否配学生/器材/评分口径等可配置），产物规格与评分口径分别落在 `references/artifacts-spec.md` 与 `references/scoring-rubric.md`（含 VETO 项的评分矩阵）。
 
-> 注意：`generate_lecture.py` 顶部的 `BASE_DIR` / `OUTPUT_PATH` 使用 `<项目根>` 占位符，运行前请替换为实际路径。
+配套 `scripts/validate_artifacts.py`（纯 stdlib，无第三方依赖）可脱离生成器独立验真：校验净稿套件完整性、EXAM_PROFILE 一致性、教材源冲突与 docx 版式，支持 `--json` 输出；`tests/` 下 22 个单测覆盖正反例。
+
+> 用法：`generate_lecture.py` 已改为显式 CLI，`--base-dir <产物库根>` 与 `--out <输出 docx>` 为必填参数，无需再改脚本内常量；另有 `--projects` / `--only` / `--font` 过滤项，`--check`（构建渲染自检但不写 final）与 `--dry-run`（只做发现与解析统计）。退出码：0 成功 / 2 用法或 IO 错误 / 3 零项目 / 4 解析异常 / 5 渲染自检失败。
 
 #### PE-trial-daily
 

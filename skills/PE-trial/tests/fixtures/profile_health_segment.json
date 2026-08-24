@@ -1,0 +1,15 @@
+{
+  "exam_type": "tuhuan",
+  "region_year": "unknown",
+  "stage_grade": "小学四年级",
+  "standard": "《义务教育体育与健康课程标准（2022 年版）》",
+  "textbook_pages": "人教版《体育与健康》四年级全一册 心理健康与交流合作单元",
+  "deliverable_type": "interview_segment",
+  "prep_minutes": null,
+  "trial_minutes": 8,
+  "defense": "none",
+  "skill_demo": false,
+  "student_mode": "no_student",
+  "equipment": {"list": ["小垫子 8 块"], "media_allowed": false},
+  "word_target": [1400, 1700]
+}

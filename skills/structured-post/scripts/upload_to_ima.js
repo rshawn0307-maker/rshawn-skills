@@ -12,10 +12,39 @@
  *
  * 流程：读取 md -> 创建 IMA 笔记 -> 搜索"总分总"知识库 -> 搜索"00_结构化每日一练"文件夹 -> 添加到知识库
  * 上传失败不阻断主流程，在 stderr 输出警告即可。
+ *
+ * TLS 证书自愈（2026-08-22 固化）：
+ *   ima.qq.com 服务器证书链不完整（缺中间证书），且其根证书 DigiCert Global Root G2
+ *   不在 node 内置 CA 库中，node fetch 直接报 unable to get local issuer certificate。
+ *   修复：脚本同目录放 _ima_ca_bundle.pem（中间证书 + 根证书），启动时若检测到
+ *   证书包且外部未设 NODE_EXTRA_CA_CERTS，则带该环境变量重启自身（env 必须在进程
+ *   启动前设置，脚本内修改无效）。证书包缺失则按原行为运行并在 stderr 提示。
  */
 const fs = require('fs');
 const path = require('path');
 const { imaApi } = require(path.join(__dirname, '..', '..', 'ima-skill', 'ima_api.cjs'));
+
+// ── TLS 证书自愈：必要时带 NODE_EXTRA_CA_CERTS 重启自身 ──
+(async function bootstrap() {
+  if (!process.env.NODE_EXTRA_CA_CERTS) {
+    const caBundle = path.join(__dirname, '_ima_ca_bundle.pem');
+    if (fs.existsSync(caBundle)) {
+      console.error('♻️ 启用 TLS 证书包:', caBundle);
+      const { spawn } = require('child_process');
+      const code = await new Promise((resolve) => {
+        const rerun = spawn(process.execPath, [__filename, ...process.argv.slice(2)], {
+          stdio: 'inherit',
+          env: { ...process.env, NODE_EXTRA_CA_CERTS: caBundle }
+        });
+        rerun.on('close', resolve);
+      });
+      process.exit(code);
+    } else {
+      console.error('⚠️ 未找到 _ima_ca_bundle.pem，若 fetch failed 请检查证书包是否在 scripts 目录');
+    }
+  }
+  await main();
+})().catch(err => console.error('⚠️ upload_to_ima.js 异常:', err.message));
 
 async function main() {
   const mdPath = process.argv[2];
@@ -84,5 +113,5 @@ async function main() {
   if (addData.code === 0) console.log('✅ 知识库同步成功 media_id:', addData.data.media_id);
   else console.error('⚠️ 知识库同步失败:', addData.msg);
 }
+// 入口统一由顶部 bootstrap 负责（含 TLS 证书自愈 respawn）
 
-main().catch(err => console.error('⚠️ upload_to_ima.js 异常:', err.message));

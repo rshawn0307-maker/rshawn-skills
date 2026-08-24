@@ -312,6 +312,8 @@ node <skill目录>/scripts/upload_to_ima.js "<临时md文件路径>" "<笔记标
 
 **IMA 上传失败重试**：如果 `upload_to_ima.js` 返回 `⚠️ IMA上传失败`，检查 `ima_api.cjs` 是否存在 + IMA 登录状态。重试 1 次；仍失败则跳过上传，本地已跑完脚本不受影响，在报告中标注"IMA 未同步"。
 
+**IMA TLS 证书自愈（2026-08-22 固化，无需手动干预）**：`ima.qq.com` 服务器证书链不完整且其根证书不在 node 内置 CA 库中，node fetch 会报 `fetch failed`（根因 `unable to get local issuer certificate`）。已修复：`scripts/_ima_ca_bundle.pem`（中间证书 + 根证书）随 skill 分发，`upload_to_ima.js` 启动时自动检测并带 `NODE_EXTRA_CA_CERTS` 重启自身（输出 `♻️ 启用 TLS 证书包` 即生效）。若报 `⚠️ 未找到 _ima_ca_bundle.pem`，说明证书包被删，从 skill 源仓库（rshawn-skills）的 `skills/structured-post/scripts/` 重新同步即可；也可自行重建，从证书 AIA 地址（cacerts.digicert.cn）下载 DigiCert 中间证书与 Global Root G2 根证书，转成 PEM 拼接为同一文件。诊断要点：curl 能通不代表 node fetch 能通（macOS 会自动补证书链，node 不会）。
+
 **注意**：`pending_answer.json` 已被脚本删除，使用步骤 3 写入时保留在上下文中的内容。笔记创建或知识库同步失败均不阻断主流程，在报告中标注即可。
 
 ## 模板铁律（绝对不能动）
