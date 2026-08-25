@@ -9,15 +9,28 @@ description: 自动化生成「体育试讲设计每日一练」小红书帖子 
 
 从人教版教师用书（313 个活动，9 个运动项目）中，每天拆解一个教学环节，生成一篇小红书帖子 docx：
 
-- 第 1 页封面：整页底层背景图（behindDoc 锚定铺满，从「封面底版」提取）+ 品牌标题「体育试讲设计每日一练」（48pt 居中浅青）+ 运动项目标签 + 环节名称 + 难度，恰好一页
-- 第 2 页起：图例区（如教师用书有图例，放大 ≥14cm 宽铺满首屏）+ 环节拆解（名称/类型/方法/规则/意图/组织形式）+ 易犯错误与纠正表格（仅 practice 环节）+ 试讲逐字稿 + 引流页
-- 引流页：#标签行 居中 + 灰色（#808080），固定引流段 居中 + 深蓝（#0B3289），两者均加粗
+- 第 1 页封面：整页底层背景图（behindDoc 锚定铺满，从「封面底版」提取，底部标语与 SHTr 完整贴底）+ 品牌标题「体育试讲设计每日一练」（48pt 居中浅青）+ 运动项目标签 + 环节名称 + 难度，恰好一页
+- 页面固定精确 3:4 手机版（15cm × 20cm，可配置 `config.default.json`）；正文/表格 ≥18pt，栏目标题 24–28pt，图注/标签 ≥16pt，CTA ≥18pt；字体用本机可渲染的 CJK 契约（Hiragino Sans GB 等）
+- 第 2 页起：图例区（如教师用书有图例，等比放大，宽 ≥ 正文85% 或高填满可用区，与标题+图注同页）+ 环节拆解（名称/类型/方法/规则/意图/组织形式）+ 易犯错误与纠正表格（仅 practice 环节，固定总宽 42/58 列、禁 autofit、行不跨页）+ 试讲逐字稿（按教学阶段拆短段）+ 引流
+- 引流行：#标签行 居中 + 灰色（#808080），固定引流段 居中 + 深蓝（#0B3289），两者均加粗；CTA 同页前至少保留 2 行正文
+
+## 内容事实层（v2，任务1）
+
+本技能已引入 v2「内容事实层」，核心库 `scripts/ptd_core.py` 负责稳定 ID、可生成视图、dry-run 迁移、事实锁定与 100 分量表，细节见 `references/r1-schema-and-scale.md`。要点：
+
+- 稳定 ID `PTD-{seq}-{sport}-{name}`：重跑按 ID 幂等；原 313 条索引只读保留，新增视图是派生层。
+- 字段区分 `provenance`：`textbook`（教材原文，必带 `book_file+行号+excerpt`）与 `adapted`（明确教学加工，事实 token 必须被证据覆盖或显式登记 `adapted_facts`）。
+- 难度缺失绝不编星（`index_empty_adapted`）；practice 无教材纠错时，纠错不得标教材原文。
+- 图例策略：`use_extracted`（确认归属+有 PDF）/ `misattributed_treat_as_none`（误收留证）/ `needs_ocr_verify`（无法核验，生成须 OCR 确认否则 STOP）/ `figure_required_but_pdf_missing`（有引用但缺 PDF/图 → STOP，非可生成）。
+- 100 分量表（教材30/考编可用20/安全20/教学15/口语10/证据5），放行线总分≥85、教材≥27、安全≥16、硬门0；human-writing 改写后必须重跑事实锁定复核。
+- 可生成视图 + dry-run 迁移表用 `scripts/build_generatable_view.py` 生成（默认输出到 /tmp，只读源数据）。
 
 封面版式铁律（与「2 体育试讲每日一练-帖子内容编辑模板.docx」一致）：
 - 封面大标题字号 48pt（浅青 #9FD8E8），整页铺底层背景图 `scripts/cover_bg.png`（behindDoc=1 锚定，置于文字下层）
+- 底图按页面精确宽高锚定（relativeFrom=page、posOffset=0、layoutInCell=0），禁止放大出血或裁切；底图存在时封面表格单元格保持透明，确保下方标语和 SHTr 完整呈现并贴齐下边界
 - 封面必须恰好一页：封面表格浮动锚定整页（vertAnchor=page、行高 15290 atLeast），放大字号后仍不溢出到第 2 页
 - 所有页面页眉叠加斜向水印「世豪老师」（VML PowerPlusWaterMarkObject，灰 #C0C0C0），封面页不放品牌文字只放水印
-- 有图例时：图例放大到 ≥14cm 宽铺满首屏，随后「环节拆解」标题必须另起一页置于最上端（image 后紧跟 page break）
+- 有图例时：图例等比放大（宽 ≥ 正文85% 或高填满可用区），与「图例直观」标题和图注同页；随后「环节拆解」标题用 page_break_before 另起一页置于最上端
 
 内容结构铁律：
 - 环节拆解必须覆盖全部 6 个维度（名称、类型、方法、规则、意图、组织形式）
@@ -31,13 +44,31 @@ description: 自动化生成「体育试讲设计每日一练」小红书帖子 
 | 路径 | 说明 |
 |------|------|
 | `/Users/shawn/Desktop/AI工作区/03-Resources/各版本体育教材/人教版/` | 教师用书源（MD + PDF，只读，9 本） |
-| `本 skill 的 scripts/fill_trial_daily_post.py` | 填充脚本（自带源，随 skill 分发） |
+| 本 skill 的 `scripts/fill_trial_daily_post.py` | 填充脚本（自带源，随 skill 分发） |
+| 本 skill 的 `scripts/ptd_core.py` | 核心库（稳定 ID/可生成视图/事实锁定/100 分量表） |
+| 本 skill 的 `scripts/build_generatable_view.py` | 生成可生成视图 + dry-run 迁移表 |
+| 本 skill 的 `config.default.json` | 显式配置（地区/学段/片段时长/3:4 版式阈值） |
+| 本 skill 的 `references/r1-schema-and-scale.md` | v2 内容层规范（schema/量表/流程/图例策略） |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/activity_index.json` | 活动索引（313 条，只读） |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/ocr_index/` | OCR 页索引（缓存，用于图例定位） |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/progress_trial.json` | 选题进度 |
 | `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编/scripts/_snapshots_trial/` | 快照（回退用） |
 
-Python：使用当前会话提供的 python3（已装 python-docx 和 PyMuPDF）。若运行时缺失，可临时安装到 /tmp 环境。
+Python：使用当前会话提供的 python3（已装 python-docx；未装 PyMuPDF/fitz，图像提取走 pdftoppm/poppler 链）。
+调用统一加 `env -u PYTHONHOME -u PYTHONPATH`（外层会话注入的 PYTHONHOME/PYTHONPATH 会让 bundled python 崩溃）。
+
+## 工作流编排（v3，任务3）
+
+`scripts/ptd_workflow.py` 提供带锁 + 原子状态机的流水线编排：
+
+- 依赖预检：`python3 ptd_workflow.py --check-deps`（docx/soffice/poppler/fc-match/swift，缺失即报，不装新依赖）。
+- 工作区锁：`O_EXCL` 原子抢占，双进程只有一个成功；持锁失败者退出码非0，不删 pending。
+- 状态机：`select → extract → factlock → rewrite_review → render_verify → docx_commit → progress_commit → upload_done`；
+  状态文件临时写 + `os.replace` 原子提交；按 `(stable_id, content_hash)` 幂等，终态不重跑。
+- OCR 缓存：`build_ocr_cache()` 原子写、记录 PDF 指纹(sha256)/页数/覆盖率；子进程非0 不落缓存。
+- 图例：视图策略驱动——`figure_required_but_pdf_missing` → STOP；`misattributed_treat_as_none`/无引用 → 空图；
+  `needs_ocr_verify`/`use_extracted` → OCR 索引精确匹配 caption 并裁图（`ocr_batch.swift` 已输出 bbox），失败 STOP。
+- IMA：`FakeIMA` 本地 fake adapter 按 content_hash 幂等（记录 note_id/remote_id/stage，重复运行不新建笔记），仅本地验证不真实调用。
 
 ## 工作流（6 步）
 
@@ -104,8 +135,9 @@ Python：使用当前会话提供的 python3（已装 python-docx 和 PyMuPDF）
 ### 步骤 5：跑脚本 + 验证 + 收尾
 
 ```bash
-TRIAL_DAILY_WORKSPACE="/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编" python3 /Users/shawn/.trae-cn/skills/PE-trial-daily/scripts/fill_trial_daily_post.py
+TRIAL_DAILY_WORKSPACE="/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/体育教师编" python3 "$(dirname "$0")/fill_trial_daily_post.py"
 ```
+> 说明：一律从「当前 skill 路径」运行脚本（`$(dirname "$0")`），不使用任何 `.trae-cn` 等环境绝对路径。
 
 只有输出同时出现 `✅ 全部通过` 和 `✅ pending_trial_daily.json 已删除`，才算生成成功。
 
@@ -158,10 +190,10 @@ TRIAL_DAILY_WORKSPACE="/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内
 ```
 □ 封面 = 整页底层背景图(behindDoc) + 品牌标题(48pt浅青) + 项目标签 + 环节名 + 难度，恰好一页
 □ 封面大标题字号 = 48pt（浅青 #9FD8E8）
-□ 封面底层图 = scripts/cover_bg.png 已锚定铺满（behindDoc=1，置于文字下层）
+□ 封面底层图 = scripts/cover_bg.png 按页面精确宽高锚定铺满（behindDoc=1、layoutInCell=0、无放大出血），底部标语与 SHTr 完整贴底且无遮盖
 □ 页眉斜向水印「世豪老师」= 所有节页眉均含 PowerPlusWaterMarkObject（灰 #C0C0C0）
-□ 图例区 = 真实图片（如有），放大 ≥14cm 宽，非占位符
-□ 有图例时 = 「环节拆解」标题另起一页置于最上端（image 后紧接 page break）
+□ 图例区 = 真实图片（如有），等比放大（宽≥正文85% 或高填满可用区），非占位符
+□ 有图例时 = 「环节拆解」标题 page_break_before 另起一页置于最上端
 □ 环节拆解 = 6 维度全部覆盖（名称/类型/方法/规则/意图/组织形式）
 □ 易犯错误表格 = 仅 practice 环节，表头"易犯错误"+"纠正方法"，蓝底白字
 □ 试讲逐字稿 = 教学流程完整（导入→示范→组织→纠错→互动→小结）

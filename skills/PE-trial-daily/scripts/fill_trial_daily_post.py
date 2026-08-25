@@ -35,6 +35,8 @@ import json
 import os
 import re
 import shutil
+import struct
+import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -49,6 +51,7 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+SKILL_DIR = SCRIPT_DIR.parent
 WORKSPACE = Path(os.environ.get("TRIAL_DAILY_WORKSPACE", SCRIPT_DIR.parent)).expanduser().resolve()
 PROJECT_SCRIPT_DIR = WORKSPACE / "scripts"
 SOURCE_TEMPLATE = WORKSPACE / "模板文件" / "2 体育试讲每日一练-帖子内容编辑模板.docx"
@@ -66,7 +69,49 @@ CYAN = RGBColor(0x9F, 0xD8, 0xE8)
 DARK = RGBColor(0x33, 0x33, 0x33)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 GREEN = RGBColor(0x1E, 0x7A, 0x3C)
-FONT = "微软雅黑"
+
+# ---- 3:4 手机版版式契约（任务2；可被 config.default.json 覆盖） ----
+CFG_PAGE = {"size_cm": [15.0, 20.0], "ratio": [3, 4]}
+CFG_FONT = ["Hiragino Sans GB", "Heiti SC", "Songti SC", "PingFang SC", "Microsoft YaHei"]
+BODY_PT = 18          # 正文/表格 ≥18
+SECTION_PT = 26       # 栏目标题 24–28
+LABEL_PT = 16         # 图注/标签 ≥16
+CTA_PT = 18           # CTA ≥18
+TABLE_COLS_PCT = [42, 58]
+WATERMARK_OPACITY = 0.10   # 8%–12%
+
+
+def load_page_config():
+    """从 config.default.json 读取页面尺寸与字体契约（不存在时用默认值）。"""
+    cfg_path = SKILL_DIR / "config.default.json"
+    page = dict(CFG_PAGE)
+    fonts = list(CFG_FONT)
+    if cfg_path.exists():
+        try:
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            pg = cfg.get("page") or {}
+            if pg.get("size_cm"):
+                page["size_cm"] = pg["size_cm"]
+            if pg.get("ratio"):
+                page["ratio"] = pg["ratio"]
+            if pg.get("font_contract"):
+                fonts = pg["font_contract"]
+        except Exception:
+            pass
+    return page, fonts
+
+
+def _first_available_font(fonts):
+    """取本机可渲染的契约字体（fc-match 可命中即视为可用）。"""
+    for f in fonts:
+        r = subprocess.run(["fc-match", f], capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip() and "not found" not in r.stdout.lower():
+            return f
+    return fonts[0]
+
+
+PAGE_SIZE, FONT_CONTRACT = load_page_config()
+FONT = _first_available_font(FONT_CONTRACT)
 
 SEGMENT_TYPES = {
     "game": "游戏 / 比赛环节",
@@ -107,9 +152,12 @@ def load_pending():
     missing = [k for k in required if k not in data]
     if missing:
         raise ValueError(f"JSON 缺字段：{missing}")
-    for k in ("sport", "chapter", "segment_name", "segment_type", "difficulty", "figure",
+    for k in ("sport", "chapter", "segment_name", "segment_type", "difficulty",
               "method", "rules", "intent", "organization", "lecture_script", "cta", "hashtags"):
         _require_text(data[k], k)
+    # 无教材图例的活动允许 figure 为空串（任务2：无引用时允许空图）
+    if not isinstance(data["figure"], str):
+        raise ValueError("figure 必须是字符串")
     if data["segment_type"] not in SEGMENT_TYPES:
         raise ValueError(f"segment_type 必须是 {list(SEGMENT_TYPES)} 之一")
     if not isinstance(data["figure_images"], list):
@@ -198,7 +246,7 @@ def _add_para(cell, text, size=14, bold=False, color=DARK, align=WD_ALIGN_PARAGR
     return p
 
 
-def _body_para(doc, text, size=13, bold=False, color=DARK, space_after=8, line=1.3,
+def _body_para(doc, text, size=BODY_PT, bold=False, color=DARK, space_after=4, line=1.15,
                align=WD_ALIGN_PARAGRAPH.LEFT):
     p = doc.add_paragraph()
     p.alignment = align
@@ -211,25 +259,28 @@ def _body_para(doc, text, size=13, bold=False, color=DARK, space_after=8, line=1
 
 
 def _add_watermark(header, text=WATERMARK_TEXT):
-    """在页眉追加 VML 斜向水印（灰 #C0C0C0，与用户模板一致）。"""
+    """在页眉追加 VML 斜向水印（灰 #C0C0C0，透明度 8%–12%）。
+
+    要点：不用 DrawingML（LibreOffice 会把整页锚定形状翻页成多页空白）；
+    VML 必须去掉 mso-position-*-relative 等相对定位（否则 LibreOffice 会把页眉撑高 ~4cm）。
+    """
+    op = hex(int(WATERMARK_OPACITY * 0xFFFFFF))[2:].zfill(6)  # 24bit 分数
     wm = (
         '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
         'xmlns:o="urn:schemas-microsoft-com:office:office" '
         'xmlns:v="urn:schemas-microsoft-com:vml">'
-        '<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:pict>'
+        '<w:pPr><w:spacing w:line="2" w:lineRule="exact"/></w:pPr>'
+        '<w:r><w:rPr><w:sz w:val="2"/></w:rPr><w:pict>'
         '<v:shape id="PowerPlusWaterMarkObject" o:spid="_x0000_s2049" o:spt="136" '
         'type="#_x0000_t136" '
-        'style="position:absolute;left:0pt;height:151.35pt;width:435.9pt;'
-        'mso-position-horizontal:center;mso-position-horizontal-relative:margin;'
-        'mso-position-vertical:center;mso-position-vertical-relative:margin;'
-        'rotation:-2949120f;z-index:-251657216;mso-width-relative:page;'
-        'mso-height-relative:page;" fillcolor="#C0C0C0" filled="t" stroked="f" '
-        'coordsize="21600,21600" adj="10800">'
-        '<v:path/><v:fill on="t" opacity="13107f" focussize="0,0"/>'
+        'style="position:absolute;left:0pt;top:0pt;height:30pt;width:435.9pt;'
+        'rotation:-2949120f;z-index:-251657216;" fillcolor="#C0C0C0" filled="t" '
+        'stroked="f" coordsize="21600,21600" adj="10800">'
+        '<v:path/><v:fill on="t" opacity="' + op + '" focussize="0,0"/>'
         '<v:stroke on="f"/><v:imagedata o:title=""/>'
         '<o:lock v:ext="edit" aspectratio="t"/>'
         '<v:textpath on="t" fitshape="t" fitpath="t" trim="t" xscale="f" '
-        'string="__WM__" style="font-family:PingFang SC;font-size:36pt;'
+        'string="__WM__" style="font-family:Hiragino Sans GB;font-size:36pt;'
         'v-same-letter-heights:f;v-text-align:center;"/>'
         '</v:shape></w:pict></w:r></w:p>'
     )
@@ -237,23 +288,30 @@ def _add_watermark(header, text=WATERMARK_TEXT):
 
 
 def _anchor_cover_bg(para, image_path):
-    """在给定段落内插入整页底层背景图（behindDoc 锚定，铺满整页）。"""
+    """插入整页底层背景图，按页面精确宽高显示且不裁切品牌区。
+
+    图片左上角锚定页边，layoutInCell=0 使锚点不受封面表格单元格裁切。
+    禁止放大出血，否则底部标语与右侧 SHTr 会被页面边界裁掉。
+    """
+    w_cm, h_cm = PAGE_SIZE["size_cm"]
+    page_w = int(w_cm * 360000)   # EMU
+    page_h = int(h_cm * 360000)
     run = para.add_run()
-    run.add_picture(str(image_path), width=Emu(7769225), height=Emu(10318115))
+    run.add_picture(str(image_path), width=Emu(page_w), height=Emu(page_h))
     drawing = run._element.find(qn("w:drawing"))
     inline = drawing.find(qn("wp:inline"))
     anchor = OxmlElement("wp:anchor")
     for attr, val in (
-        ("distT", "0"), ("distB", "0"), ("distL", "114300"), ("distR", "114300"),
+        ("distT", "0"), ("distB", "0"), ("distL", "0"), ("distR", "0"),
         ("simplePos", "0"), ("relativeHeight", "251660288"), ("behindDoc", "1"),
-        ("locked", "1"), ("layoutInCell", "1"), ("allowOverlap", "1"),
+        ("locked", "1"), ("layoutInCell", "0"), ("allowOverlap", "1"),
     ):
         anchor.set(attr, val)
     simple_pos = OxmlElement("wp:simplePos"); simple_pos.set("x", "0"); simple_pos.set("y", "0")
-    pos_h = OxmlElement("wp:positionH"); pos_h.set("relativeFrom", "column")
-    off_x = OxmlElement("wp:posOffset"); off_x.text = "-6350"; pos_h.append(off_x)
+    pos_h = OxmlElement("wp:positionH"); pos_h.set("relativeFrom", "page")
+    off_x = OxmlElement("wp:posOffset"); off_x.text = "0"; pos_h.append(off_x)
     pos_v = OxmlElement("wp:positionV"); pos_v.set("relativeFrom", "page")
-    off_y = OxmlElement("wp:posOffset"); off_y.text = "-262255"; pos_v.append(off_y)
+    off_y = OxmlElement("wp:posOffset"); off_y.text = "0"; pos_v.append(off_y)
     wrap_none = OxmlElement("wp:wrapNone")
     kept = {}
     for child in list(inline):
@@ -274,13 +332,14 @@ def _anchor_cover_bg(para, image_path):
     return anchor
 
 
-def _section_title(doc, text, color=NAVY):
+def _section_title(doc, text, color=NAVY, page_break_before=False):
     p = doc.add_paragraph()
     pf = p.paragraph_format
-    pf.space_before = Pt(18)
-    pf.space_after = Pt(10)
+    pf.space_before = Pt(6)
+    pf.space_after = Pt(4)
+    pf.page_break_before = page_break_before
     run = p.add_run(text)
-    _set_font(run, size=17, bold=True, color=color)
+    _set_font(run, size=SECTION_PT, bold=True, color=color)
     # 底部加粗下边框
     pPr = p._element.get_or_add_pPr()
     pBdr = OxmlElement("w:pBdr")
@@ -296,9 +355,17 @@ def _section_title(doc, text, color=NAVY):
 
 # ---------- 构建 ----------
 
+def _apply_page_size(section):
+    """把节页面设为精确 3:4 手机版（15cm × 20cm，可配置）。"""
+    w_cm, h_cm = PAGE_SIZE["size_cm"]
+    section.page_width = Cm(w_cm)
+    section.page_height = Cm(h_cm)
+
+
 def build_cover(doc, data):
-    """封面：整页深蓝底 + 浅青标题 + 项目标签 + 环节名 + 难度。"""
+    """封面：整页深蓝底 + 浅青标题 + 项目标签 + 环节名 + 难度（3:4 单页）。"""
     section = doc.sections[0]
+    _apply_page_size(section)
     section.top_margin = Cm(0)
     section.bottom_margin = Cm(0)
     section.left_margin = Cm(0)
@@ -340,10 +407,12 @@ def build_cover(doc, data):
         gc.set(qn("w:w"), "12232")
 
     cell = table.cell(0, 0)
-    # 底层背景图锚定封面单元格段落（behindDoc 铺满整页）；无图时回退纯深蓝底
+    # 底层背景图锚定封面单元格段落（behindDoc 铺满整页）；
+    # 有底图时保持单元格透明，避免底色遮住底部标语；无图时才回退纯深蓝底。
     if COVER_BG.exists():
         _anchor_cover_bg(cell.paragraphs[0], COVER_BG)
-    _shade_cell(cell, "0B3289")
+    else:
+        _shade_cell(cell, "0B3289")
     _set_cell_margins(cell, top="200", left="400", bottom="200", right="400")
     _cell_vertical_center(cell)
 
@@ -371,13 +440,116 @@ def build_cover(doc, data):
     trPr.append(trh)
 
 
+def _split_script_short_lines(script, max_len=40):
+    """逐字稿按教学阶段拆短段：按句读切分，每段 ≤45 字，避免大段文字堆页。"""
+    parts = re.split(r"(?<=[。！？])", script)
+    lines = []
+    buf = ""
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if len(part) > max_len:
+            # 超长句切成 max_len 块
+            if buf:
+                lines.append(buf)
+                buf = ""
+            for i in range(0, len(part), max_len):
+                lines.append(part[i:i + max_len])
+            continue
+        if buf and len(buf) + len(part) > max_len + 5:
+            lines.append(buf)
+            buf = ""
+        buf += part
+        if len(buf) >= max_len:
+            lines.append(buf)
+            buf = ""
+    if buf:
+        lines.append(buf)
+    return [ln.strip() for ln in lines if ln.strip()]
+
+
+def _png_dims(path):
+    """读 PNG 宽高（纯 stdlib）。"""
+    with open(path, "rb") as f:
+        head = f.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError(f"非 PNG: {path}")
+    w, h = struct.unpack(">II", head[16:24])
+    return w, h
+
+
+def _figure_fit_cm(path, avail_w_cm, avail_h_cm, pref_w_cm=11.1):
+    """按图像宽高比在可用区内等比适配，保证标题+图注+图同页不溢出。"""
+    w_px, h_px = _png_dims(path)
+    fw = min(pref_w_cm, avail_w_cm)
+    fh = fw * h_px / w_px
+    if fh <= avail_h_cm:
+        return fw, fh
+    fh = avail_h_cm
+    fw = fh * w_px / h_px
+    return fw, fh
+
+
+def _fixed_table(doc, rows, cols, width_cm, col_pct):
+    """固定总宽、42/58 列、禁 autofit、行不跨页 的错误纠正表。"""
+    tbl = doc.add_table(rows=rows, cols=cols)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tblPr = tbl._tbl.tblPr
+    for child in list(tblPr):
+        tblPr.remove(child)
+    total_dxa = int(width_cm / 2.54 * 1440)
+    tblW = OxmlElement("w:tblW"); tblW.set(qn("w:w"), str(total_dxa)); tblW.set(qn("w:type"), "dxa")
+    jc = OxmlElement("w:jc"); jc.set(qn("w:val"), "center")
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        el = OxmlElement("w:" + edge)
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), "6")
+        el.set(qn("w:color"), "8EAADB"); el.set(qn("w:space"), "0")
+        borders.append(el)
+    layout = OxmlElement("w:tblLayout"); layout.set(qn("w:type"), "fixed")
+    cell_mar = OxmlElement("w:tblCellMar")
+    for name, w in (("top", "40"), ("left", "108"), ("bottom", "40"), ("right", "108")):
+        m = OxmlElement("w:" + name); m.set(qn("w:w"), w); m.set(qn("w:type"), "dxa")
+        cell_mar.append(m)
+    for el in (tblW, jc, borders, layout, cell_mar):
+        tblPr.append(el)
+    # 固定列宽 42/58
+    grid = tbl._tbl.tblGrid
+    for gc in grid.findall(qn("w:gridCol")):
+        grid.remove(gc)
+    for pct in col_pct:
+        gc = OxmlElement("w:gridCol")
+        gc.set(qn("w:w"), str(int(total_dxa * pct / 100)))
+        grid.append(gc)
+    for ri, row in enumerate(tbl.rows):
+        trPr = row._tr.get_or_add_trPr()
+        trh = OxmlElement("w:trHeight"); trh.set(qn("w:val"), "0"); trh.set(qn("w:hRule"), "atLeast")
+        trPr.append(trh)
+        cant = OxmlElement("w:cantSplit")  # 行不跨页
+        trPr.append(cant)
+        if ri == 0:
+            trPr.append(OxmlElement("w:tblHeader"))
+        for ci, cell in enumerate(row.cells):
+            tcPr = cell._tc.get_or_add_tcPr()
+            tcW = tcPr.find(qn("w:tcW"))
+            if tcW is None:
+                tcW = OxmlElement("w:tcW"); tcPr.append(tcW)
+            tcW.set(qn("w:type"), "dxa")
+            tcW.set(qn("w:w"), str(int(total_dxa * col_pct[ci] / 100)))
+            vAlign = OxmlElement("w:vAlign"); vAlign.set(qn("w:val"), "center"); tcPr.append(vAlign)
+    return tbl
+
+
 def build_content(doc, data):
-    """正文：页眉 + 图例 + 环节拆解 + 试讲逐字稿 + 引流。"""
+    """正文：页眉 + 图例 + 环节拆解 + 试讲逐字稿（分短段）+ 引流（3:4）。"""
     section = doc.add_section(WD_SECTION.NEW_PAGE)
-    section.top_margin = Cm(2.0)
-    section.bottom_margin = Cm(2.0)
-    section.left_margin = Cm(2.0)
-    section.right_margin = Cm(2.0)
+    _apply_page_size(section)
+    section.top_margin = Cm(1.0)
+    section.bottom_margin = Cm(1.0)
+    section.left_margin = Cm(1.0)
+    section.right_margin = Cm(1.0)
+    usable_w_cm = PAGE_SIZE["size_cm"][0] - 2 * 1.0   # 13.0cm
 
     # 页眉（必须先断开与前节链接，否则品牌文字会写进封面节）
     header = section.header
@@ -388,44 +560,44 @@ def build_content(doc, data):
     _set_font(hr, size=10, bold=True, color=NAVY)
     _add_watermark(header)
 
-    # 页脚：页码
+    # 页脚：禁用页码（产品要求不显示页码，清空默认页脚文本）
     footer = section.footer
     footer.is_linked_to_previous = False
-    fp = footer.paragraphs[0]
-    fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    fld = OxmlElement("w:fldSimple")
-    fld.set(qn("w:instr"), "PAGE")
-    fp._element.append(fld)
-    for r in fp.runs:
-        _set_font(r, size=9, color=RGBColor(0x88, 0x88, 0x88))
+    for fpar in footer.paragraphs:
+        for r in list(fpar.runs):
+            r._element.getparent().remove(r._element)
 
     # ===== 图例区 =====
     if data["figure_images"]:
         _section_title(doc, "图例直观")
-        if data["figure"]:
-            _body_para(doc, data["figure"], size=11, bold=True, color=GREEN, space_after=6)
+        # 图可占高（保守，避免 LibreOffice 把高图推下页）：页高-上下边距-页眉带-标题-图注-留白
+        avail_h_cm = 11.0
         for img in data["figure_images"]:
+            fw, fh = _figure_fit_cm(img, usable_w_cm, avail_h_cm)
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = p.add_run()
-            run.add_picture(img, width=Cm(14.5))
-            p.paragraph_format.space_after = Pt(8)
+            run.add_picture(img, width=Cm(fw), height=Cm(fh))
+            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.line_spacing = 1.0
+        if data["figure"]:
+            _body_para(doc, data["figure"], size=LABEL_PT, bold=True, color=GREEN,
+                       space_after=4, align=WD_ALIGN_PARAGRAPH.CENTER)
 
     # ===== 环节拆解 =====
-    if data["figure_images"]:
-        # 图例放大铺满首屏后，环节拆解标题另起一页置于最上端
-        doc.add_page_break()
-    _section_title(doc, "环节拆解")
+    # 图例放大铺满首屏后，环节拆解标题另起一页置于最上端；
+    # 用 page_break_before 把页断挂在标题上，避免独立 add_page_break 段落产生空白页
+    _section_title(doc, "环节拆解", page_break_before=bool(data["figure_images"]))
 
     def _field(label, value):
         p = doc.add_paragraph()
         pf = p.paragraph_format
-        pf.space_after = Pt(8)
-        pf.line_spacing = 1.3
+        pf.space_after = Pt(4)
+        pf.line_spacing = 1.15
         r1 = p.add_run(f"{label}｜")
-        _set_font(r1, size=13, bold=True, color=NAVY)
+        _set_font(r1, size=LABEL_PT, bold=True, color=NAVY)
         r2 = p.add_run(value)
-        _set_font(r2, size=13, bold=False, color=DARK)
+        _set_font(r2, size=BODY_PT, bold=False, color=DARK)
 
     _field("环节名称", data["segment_name"])
     _field("活动类型", SEGMENT_TYPES[data["segment_type"]])
@@ -437,56 +609,28 @@ def build_content(doc, data):
     # 易犯错误与纠正（仅 practice）
     if data["errors"]:
         _section_title(doc, "易犯错误与纠正")
-        tbl = doc.add_table(rows=len(data["errors"]) + 1, cols=2)
-        tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-        tblPr = tbl._tbl.tblPr
-        for child in list(tblPr):
-            tblPr.remove(child)
-        tblW = OxmlElement("w:tblW"); tblW.set(qn("w:type"), "auto"); tblW.set(qn("w:w"), "0")
-        jc = OxmlElement("w:jc"); jc.set(qn("w:val"), "center")
-        borders = OxmlElement("w:tblBorders")
-        for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
-            el = OxmlElement("w:" + edge)
-            el.set(qn("w:val"), "single"); el.set(qn("w:sz"), "6")
-            el.set(qn("w:color"), "8EAADB"); el.set(qn("w:space"), "0")
-            borders.append(el)
-        layout = OxmlElement("w:tblLayout"); layout.set(qn("w:type"), "autofit")
-        cell_mar = OxmlElement("w:tblCellMar")
-        for name, w in (("top", "0"), ("left", "108"), ("bottom", "0"), ("right", "108")):
-            m = OxmlElement("w:" + name); m.set(qn("w:w"), w); m.set(qn("w:type"), "dxa")
-            cell_mar.append(m)
-        for el in (tblW, jc, borders, layout, cell_mar):
-            tblPr.append(el)
-        for ri, row in enumerate(tbl.rows):
-            trPr = row._tr.get_or_add_trPr()
-            trh = OxmlElement("w:trHeight"); trh.set(qn("w:val"), "0"); trh.set(qn("w:hRule"), "atLeast")
-            trPr.append(trh)
-            jcr = OxmlElement("w:jc"); jcr.set(qn("w:val"), "center"); trPr.append(jcr)
-            if ri == 0:
-                trPr.append(OxmlElement("w:tblHeader"))
-        for row in tbl.rows:
-            for cell in row.cells:
-                tcPr = cell._tc.get_or_add_tcPr()
-                tcW = tcPr.find(qn("w:tcW"))
-                if tcW is None:
-                    tcW = OxmlElement("w:tcW"); tcPr.append(tcW)
-                tcW.set(qn("w:type"), "auto"); tcW.set(qn("w:w"), "0")
-                vAlign = OxmlElement("w:vAlign"); vAlign.set(qn("w:val"), "center"); tcPr.append(vAlign)
+        tbl = _fixed_table(doc, rows=len(data["errors"]) + 1, cols=2,
+                           width_cm=usable_w_cm, col_pct=TABLE_COLS_PCT)
         _fill_table_cell(tbl.cell(0, 0), "易犯错误", header=True)
         _fill_table_cell(tbl.cell(0, 1), "纠正方法", header=True)
         for i, (err, corr) in enumerate(data["errors"], 1):
             _fill_table_cell(tbl.cell(i, 0), err, header=False)
             _fill_table_cell(tbl.cell(i, 1), corr, header=False)
 
-    # ===== 试讲逐字稿 =====
+    # ===== 试讲逐字稿（按教学阶段拆短段） =====
     _section_title(doc, "试讲逐字稿")
-    _body_para(doc, data["lecture_script"], size=13, color=DARK, space_after=10, line=1.4)
+    lines = _split_script_short_lines(data["lecture_script"])
+    for i, line in enumerate(lines):
+        p = _body_para(doc, line, size=BODY_PT, color=DARK, space_after=4, line=1.3)
+        # 最后 2 段与引流组同页，保证 CTA 同页前至少 2 行正文
+        if i >= len(lines) - 2:
+            p.paragraph_format.keep_with_next = True
 
     # ===== 引流（紧接逐字稿结尾，空一行直接写，不另起页） =====
-    _body_para(doc, "", size=12, color=DARK, space_after=6)
-    _body_para(doc, data["hashtags"], size=12, bold=True, color=RGBColor(0x80, 0x80, 0x80),
-               align=WD_ALIGN_PARAGRAPH.CENTER, space_after=12)
-    _body_para(doc, data["cta"], size=13, bold=True, color=NAVY,
+    hs = _body_para(doc, data["hashtags"], size=LABEL_PT, bold=True, color=RGBColor(0x80, 0x80, 0x80),
+                    align=WD_ALIGN_PARAGRAPH.CENTER, space_after=12)
+    hs.paragraph_format.keep_with_next = True
+    _body_para(doc, data["cta"], size=CTA_PT, bold=True, color=NAVY,
                align=WD_ALIGN_PARAGRAPH.CENTER, space_after=6)
 
 
@@ -502,19 +646,21 @@ def _fill_table_cell(cell, text, header=False):
         p.add_run(str(text))
     run = p.runs[0]
     if header:
-        _set_font(run, size=13, bold=True, color=WHITE)
+        _set_font(run, size=BODY_PT, bold=True, color=WHITE)
         _shade_cell(cell, "0B3289")
     else:
-        _set_font(run, size=13, bold=False, color=DARK)
+        _set_font(run, size=BODY_PT, bold=False, color=DARK)
 
 
 def build_doc(data):
     doc = Document()
-    # 默认样式字体
+    # 默认样式字体（3:4 版式契约）
     style = doc.styles["Normal"]
     style.font.name = FONT
-    style.font.size = Pt(13)
+    style.font.size = Pt(BODY_PT)
     style._element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
+    # 默认页面尺寸（封面节）
+    _apply_page_size(doc.sections[0])
 
     build_cover(doc, data)
     build_content(doc, data)
@@ -523,6 +669,13 @@ def build_doc(data):
 
 def validate_output(doc, data):
     errors = []
+    # 3:4 页面（所有节）
+    for si, sec in enumerate(doc.sections):
+        w, h = sec.page_width, sec.page_height
+        if w and h:
+            ratio = w / h
+            if abs(ratio - 0.75) / 0.75 > 0.01:
+                errors.append(f"第 {si + 1} 节页面非 3:4（{ratio:.4f}）")
     all_text = []
     for p in doc.paragraphs:
         all_text.append(p.text or "")
@@ -535,11 +688,16 @@ def validate_output(doc, data):
         ("sport", data["sport"]), ("segment_name", data["segment_name"]),
         ("method", data["method"]), ("rules", data["rules"]),
         ("intent", data["intent"]), ("organization", data["organization"]),
-        ("lecture_script", data["lecture_script"]), ("hashtags", data["hashtags"]),
+        ("hashtags", data["hashtags"]),
         ("cta", data["cta"]),
     ]:
         if value not in text:
             errors.append(f"关键词未命中：{label}")
+    # 逐字稿按短段拆分渲染，逐段校验存在性（内容不丢）
+    script_lines = _split_script_short_lines(data["lecture_script"])
+    missing_lines = [ln[:14] for ln in script_lines if ln not in text]
+    if missing_lines:
+        errors.append(f"逐字稿短段未命中：{missing_lines[:3]}…")
     if data["errors"]:
         if len(doc.tables) < 2:
             errors.append("practice 环节应有易犯错误表格")
@@ -568,6 +726,8 @@ def validate_output(doc, data):
             errors.append("#标签行必须居中")
         elif tag_p is not None and tag_p.runs and tag_p.runs[0].font.color.rgb != RGBColor(0x80, 0x80, 0x80):
             errors.append("#标签行颜色必须为灰色 #808080")
+        elif cta_p is not None and cta_p.runs and cta_p.runs[0].font.color.rgb != NAVY:
+            errors.append("固定引流段颜色必须为深蓝 #0B3289")
         # 引流两行不另起一页：hashtags 段之前紧邻的段落不得含分页符（应空一行直连逐字稿）
         hs_elem = tag_p._element
         prev = hs_elem.getprevious() if tag_p is not None else None
@@ -577,15 +737,42 @@ def validate_output(doc, data):
                     errors.append("引流两行不得另起一页，须紧接逐字稿后空一行")
                     break
 
-    # 页眉斜向水印（品牌铁律）
+    # 页眉斜向水印（品牌铁律：VML，透明度 8%–12%）
     for si, sec in enumerate(doc.sections):
-        if "PowerPlusWaterMarkObject" not in sec.header._element.xml:
+        hx = sec.header._element.xml
+        if "PowerPlusWaterMarkObject" not in hx:
             errors.append(f"第 {si + 1} 节页眉缺少水印")
+        if "z-index:-" not in hx.replace(" ", ""):
+            errors.append(f"第 {si + 1} 节水印未锚定到内容之下")
 
-    # 封面整页底层背景图（behindDoc 锚定）
+    # 封面整页底层背景图（behindDoc 锚定，精确贴页且不受单元格裁切）
     anchors = doc.element.body.findall(".//" + qn("wp:anchor"))
-    if not any(a.get("behindDoc") == "1" for a in anchors):
+    cover_anchors = [a for a in anchors if a.get("behindDoc") == "1"]
+    if not cover_anchors:
         errors.append("封面底层背景图缺失")
+    else:
+        anchor = cover_anchors[0]
+        extent = anchor.find(qn("wp:extent"))
+        pos_h = anchor.find(qn("wp:positionH"))
+        pos_v = anchor.find(qn("wp:positionV"))
+        expected_w = int(PAGE_SIZE["size_cm"][0] * 360000)
+        expected_h = int(PAGE_SIZE["size_cm"][1] * 360000)
+        if anchor.get("layoutInCell") != "0":
+            errors.append("封面底图不得受表格单元格裁切（layoutInCell 须为 0）")
+        if extent is None or int(extent.get("cx") or 0) != expected_w or int(extent.get("cy") or 0) != expected_h:
+            errors.append("封面底图须按页面精确宽高显示，禁止放大出血或裁切")
+        if (pos_h is None or pos_h.get("relativeFrom") != "page" or
+                pos_h.find(qn("wp:posOffset")) is None or
+                pos_h.find(qn("wp:posOffset")).text != "0"):
+            errors.append("封面底图水平位置须贴齐页面左边界")
+        if (pos_v is None or pos_v.get("relativeFrom") != "page" or
+                pos_v.find(qn("wp:posOffset")) is None or
+                pos_v.find(qn("wp:posOffset")).text != "0"):
+            errors.append("封面底图垂直位置须贴齐页面上边界")
+        if COVER_BG.exists() and doc.tables:
+            cover_shading = doc.tables[0].cell(0, 0)._tc.get_or_add_tcPr().find(qn("w:shd"))
+            if cover_shading is not None:
+                errors.append("封面底图存在时单元格必须透明，避免遮住底部标语和 SHTr")
 
     # 封面大标题字号（48pt）
     title_ok = False
@@ -603,19 +790,29 @@ def validate_output(doc, data):
     if not title_ok:
         errors.append("封面大标题字号须为 48pt")
 
-    # 有图例时：图例放大(≥14cm) + 环节拆解另起一页
+    # 有图例时：图例放大（宽 ≥ 正文85% 或高填满可用区）+ 环节拆解另起一页
     if data["figure_images"]:
+        usable_cm = PAGE_SIZE["size_cm"][0] - 2 * 1.0   # 13.0cm
+        min_w = 0.85 * usable_cm * 360000
+        avail_h_cm = 11.0
+        min_h = 0.95 * avail_h_cm * 360000
         big_img = False
         for dw in doc.element.body.findall(".//" + qn("w:drawing")):
+            if dw.find(qn("wp:inline")) is None:
+                continue  # 封面底层锚定图不计入图例
             ext = dw.find(".//" + qn("wp:extent"))
-            if ext is not None and ext.get("cx") and int(ext.get("cx")) >= 14 * 360000:
+            if ext is None or ext.get("cx") is None:
+                continue
+            cx = int(ext.get("cx"))
+            cy = int(ext.get("cy") or 0)
+            if cx >= min_w or cy >= min_h:
                 big_img = True
         if not big_img:
-            errors.append("图例图片未放大（须 ≥14cm 宽）")
+            errors.append("图例未放大（宽须≥正文85%，或高填满可用区）")
         titles = [i for i, p in enumerate(doc.paragraphs) if p.text.strip() == "环节拆解"]
         if titles:
-            prev = doc.paragraphs[titles[0] - 1]
-            if not prev._element.findall(".//" + qn("w:br")):
+            title_p = doc.paragraphs[titles[0]]
+            if not title_p.paragraph_format.page_break_before:
                 errors.append("图例后环节拆解未另起一页")
     return errors
 
