@@ -1,0 +1,331 @@
+{
+  "rubric_version": "interview-rubric-v1-draft",
+  "status": "calibration_pending",
+  "purpose": "training_only",
+  "total_points": 100,
+  "rating_scale": {
+    "minimum": 0,
+    "maximum": 4,
+    "step": 0.5
+  },
+  "common_weight": 50,
+  "type_specific_weight": 50,
+  "assessment_modes": {
+    "text_only": {
+      "scorable_weight": 90,
+      "excluded_dimension_codes": [
+        "common.fluency_time"
+      ]
+    },
+    "speech_supported": {
+      "scorable_weight": 100,
+      "excluded_dimension_codes": []
+    }
+  },
+  "common_dimensions": [
+    {
+      "code": "common.task_role",
+      "name": "任务回应与角色意识",
+      "weight": 15,
+      "definition": "直接回应题目任务，准确理解身份、对象、职责边界和情境约束。",
+      "evidence_type": "confirmed_answer_quote",
+      "anchors": {
+        "0": "答非所问、角色明显错位或提出越权违规做法。",
+        "2": "回应主要任务，但角色、对象或约束理解不充分。",
+        "4": "直接回应核心任务，身份对象清楚，全程符合职责边界。"
+      }
+    },
+    {
+      "code": "common.structure_logic",
+      "name": "结构与逻辑组织",
+      "weight": 15,
+      "definition": "观点、原因、步骤和结论之间关系清晰，重点突出。",
+      "evidence_type": "confirmed_answer_quotes",
+      "anchors": {
+        "0": "内容散乱或前后矛盾，无法识别主线。",
+        "2": "有观点或步骤，但并列罗列，主次和关系不清。",
+        "4": "主线明确，先后、因果或主次关系自然完整。"
+      }
+    },
+    {
+      "code": "common.expression_naturalness",
+      "name": "语言表达与自然度",
+      "weight": 10,
+      "definition": "用词准确、简洁、适合公务场景，避免模板腔和口号堆砌。",
+      "evidence_type": "confirmed_answer_quote",
+      "anchors": {
+        "0": "表达难以理解，存在严重歧义或大段无关内容。",
+        "2": "基本能听懂，但重复、空话或作文腔较多。",
+        "4": "语言自然准确，关键判断和动作容易理解。"
+      }
+    },
+    {
+      "code": "common.fluency_time",
+      "name": "流畅度与时间控制",
+      "weight": 10,
+      "definition": "语音作答连贯、节奏适中，并在规定时间内完成重点。",
+      "evidence_type": "audio_or_speech_metrics",
+      "anchors": {
+        "0": "大量长停顿或反复中断，未完成主要内容。",
+        "2": "基本完成，但存在明显重复、口头语或后段仓促。",
+        "4": "节奏稳定，停顿服务于层次，重点完整并自然收束。"
+      }
+    }
+  ],
+  "type_rubrics": {
+    "ca": {
+      "name": "综合分析",
+      "dimensions": [
+        {
+          "code": "ca.judgment_essence",
+          "name": "价值判断与问题本质",
+          "weight": 20,
+          "definition": "形成明确稳妥的判断，并抓住现象或政策背后的核心矛盾。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有观点，或判断极端、事实错误、导向不当。",
+            "2": "态度基本正确，但只复述现象或停留在有利有弊。",
+            "4": "判断明确且有条件边界，指出问题的核心矛盾。"
+          }
+        },
+        {
+          "code": "ca.mechanism_analysis",
+          "name": "原因与机制分析",
+          "weight": 20,
+          "definition": "解释问题如何产生、为何持续以及不同主体之间的作用关系。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有分析，或简单归因为个人品质。",
+            "2": "列出若干原因，但缺少因果关系和机制解释。",
+            "4": "从多个相关层面解释形成机制，层次之间有联系。"
+          }
+        },
+        {
+          "code": "ca.measure_feasibility",
+          "name": "对策针对性与可执行性",
+          "weight": 10,
+          "definition": "措施回应前述原因，并包含主体、动作、流程或评价标准。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有措施，措施越权或与问题无关。",
+            "2": "方向正确但笼统，缺少主体、步骤或反馈。",
+            "4": "措施与原因对应，说明谁做、怎么做和如何验效。"
+          }
+        }
+      ]
+    },
+    "op": {
+      "name": "组织计划",
+      "dimensions": [
+        {
+          "code": "op.goal_audience_need",
+          "name": "目标、对象与需求判断",
+          "weight": 15,
+          "definition": "明确活动或调研要解决的问题、服务对象和真实需求。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有目标，或目标与任务冲突。",
+            "2": "有一般目标和对象，但缺少需求与重点人群分析。",
+            "4": "目标可验证，对象分层清楚，并先获取需求信息。"
+          }
+        },
+        {
+          "code": "op.process_resource_coordination",
+          "name": "流程、资源与协同安排",
+          "weight": 20,
+          "definition": "形成可执行流程，安排人员、时间、场地、物资和协作部门。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "流程不可执行，关键资源缺失或严重违反程序。",
+            "2": "有阶段框架，但关键动作、负责人或资源不明确。",
+            "4": "环节完整重点突出，分工、资源和协作关系清楚。"
+          }
+        },
+        {
+          "code": "op.risk_evaluation",
+          "name": "风险预案与效果评估",
+          "weight": 15,
+          "definition": "识别实施风险，并通过结果指标判断目标是否实现。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有风险和效果意识，或只用留痕代替效果。",
+            "2": "提到预案和总结，但风险与指标较笼统。",
+            "4": "针对关键风险准备方案，并用结果数据评估目标。"
+          }
+        }
+      ]
+    },
+    "ir": {
+      "name": "人际关系",
+      "dimensions": [
+        {
+          "code": "ir.conflict_relationship",
+          "name": "矛盾判断与关系定位",
+          "weight": 15,
+          "definition": "识别矛盾来源、相关人的合理诉求和工作关系边界。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "简单站队、甩锅、对抗或无原则迁就。",
+            "2": "知道沟通合作，但矛盾成因和诉求判断笼统。",
+            "4": "区分事实、情绪和目标，准确把握工作关系。"
+          }
+        },
+        {
+          "code": "ir.principle_empathy",
+          "name": "原则性、同理心与大局意识",
+          "weight": 20,
+          "definition": "在理解他人、维护关系和坚持工作原则之间取得平衡。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "只讲人情不讲原则，或只讲原则不顾沟通。",
+            "2": "同时提到理解和原则，但顺序或边界不清。",
+            "4": "回应合理诉求，并清楚解释不能突破的程序和底线。"
+          }
+        },
+        {
+          "code": "ir.communication_solution",
+          "name": "沟通动作与问题解决",
+          "weight": 15,
+          "definition": "沟通有对象、时机、方式和目标，并推动具体问题解决。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有沟通动作，或公开指责、越级告状、回避问题。",
+            "2": "表示主动沟通，但没有说明内容和后续行动。",
+            "4": "方式和时机合适，围绕事实与任务形成可执行共识。"
+          }
+        }
+      ]
+    },
+    "er": {
+      "name": "应急应变",
+      "dimensions": [
+        {
+          "code": "er.priority_stoploss",
+          "name": "风险识别、轻重缓急与止损",
+          "weight": 20,
+          "definition": "识别最紧迫风险，按安全、秩序、事实和影响确定优先级。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "优先级颠倒，忽视人身安全或扩大风险。",
+            "2": "知道先处理紧急事项，但止损动作和判断不足。",
+            "4": "第一时间控制核心风险，先后清楚且说明理由。"
+          }
+        },
+        {
+          "code": "er.execution_coordination_info",
+          "name": "现场处置、协同与信息控制",
+          "weight": 20,
+          "definition": "按权限调动人员资源，保持信息准确并更新处置状态。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "越权处置、隐瞒事实、随意承诺或造成二次风险。",
+            "2": "有步骤和汇报意识，但协同与信息渠道不清。",
+            "4": "分工清楚，及时联系专业力量，信息与核验同步。"
+          }
+        },
+        {
+          "code": "er.recovery_prevention",
+          "name": "善后恢复与复发预防",
+          "weight": 10,
+          "definition": "紧急状态解除后完成恢复、解释、记录和机制改进。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "现场问题暂时结束后停止处理。",
+            "2": "提到总结整改，但没有具体恢复和预防措施。",
+            "4": "完成关怀、恢复、记录并针对原因建立预防措施。"
+          }
+        }
+      ]
+    },
+    "sa": {
+      "name": "自我认知",
+      "dimensions": [
+        {
+          "code": "sa.authentic_selfawareness",
+          "name": "真实性与自我认识",
+          "weight": 20,
+          "definition": "回答真实具体，能够识别个人特点、局限和成长方向。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "明显编造、回避问题或只有完美化宣传。",
+            "2": "能说优缺点，但抽象且与真实行为联系较弱。",
+            "4": "特点具体可信，说明形成原因且不过度美化。"
+          }
+        },
+        {
+          "code": "sa.experience_reflection",
+          "name": "经历证据与反思改进",
+          "weight": 15,
+          "definition": "用经历证明观点，并说明行动、结果、反思和改进。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有经历，或经历与观点无关、不可信。",
+            "2": "有经历结果，但个人行动、原因或改进模糊。",
+            "4": "情境、行动、结果和反思完整，并验证后续改进。"
+          }
+        },
+        {
+          "code": "sa.position_match",
+          "name": "岗位理解与匹配",
+          "weight": 15,
+          "definition": "理解公共岗位职责和约束，并用经历说明匹配关系。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "动机明显不当，对岗位职责严重误解。",
+            "2": "认可一般价值，但个人能力与岗位联系空泛。",
+            "4": "理解岗位任务和压力，并用经历证明可迁移能力。"
+          }
+        }
+      ]
+    },
+    "ve": {
+      "name": "言语表达",
+      "dimensions": [
+        {
+          "code": "ve.audience_purpose",
+          "name": "对象意识与表达目的",
+          "weight": 15,
+          "definition": "明确沟通对象和行动目的，据此选择语气和信息。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "没有对象感，语气与身份冲突或引发对立。",
+            "2": "知道沟通目的，但内容仍像通用文章。",
+            "4": "称谓、语气、信息和诉求与对象及目的匹配。"
+          }
+        },
+        {
+          "code": "ve.argument_persuasion",
+          "name": "观点展开与说服力",
+          "weight": 20,
+          "definition": "用事实、理由、例子和利益关联支撑观点。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "只有口号、命令或情绪，没有理由支撑。",
+            "2": "有观点理由，但证据薄弱或未回应对象关切。",
+            "4": "观点鲜明、理由具体，回应疑虑并形成行动动力。"
+          }
+        },
+        {
+          "code": "ve.scenario_adaptation",
+          "name": "情境适配与感染力",
+          "weight": 15,
+          "definition": "根据演讲、劝说、解释或主持情境调整表达方式。",
+          "evidence_type": "confirmed_answer_quote",
+          "anchors": {
+            "0": "形式与场景明显不符。",
+            "2": "基本符合场景，但开场、互动或收束生硬。",
+            "4": "场景感明确，开场自然，收束形成行动或情绪落点。"
+          }
+        }
+      ]
+    }
+  },
+  "scoring_policy": {
+    "formula": "weighted_score = dimension_weight * rating / 4",
+    "quote_required_for_scored_dimension": true,
+    "text_only_fluency_status": "not_scorable",
+    "compare_only_same_rubric_version": true,
+    "compare_only_same_assessment_mode": true,
+    "single_primary_problem": true
+  }
+}

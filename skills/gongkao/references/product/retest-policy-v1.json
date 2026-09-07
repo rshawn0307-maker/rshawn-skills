@@ -1,0 +1,227 @@
+{
+  "policy_version": "retest-policy-v1",
+  "status": "frozen",
+  "purpose": "targeted_retest_and_improvement_decision",
+  "global_selection_policy": {
+    "same_rubric_version_required": true,
+    "same_assessment_mode_required": true,
+    "same_question_type_default": true,
+    "same_target_dimension_required": true,
+    "same_timing_default": true,
+    "initial_difficulty_policy": "same",
+    "reference_answer_hidden_until_retest_complete": true,
+    "forbidden_reuse": [
+      "禁止复用原题ID或原题材料。",
+      "禁止只替换地名、人名、单位名和数字形成伪变式。",
+      "禁止在复测前展示可直接背诵的完整参考答案。",
+      "禁止用不同评分量表或不同作答模式直接判断改善。"
+    ]
+  },
+  "outcome_policy": {
+    "statuses": ["improved", "not_improved", "evidence_insufficient"],
+    "minimum_rating_delta": 0.5,
+    "minimum_evidence_confidence": 0.6,
+    "improved_requires": [
+      "初答和复测使用同一量表版本、同一作答模式。",
+      "目标维度均有直接证据且可评分。",
+      "复测目标维度等级比初答至少提高0.5级。",
+      "原首要错因在复测中不再满足触发与排除条件。"
+    ],
+    "not_improved_when": [
+      "证据充分，但原首要错因仍然成立。",
+      "证据充分，但目标维度提升不足0.5级。",
+      "出现同一根因组内更严重的错误。"
+    ],
+    "evidence_insufficient_when": [
+      "初答或复测缺少目标维度直接证据。",
+      "初答和复测量表版本或作答模式不同。",
+      "复测跳过、作答过短到无法判断，或评分置信度低于0.6。",
+      "流畅度复测缺少音频或可靠语音指标。"
+    ]
+  },
+  "scheduling_policy": {
+    "immediate_retest": "首次诊断后在同一训练会话内完成一道针对性变式题。",
+    "after_improved": "3—7天后安排一次不同场景迁移复测。",
+    "after_not_improved_once": "提供一个不含完整答案的微型讲解，再安排同难度或低一档复测。",
+    "after_not_improved_twice": "暂停自动加题，标记教师复核，并安排方法拆解或示范对比。",
+    "after_evidence_insufficient": "不更新能力结论，补做同模式、证据完整的一题。"
+  },
+  "rules": [
+    {
+      "error_tag_code": "common.task_misaligned",
+      "target_dimension_code": "common.task_role",
+      "preserve": ["题目任务类型", "角色权限复杂度", "思考和作答时长"],
+      "vary": ["具体情境", "沟通对象或服务对象", "表面措辞"],
+      "exercise_focus": "开头20秒明确身份、对象、核心任务和职责边界。",
+      "observable_success": "开头直接回应任务，后续动作没有越权、逃责或对象错位。"
+    },
+    {
+      "error_tag_code": "common.structure_disorganized",
+      "target_dimension_code": "common.structure_logic",
+      "preserve": ["题型", "目标能力", "信息复杂度"],
+      "vary": ["情境", "主体", "材料顺序"],
+      "exercise_focus": "用三行提纲组织主线，每一段只完成一个功能。",
+      "observable_success": "听者能够识别主线，段落之间存在清楚的先后、因果或主次关系。"
+    },
+    {
+      "error_tag_code": "common.expression_vague_template",
+      "target_dimension_code": "common.expression_naturalness",
+      "preserve": ["题型", "内容难度", "作答时长"],
+      "vary": ["情境", "对象", "具体问题"],
+      "exercise_focus": "把抽象句改成主体、动作、对象和结果，减少通用口号。",
+      "observable_success": "至少出现三处可执行主体或动作，代表性模板句不再承担核心信息。"
+    },
+    {
+      "error_tag_code": "common.fluency_time_unstable",
+      "target_dimension_code": "common.fluency_time",
+      "preserve": ["题型", "题目难度", "作答时长", "语音作答模式"],
+      "vary": ["情境", "题干措辞"],
+      "exercise_focus": "压缩开头铺垫，按段分配时间，用短句完成重点。",
+      "observable_success": "重点内容在时限内完成，长停顿和无意义重复减少，结尾没有仓促截断。"
+    },
+    {
+      "error_tag_code": "ca.judgment_generic",
+      "target_dimension_code": "ca.judgment_essence",
+      "preserve": ["综合分析题型", "价值判断难度", "需要条件边界"],
+      "vary": ["社会现象或政策主题", "利益相关方", "矛盾表现"],
+      "exercise_focus": "前20秒说明主要判断、问题本质和一个适用边界。",
+      "observable_success": "不再停留于有利有弊，形成明确且有条件边界的判断。"
+    },
+    {
+      "error_tag_code": "ca.analysis_shallow",
+      "target_dimension_code": "ca.mechanism_analysis",
+      "preserve": ["综合分析题型", "机制分析要求", "原因层级数量"],
+      "vary": ["社会现象", "制度环境", "参与主体"],
+      "exercise_focus": "至少说明两条规则或行为如何导致结果的因果链。",
+      "observable_success": "原因之间存在机制联系，不再只归因于思想认识或个人品质。"
+    },
+    {
+      "error_tag_code": "ca.measure_vague",
+      "target_dimension_code": "ca.measure_feasibility",
+      "preserve": ["综合分析题型", "对策数量要求", "执行复杂度"],
+      "vary": ["问题主题", "责任主体", "治理场景"],
+      "exercise_focus": "每条措施包含主体、动作、对象，以及时限或验效方式。",
+      "observable_success": "至少两条措施可被具体执行和检查，且与前述原因对应。"
+    },
+    {
+      "error_tag_code": "op.goal_need_unclear",
+      "target_dimension_code": "op.goal_audience_need",
+      "preserve": ["组织计划题型", "对象分层要求", "需求调研难度"],
+      "vary": ["活动或调研主题", "目标人群", "场地"],
+      "exercise_focus": "30秒内说清可验证目标、重点对象和一项需求信息来源。",
+      "observable_success": "目标与对象具体，后续安排能够追溯到前期需求判断。"
+    },
+    {
+      "error_tag_code": "op.process_resource_generic",
+      "target_dimension_code": "op.process_resource_coordination",
+      "preserve": ["组织计划题型", "协同复杂度", "资源约束"],
+      "vary": ["活动类型", "参与部门", "执行场景"],
+      "exercise_focus": "只说四个关键动作，每项明确对象、责任人和必要资源。",
+      "observable_success": "流程具有本题特征，分工和资源明确，不能原样套用到其他活动。"
+    },
+    {
+      "error_tag_code": "op.risk_evaluation_missing",
+      "target_dimension_code": "op.risk_evaluation",
+      "preserve": ["组织计划题型", "风险数量", "效果评价要求"],
+      "vary": ["活动主题", "场地风险", "参与对象"],
+      "exercise_focus": "提出一项关键风险的备选方案和一项与目标直接对应的结果指标。",
+      "observable_success": "预案针对真实风险，评价不再只依赖签到、人数、照片和总结。"
+    },
+    {
+      "error_tag_code": "ir.conflict_misread",
+      "target_dimension_code": "ir.conflict_relationship",
+      "preserve": ["人际关系题型", "矛盾复杂度", "共同任务约束"],
+      "vary": ["关系主体", "矛盾表现", "工作情境"],
+      "exercise_focus": "先区分事实、情绪、各方合理诉求和共同工作目标。",
+      "observable_success": "不贴标签、不站队、不甩锅，能够准确说明各方诉求和关系边界。"
+    },
+    {
+      "error_tag_code": "ir.principle_empathy_imbalanced",
+      "target_dimension_code": "ir.principle_empathy",
+      "preserve": ["人际关系题型", "合理诉求与制度边界冲突", "原则强度"],
+      "vary": ["沟通对象", "具体诉求", "制度情境"],
+      "exercise_focus": "同时完成理解诉求、说明边界和提供合规替代路径。",
+      "observable_success": "既没有无原则承诺，也没有机械拒绝，三项内容均有直接原话证据。"
+    },
+    {
+      "error_tag_code": "ir.communication_action_vague",
+      "target_dimension_code": "ir.communication_solution",
+      "preserve": ["人际关系题型", "冲突程度", "沟通目标"],
+      "vary": ["关系主体", "分歧内容", "沟通时机"],
+      "exercise_focus": "设计一次关键沟通，说明对象、时机、事实、共识和后续动作。",
+      "observable_success": "沟通不再停留于耐心解释，能够推动具体任务或关系问题解决。"
+    },
+    {
+      "error_tag_code": "er.priority_stoploss_wrong",
+      "target_dimension_code": "er.priority_stoploss",
+      "preserve": ["应急应变题型", "风险等级", "时间压力"],
+      "vary": ["突发事件类型", "现场主体", "风险来源"],
+      "exercise_focus": "20秒内说出前三个动作，并按安全、扩散和秩序说明排序理由。",
+      "observable_success": "第一动作直接控制最紧迫风险，处置顺序不会扩大损害。"
+    },
+    {
+      "error_tag_code": "er.execution_coordination_weak",
+      "target_dimension_code": "er.execution_coordination_info",
+      "preserve": ["应急应变题型", "多方协同难度", "信息不完整程度"],
+      "vary": ["事件类型", "专业部门", "现场资源"],
+      "exercise_focus": "明确现场分工、专业力量、信息来源、汇报节点和权限边界。",
+      "observable_success": "分工和协同可执行，信息经过核实，没有越权承诺或二次风险。"
+    },
+    {
+      "error_tag_code": "er.recovery_prevention_missing",
+      "target_dimension_code": "er.recovery_prevention",
+      "preserve": ["应急应变题型", "事件影响范围", "善后复杂度"],
+      "vary": ["事件类型", "受影响对象", "复发原因"],
+      "exercise_focus": "最后30秒只回答恢复服务、解释关怀、记录和防复发。",
+      "observable_success": "现场结束后仍有具体恢复与预防动作，不以总结经验替代。"
+    },
+    {
+      "error_tag_code": "sa.selfawareness_inauthentic",
+      "target_dimension_code": "sa.authentic_selfawareness",
+      "preserve": ["自我认知题型", "真实性要求", "自我边界要求"],
+      "vary": ["提问角度", "经历类型", "能力主题"],
+      "exercise_focus": "用一个真实经历证明特点，同时承认该特点的适用边界。",
+      "observable_success": "不再使用伪缺点或完美化宣传，自我判断具体且能被经历支持。"
+    },
+    {
+      "error_tag_code": "sa.experience_reflection_weak",
+      "target_dimension_code": "sa.experience_reflection",
+      "preserve": ["自我认知题型", "经历复杂度", "反思要求"],
+      "vary": ["经历主题", "成功或失败类型", "角色"],
+      "exercise_focus": "按情境、个人行动、结果、反思和后续验证五步展开。",
+      "observable_success": "五步均有具体事实，反思能够解释后来的行为变化。"
+    },
+    {
+      "error_tag_code": "sa.position_match_weak",
+      "target_dimension_code": "sa.position_match",
+      "preserve": ["自我认知题型", "公共岗位语境", "匹配证据要求"],
+      "vary": ["岗位任务", "个人经历", "现实约束"],
+      "exercise_focus": "选择一项具体岗位任务，用真实经历证明对应能力，并承认现实压力。",
+      "observable_success": "岗位理解不再通用化，个人证据与具体任务形成清晰连接。"
+    },
+    {
+      "error_tag_code": "ve.audience_purpose_missing",
+      "target_dimension_code": "ve.audience_purpose",
+      "preserve": ["言语表达题型", "沟通难度", "行动目标要求"],
+      "vary": ["沟通对象", "对象关切", "表达目的"],
+      "exercise_focus": "开头直接回应对象最关心的问题，并提出清晰沟通目标。",
+      "observable_success": "称谓、语气、信息和行动诉求均与新对象和目的匹配。"
+    },
+    {
+      "error_tag_code": "ve.persuasion_unsupported",
+      "target_dimension_code": "ve.argument_persuasion",
+      "preserve": ["言语表达题型", "说服难度", "核心诉求数量"],
+      "vary": ["沟通主题", "对象疑虑", "利益关联"],
+      "exercise_focus": "每个核心诉求至少配一个具体理由、事实、例子或利益关联。",
+      "observable_success": "观点不再依赖口号和命令，能够回应对象疑虑并形成行动动力。"
+    },
+    {
+      "error_tag_code": "ve.scenario_adaptation_weak",
+      "target_dimension_code": "ve.scenario_adaptation",
+      "preserve": ["言语表达主题", "核心信息", "时间限制"],
+      "vary": ["表达场景", "沟通形式", "开场和收束要求"],
+      "exercise_focus": "保持主题不变，按新场景重写开场、称谓、互动和行动落点。",
+      "observable_success": "语气和结构随演讲、劝说、解释或主持场景发生实质变化。"
+    }
+  ]
+}

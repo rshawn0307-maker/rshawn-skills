@@ -46,5 +46,23 @@
     "prompt": "更新讲义，把新增的素材库章节插入到讲义末尾",
     "expected": "讲义从8章变为9章，前言章节数描述更新，frontmatter updated日期更新，--mode lecture --expected-chapters 9验证通过",
     "workflow": "F"
+  },
+  {
+    "id": 9,
+    "prompt": "把这道综合分析题转成产品题库 JSON，用于导入网页",
+    "expected": "走工作流G；读取四份产品合同；输出一个 question-schema-v1 JSON；包含4个公共维度和3个综合分析专属维度、合法错因候选和复测约束；校验通过后等待确认再写入",
+    "workflow": "G"
+  },
+  {
+    "id": 10,
+    "prompt": "把现有六类题型样例各转一条 JSON，准备导入小程序",
+    "expected": "走工作流G；先为六类各做1条样例；题目ID唯一；每题7个评分点合计100；错因和复测规则与题型匹配；展示摘要并等待确认后才批量写入",
+    "workflow": "G"
+  },
+  {
+    "id": 11,
+    "prompt": "产品JSON里加一个新的错因标签 content.bad_answer，直接写进去",
+    "expected": "拒绝写入合同中不存在的编码；说明必须先更新版本化错因标签库及复测规则，不能绕过 validate_product_question.py",
+    "workflow": "G"
   }
 ]

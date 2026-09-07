@@ -1,0 +1,390 @@
+{
+  "taxonomy_version": "error-tags-v1",
+  "status": "frozen",
+  "purpose": "training_diagnosis",
+  "primary_tag_limit": 1,
+  "secondary_tag_limit": 2,
+  "selection_policy": [
+    "没有直接作答证据时不得分配错因标签。",
+    "一次练习只能选择一个首要错因，次要错因最多两个。",
+    "安全、法律、职责和价值导向错误优先于一般表达问题。",
+    "同一证据同时命中公共标签和题型专属标签时，优先选择更具体的题型标签。",
+    "同一 root_cause_group 内只能选择一个标签作为首要错因。",
+    "流畅度标签只有在存在音频或可靠语音指标时才能使用。"
+  ],
+  "tags": [
+    {
+      "code": "common.task_misaligned",
+      "name": "任务理解或角色错位",
+      "scope": "common",
+      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
+      "mapped_dimension_codes": ["common.task_role"],
+      "root_cause_group": "task_alignment",
+      "default_severity": "critical",
+      "definition": "没有回应题目核心任务，或身份、对象、权限和职责边界明显错误。",
+      "trigger_evidence": "原话能够直接证明答非所问、越权处置、逃避职责或沟通对象错误。",
+      "exclusion_rules": [
+        "已经正确回应任务，只是分析不深或措施不具体时不使用。",
+        "能够由题型专属标签更准确描述时，优先使用题型标签。"
+      ],
+      "remediation_action": "重新圈定身份、对象、任务动词和限制条件，用一句话复述题目真正要求。",
+      "retest_strategy": "更换情境但保持相同角色约束，要求开头20秒明确身份、对象和首要任务。"
+    },
+    {
+      "code": "common.structure_disorganized",
+      "name": "主线散乱或逻辑关系不清",
+      "scope": "common",
+      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
+      "mapped_dimension_codes": ["common.structure_logic"],
+      "root_cause_group": "structure_logic",
+      "default_severity": "major",
+      "definition": "答案缺少可识别主线，观点、原因、步骤或结论之间关系混乱。",
+      "trigger_evidence": "需要引用至少两处前后语句，证明顺序颠倒、重复跳转、前后矛盾或只做无关系罗列。",
+      "exclusion_rules": [
+        "主线清楚但内容深度不足时不使用。",
+        "不能仅因为没有说首先、其次、最后而使用。"
+      ],
+      "remediation_action": "先用一句主线句确定回答顺序，再把每一段限定为一个功能。",
+      "retest_strategy": "同题型换情境，作答前只允许写三行提纲，复测段落功能是否清楚。"
+    },
+    {
+      "code": "common.expression_vague_template",
+      "name": "表达空泛或模板化",
+      "scope": "common",
+      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
+      "mapped_dimension_codes": ["common.expression_naturalness"],
+      "root_cause_group": "expression_quality",
+      "default_severity": "major",
+      "definition": "大量使用通用口号、抽象动词或套话，听者无法知道具体判断和动作。",
+      "trigger_evidence": "引用一处代表性原话，能够展示口号堆砌、重复赘述或万能模板替代具体内容。",
+      "exclusion_rules": [
+        "观点具体但个别词语不够自然时只做表达建议，不设首要错因。",
+        "问题实质是措施缺少主体和步骤时，优先使用题型专属措施标签。"
+      ],
+      "remediation_action": "把抽象动词改成主体、动作、对象和结果，删除不承载信息的口号。",
+      "retest_strategy": "要求复测答案至少包含三处具体主体或动作，并检查模板句比例是否下降。"
+    },
+    {
+      "code": "common.fluency_time_unstable",
+      "name": "流畅度或时间分配失衡",
+      "scope": "common",
+      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
+      "mapped_dimension_codes": ["common.fluency_time"],
+      "root_cause_group": "speech_delivery",
+      "default_severity": "major",
+      "definition": "长停顿、反复重说、口头语或前松后紧已经妨碍信息完整传递。",
+      "trigger_evidence": "必须有音频、时间轴或可靠语音指标，并指出受影响的内容位置。",
+      "exclusion_rules": [
+        "纯文字作答时禁止使用。",
+        "偶发停顿但不影响理解和完成度时不设为首要错因。"
+      ],
+      "remediation_action": "压缩开头铺垫，按段设定时间预算，用短句完成关键判断和动作。",
+      "retest_strategy": "使用同等时长题目复测，比较长停顿、重复次数和重点完成度，不只比较语速。"
+    },
+    {
+      "code": "ca.judgment_generic",
+      "name": "判断模糊或停留在有利有弊",
+      "scope": "type_specific",
+      "question_types": ["ca"],
+      "mapped_dimension_codes": ["ca.judgment_essence"],
+      "root_cause_group": "ca_judgment",
+      "default_severity": "major",
+      "definition": "没有形成明确、有边界的价值判断，只复述现象或泛泛表示辩证看待。",
+      "trigger_evidence": "核心判断句只表达重视、有利有弊、值得思考等通用态度。",
+      "exclusion_rules": [
+        "判断明确但原因解释薄弱时使用 ca.analysis_shallow。",
+        "判断明确且分析充分，只是措施笼统时使用 ca.measure_vague。"
+      ],
+      "remediation_action": "用一句话回答问题本质、主要矛盾和适用边界。",
+      "retest_strategy": "选择另一社会现象题，要求前20秒完成明确判断并说明一个条件边界。"
+    },
+    {
+      "code": "ca.analysis_shallow",
+      "name": "原因分析停留表面",
+      "scope": "type_specific",
+      "question_types": ["ca"],
+      "mapped_dimension_codes": ["ca.mechanism_analysis"],
+      "root_cause_group": "ca_analysis",
+      "default_severity": "major",
+      "definition": "只列出现象或把问题归因于认识不足，没有解释问题如何产生和持续。",
+      "trigger_evidence": "原因段只有个人态度、重视程度等结论，缺少制度、流程、利益或能力关系。",
+      "exclusion_rules": [
+        "完全没有明确判断时优先使用 ca.judgment_generic。",
+        "分析已经成立但措施不落地时使用 ca.measure_vague。"
+      ],
+      "remediation_action": "补出至少一条完整因果链，说明某种规则或行为如何导致结果。",
+      "retest_strategy": "更换现象场景，要求说出两条机制链，并检查是否仍只归因于思想认识。"
+    },
+    {
+      "code": "ca.measure_vague",
+      "name": "对策缺少主体和执行路径",
+      "scope": "type_specific",
+      "question_types": ["ca"],
+      "mapped_dimension_codes": ["ca.measure_feasibility"],
+      "root_cause_group": "ca_measures",
+      "default_severity": "major",
+      "definition": "措施停留在加强、完善、提升等方向，没有责任主体、动作、流程或验效方式。",
+      "trigger_evidence": "引用措施原话，证明无法回答谁做、怎么做或如何判断有效。",
+      "exclusion_rules": [
+        "题目只要求分析且无需提出措施时不使用。",
+        "措施具体但前述判断错误时优先处理判断问题。"
+      ],
+      "remediation_action": "把每条措施补成主体、动作、对象、时限或评价指标。",
+      "retest_strategy": "选择同能力不同场景题，要求至少提出两条能被执行和验收的措施。"
+    },
+    {
+      "code": "op.goal_need_unclear",
+      "name": "目标对象或需求判断不清",
+      "scope": "type_specific",
+      "question_types": ["op"],
+      "mapped_dimension_codes": ["op.goal_audience_need"],
+      "root_cause_group": "op_goal_need",
+      "default_severity": "major",
+      "definition": "没有说清活动或调研要解决什么问题、服务谁以及依据什么确定重点。",
+      "trigger_evidence": "开头只有提高认识、营造氛围等一般目标，缺少对象和需求证据。",
+      "exclusion_rules": [
+        "目标清楚但流程无法执行时使用 op.process_resource_generic。",
+        "流程完整但缺少风险和效果判断时使用 op.risk_evaluation_missing。"
+      ],
+      "remediation_action": "先定义可验证目标，区分核心对象，并说明前期需求信息来源。",
+      "retest_strategy": "更换活动类型，要求30秒内说清目标、重点对象和一项需求调研办法。"
+    },
+    {
+      "code": "op.process_resource_generic",
+      "name": "流程和资源安排模板化",
+      "scope": "type_specific",
+      "question_types": ["op"],
+      "mapped_dimension_codes": ["op.process_resource_coordination"],
+      "root_cause_group": "op_execution",
+      "default_severity": "major",
+      "definition": "只有事前事中事后框架，缺少关键动作、责任人、资源和部门协同。",
+      "trigger_evidence": "流程语句可以原样套用到任何活动，无法看出本题特有安排。",
+      "exclusion_rules": [
+        "流程具体但目标偏离时优先使用 op.goal_need_unclear。",
+        "实施可行但缺少效果评价时使用 op.risk_evaluation_missing。"
+      ],
+      "remediation_action": "围绕本题列出关键节点、负责人、必要资源和协作关系。",
+      "retest_strategy": "更换组织任务，限制只能说四个关键动作，检查每个动作是否有对象和责任。"
+    },
+    {
+      "code": "op.risk_evaluation_missing",
+      "name": "风险预案或效果评价缺失",
+      "scope": "type_specific",
+      "question_types": ["op"],
+      "mapped_dimension_codes": ["op.risk_evaluation"],
+      "root_cause_group": "op_risk_evaluation",
+      "default_severity": "major",
+      "definition": "没有识别关键实施风险，或只以人数、签到、照片和总结代替实际效果。",
+      "trigger_evidence": "答案没有预案，或评价指标与活动目标没有关系。",
+      "exclusion_rules": [
+        "题目场景没有明显风险时，可只判断效果评价。",
+        "流程本身无法执行时优先使用 op.process_resource_generic。"
+      ],
+      "remediation_action": "补充最可能导致失败的一项风险，并设计与目标直接对应的结果指标。",
+      "retest_strategy": "复测另一活动题，要求给出一项备选方案和一项非留痕式效果指标。"
+    },
+    {
+      "code": "ir.conflict_misread",
+      "name": "矛盾来源或关系定位错误",
+      "scope": "type_specific",
+      "question_types": ["ir"],
+      "mapped_dimension_codes": ["ir.conflict_relationship"],
+      "root_cause_group": "ir_conflict",
+      "default_severity": "critical",
+      "definition": "简单站队、甩锅、对抗或误判工作关系，没有区分事实、情绪和共同任务。",
+      "trigger_evidence": "原话直接给对方贴标签、公开指责、盲目承担或否认合理诉求。",
+      "exclusion_rules": [
+        "矛盾判断正确但处理失去原则时使用 ir.principle_empathy_imbalanced。",
+        "判断和原则正确但沟通动作笼统时使用 ir.communication_action_vague。"
+      ],
+      "remediation_action": "重新拆分事实、各方诉求、工作目标和关系边界，不先评价人格。",
+      "retest_strategy": "选择不同关系主体的冲突题，要求先复述各方合理诉求再提出处理。"
+    },
+    {
+      "code": "ir.principle_empathy_imbalanced",
+      "name": "原则与同理心失衡",
+      "scope": "type_specific",
+      "question_types": ["ir"],
+      "mapped_dimension_codes": ["ir.principle_empathy"],
+      "root_cause_group": "ir_principle_empathy",
+      "default_severity": "critical",
+      "definition": "只讲人情不讲规则，或只讲规则不回应合理情绪和现实困难。",
+      "trigger_evidence": "原话存在无原则承诺、一味忍让、机械拒绝或居高临下说教。",
+      "exclusion_rules": [
+        "根本误判矛盾和关系时优先使用 ir.conflict_misread。",
+        "原则与理解都有但缺少具体沟通时使用 ir.communication_action_vague。"
+      ],
+      "remediation_action": "先回应合理诉求，再明确不能突破的边界，同时提供合规替代路径。",
+      "retest_strategy": "复测包含合理诉求与制度边界冲突的题，检查是否同时出现理解、原则和替代方案。"
+    },
+    {
+      "code": "ir.communication_action_vague",
+      "name": "沟通动作笼统",
+      "scope": "type_specific",
+      "question_types": ["ir"],
+      "mapped_dimension_codes": ["ir.communication_solution"],
+      "root_cause_group": "ir_communication",
+      "default_severity": "major",
+      "definition": "只说主动沟通、耐心解释，没有对象、时机、内容和要达成的共识。",
+      "trigger_evidence": "沟通表述无法回答跟谁、何时、说什么以及之后怎么处理。",
+      "exclusion_rules": [
+        "存在公开指责或越级处理等关系判断错误时优先使用 ir.conflict_misread。",
+        "沟通具体但违反原则时优先使用 ir.principle_empathy_imbalanced。"
+      ],
+      "remediation_action": "把沟通补全为对象、时机、事实、诉求、共识和后续动作。",
+      "retest_strategy": "更换冲突情境，要求只设计一次关键沟通并说清五个要素。"
+    },
+    {
+      "code": "er.priority_stoploss_wrong",
+      "name": "处置优先级或止损错误",
+      "scope": "type_specific",
+      "question_types": ["er"],
+      "mapped_dimension_codes": ["er.priority_stoploss"],
+      "root_cause_group": "er_priority",
+      "default_severity": "critical",
+      "definition": "忽视生命安全和风险扩散，优先汇报、追责、宣传或等待指示。",
+      "trigger_evidence": "第一处置动作明显不能控制最紧迫风险，或先后顺序会扩大损害。",
+      "exclusion_rules": [
+        "优先级正确但分工和协同不清时使用 er.execution_coordination_weak。",
+        "现场处置完整但没有善后时使用 er.recovery_prevention_missing。"
+      ],
+      "remediation_action": "按生命安全、风险扩散、现场秩序、事实核验和后续影响重新排序。",
+      "retest_strategy": "复测另一突发题，只给20秒说出前三个动作及排序理由。"
+    },
+    {
+      "code": "er.execution_coordination_weak",
+      "name": "现场协同或信息处置薄弱",
+      "scope": "type_specific",
+      "question_types": ["er"],
+      "mapped_dimension_codes": ["er.execution_coordination_info"],
+      "root_cause_group": "er_execution",
+      "default_severity": "critical",
+      "definition": "现场分工、专业协同、信息核验或动态汇报不清，存在越权和二次风险。",
+      "trigger_evidence": "处置步骤没有明确人员资源，或未经核实随意发布、承诺和判断。",
+      "exclusion_rules": [
+        "第一优先级本身错误时优先使用 er.priority_stoploss_wrong。",
+        "现场协同完整但缺少善后预防时使用 er.recovery_prevention_missing。"
+      ],
+      "remediation_action": "明确现场分工、专业力量、信息来源、汇报节点和权限边界。",
+      "retest_strategy": "复测需要多部门协同的突发题，检查是否给出分工、核验和状态更新。"
+    },
+    {
+      "code": "er.recovery_prevention_missing",
+      "name": "善后恢复或复发预防缺失",
+      "scope": "type_specific",
+      "question_types": ["er"],
+      "mapped_dimension_codes": ["er.recovery_prevention"],
+      "root_cause_group": "er_recovery",
+      "default_severity": "major",
+      "definition": "现场风险解除后没有恢复服务、解释安抚、记录复盘和针对性预防。",
+      "trigger_evidence": "答案在现场控制后立即结束，或只说总结经验、加强管理。",
+      "exclusion_rules": [
+        "现场核心风险尚未解决时，先处理 er.priority_stoploss_wrong 或 er.execution_coordination_weak。"
+      ],
+      "remediation_action": "补齐受影响对象、恢复动作、事实记录和针对原因的预防措施。",
+      "retest_strategy": "复测另一应急题，要求最后30秒只回答善后与防复发。"
+    },
+    {
+      "code": "sa.selfawareness_inauthentic",
+      "name": "自我认识空泛或失真",
+      "scope": "type_specific",
+      "question_types": ["sa"],
+      "mapped_dimension_codes": ["sa.authentic_selfawareness"],
+      "root_cause_group": "sa_selfawareness",
+      "default_severity": "major",
+      "definition": "只有完美化宣传、套路化缺点或无法被经历支持的自我评价。",
+      "trigger_evidence": "原话使用过度负责、太追求完美等伪缺点，或所有特点都无具体表现。",
+      "exclusion_rules": [
+        "自我判断真实但经历没有支撑时使用 sa.experience_reflection_weak。",
+        "经历充分但与岗位关系弱时使用 sa.position_match_weak。"
+      ],
+      "remediation_action": "选择一个真实特点和一个具体局限，说明它们在何种情境下出现。",
+      "retest_strategy": "更换自我认知问法，要求使用一个可核验经历证明特点并承认真实边界。"
+    },
+    {
+      "code": "sa.experience_reflection_weak",
+      "name": "经历证据或反思链条不足",
+      "scope": "type_specific",
+      "question_types": ["sa"],
+      "mapped_dimension_codes": ["sa.experience_reflection"],
+      "root_cause_group": "sa_experience",
+      "default_severity": "major",
+      "definition": "只报经历名称或结果，没有个人行动、原因、反思和后续改进。",
+      "trigger_evidence": "经历表述无法说明本人做了什么、结果如何以及后来如何改变。",
+      "exclusion_rules": [
+        "经历本身明显编造或自我判断失真时优先使用 sa.selfawareness_inauthentic。",
+        "反思完整但岗位联系薄弱时使用 sa.position_match_weak。"
+      ],
+      "remediation_action": "把经历补成情境、个人行动、结果、反思和后续验证五步。",
+      "retest_strategy": "用另一经历题复测，限制每一步至少出现一项具体事实。"
+    },
+    {
+      "code": "sa.position_match_weak",
+      "name": "岗位理解或匹配证据不足",
+      "scope": "type_specific",
+      "question_types": ["sa"],
+      "mapped_dimension_codes": ["sa.position_match"],
+      "root_cause_group": "sa_position_match",
+      "default_severity": "major",
+      "definition": "只表达服务群众、工作稳定等一般动机，没有现实岗位理解和个人能力证据。",
+      "trigger_evidence": "岗位描述可以套用任何职业，或个人经历与岗位任务没有连接。",
+      "exclusion_rules": [
+        "自我认识本身虚假空泛时优先使用 sa.selfawareness_inauthentic。",
+        "岗位理解清楚但经历展开不完整时使用 sa.experience_reflection_weak。"
+      ],
+      "remediation_action": "选择一项具体岗位任务或压力，用真实经历说明相应能力如何迁移。",
+      "retest_strategy": "复测报考动机或岗位匹配题，要求出现具体岗位任务、个人证据和现实约束。"
+    },
+    {
+      "code": "ve.audience_purpose_missing",
+      "name": "缺少对象意识或沟通目的",
+      "scope": "type_specific",
+      "question_types": ["ve"],
+      "mapped_dimension_codes": ["ve.audience_purpose"],
+      "root_cause_group": "ve_audience",
+      "default_severity": "critical",
+      "definition": "没有对具体对象说话，或语气、信息和行动诉求与沟通目的冲突。",
+      "trigger_evidence": "原话像通用文章、训话或政策说明，未回应对象的真实关切。",
+      "exclusion_rules": [
+        "对象和目的清楚但理由不充分时使用 ve.persuasion_unsupported。",
+        "内容有说服力但形式不符合演讲、主持等场景时使用 ve.scenario_adaptation_weak。"
+      ],
+      "remediation_action": "先写明沟通对象最关心什么，再确定希望对方理解或采取的行动。",
+      "retest_strategy": "更换对象和沟通目的，要求开头直接回应对象关切并提出清晰行动目标。"
+    },
+    {
+      "code": "ve.persuasion_unsupported",
+      "name": "观点缺少理由和说服证据",
+      "scope": "type_specific",
+      "question_types": ["ve"],
+      "mapped_dimension_codes": ["ve.argument_persuasion"],
+      "root_cause_group": "ve_persuasion",
+      "default_severity": "major",
+      "definition": "只有立场、命令或口号，没有事实、例子、利益关联或疑虑回应。",
+      "trigger_evidence": "核心诉求之后没有能够支撑它的具体理由，或理由与对象关切无关。",
+      "exclusion_rules": [
+        "沟通对象和目的错误时优先使用 ve.audience_purpose_missing。",
+        "说服内容充分但表现形式不合场景时使用 ve.scenario_adaptation_weak。"
+      ],
+      "remediation_action": "围绕对象关切增加一个具体事实、一条利益关联和一次疑虑回应。",
+      "retest_strategy": "复测另一劝说题，要求每个核心诉求至少配一条理由或例子。"
+    },
+    {
+      "code": "ve.scenario_adaptation_weak",
+      "name": "表达形式与具体场景不匹配",
+      "scope": "type_specific",
+      "question_types": ["ve"],
+      "mapped_dimension_codes": ["ve.scenario_adaptation"],
+      "root_cause_group": "ve_scenario",
+      "default_severity": "major",
+      "definition": "演讲、劝说、解释或主持的开场、语气、互动和收束方式与场景不符。",
+      "trigger_evidence": "答案内容可以成立，但说话方式像论文、训话或通用答题稿。",
+      "exclusion_rules": [
+        "对象和沟通目的本身错误时优先使用 ve.audience_purpose_missing。",
+        "场景适配但理由不足时使用 ve.persuasion_unsupported。"
+      ],
+      "remediation_action": "根据场景重写开场、称谓、互动句和最后行动落点。",
+      "retest_strategy": "保持主题不变但更换表达场景，检查语气和结构是否随场景改变。"
+    }
+  ]
+}
