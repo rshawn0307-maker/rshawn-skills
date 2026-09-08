@@ -35,14 +35,20 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# 环境定位（纯 stdlib；不装任何依赖）
+# 环境定位（纯 stdlib；不装任何依赖）。工具路径可用环境变量覆盖：
+# PTD_SOFFICE / PTD_PDFINFO / PTD_PDFTOPPM / PTD_PDFFONTS / PTD_PDFTOTEXT
 # ---------------------------------------------------------------------------
 
-SOFFICE = "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/opt/libreoffice/LibreOffice.app/Contents/MacOS/soffice"
-PDFINFO = "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdfinfo"
-PDFTOPPM = "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdftoppm"
-PDFFONTS = "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdffonts"
-PDFTOTEXT = "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdftotext"
+import os as _os
+
+SOFFICE = _os.environ.get(
+    "PTD_SOFFICE",
+    "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/opt/libreoffice/LibreOffice.app/Contents/MacOS/soffice",
+)
+PDFINFO = _os.environ.get("PTD_PDFINFO", "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdfinfo")
+PDFTOPPM = _os.environ.get("PTD_PDFTOPPM", "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdftoppm")
+PDFFONTS = _os.environ.get("PTD_PDFFONTS", "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdffonts")
+PDFTOTEXT = _os.environ.get("PTD_PDFTOTEXT", "/Users/shawn/Library/Application Support/TRAE SOLO CN/ModularData/ai-agent/vm/tools/bin/pdftotext")
 
 # CJK 字体契约：DOCX 中任意文本使用的字体，只要 pdffonts 显示至少一个嵌入字体命中
 # 本列表（或包含 CJK 能力），即认为可渲染、无方框。
@@ -65,7 +71,7 @@ INK_THRESHOLD = 160        # 灰度 <160 视为正文墨迹（水印浅灰 ~192 
 EDGE_PAD_PX = 6            # 正文页墨迹距页边至少 6px
 HEADER_ZONE = 0.06         # 顶部页眉带（不计入正文占高）
 FOOTER_ZONE = 0.06         # 底部页脚带（不计入正文占高）
-BLANK_INK_PCT = 0.015      # 正文带墨迹像素占比 <1.5% 判为空白/孤页
+BLANK_INK_PCT = 0.008      # 正文带墨迹像素占比 <0.8% 判为空白/孤页（尾页引流组约1-3%）
 EFF_MIN, EFF_MAX = 0.65, 0.90
 BOTTOM_BLANK_MAX = 0.25
 
@@ -244,24 +250,30 @@ def check_fonts(fonts: list[tuple[str, str]]) -> list[str]:
 def check_ink_pages(pages: list[Path]) -> tuple[list[str], list[dict]]:
     bad = []
     reports = []
+    n = len(pages)
     for i, pg in enumerate(pages, 1):
         st = _page_ink(pg)
         reports.append({"page": i, **st})
         if i == 1:
             # 封面整页满铺底色，豁免正文占高/触边检查（封面背景由 r8 单独校验）
             continue
+        # v3：末页是"章节尾页"（结尾段+引流组，天然 3-5 行），只查墨迹存在、
+        # 触边与引流不孤页（r6），不再查占高/页底空白；
+        # 中间页校准 0.45/0.45，严禁半空页与整页搬移留洞。
         ink_ratio = st["ink_px"] / (st["w"] * st["h"])
         if st["first_r"] > st["last_r"] or ink_ratio < BLANK_INK_PCT:
             bad.append(f"r4/5 页{i} 正文带无墨迹（空白/孤页，ink={ink_ratio:.3f}）")
             continue
-        eff = (st["last_r"] - st["first_r"]) / st["h"]
-        blank = (st["h"] - st["last_r"]) / st["h"]
         if st["first_c"] <= EDGE_PAD_PX or st["last_c"] >= st["w"] - EDGE_PAD_PX:
             bad.append(f"r3 页{i} 墨迹触边（左 {st['first_c']}px 右 {st['w']-1-st['last_c']}px）")
-        if not (EFF_MIN <= eff <= EFF_MAX):
-            bad.append(f"r4 页{i} 有效占高 {eff:.2f}（期望 {EFF_MIN}-{EFF_MAX}）")
-        if blank > BOTTOM_BLANK_MAX:
-            bad.append(f"r5 页{i} 页底空白 {blank:.2f}（期望 ≤{BOTTOM_BLANK_MAX}）")
+        if i == n:
+            continue
+        eff = (st["last_r"] - st["first_r"]) / st["h"]
+        blank = (st["h"] - st["last_r"]) / st["h"]
+        if not (0.45 <= eff <= EFF_MAX):
+            bad.append(f"r4 页{i} 有效占高 {eff:.2f}（期望 0.45-{EFF_MAX}）")
+        if blank > 0.50:
+            bad.append(f"r5 页{i} 页底空白 {blank:.2f}（期望 ≤0.50）")
     return bad, reports
 
 

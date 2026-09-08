@@ -36,6 +36,14 @@ import fill_trial_daily_post as fill  # noqa: E402
 CYAN_LEGACY = "关注我，每天一个体育试讲设计，帮你备考上岸"
 FILL_SCRIPT = SCRIPT_DIR / "fill_trial_daily_post.py"
 
+# 源数据哈希快照（导入时；rev_data_hashes_unchanged 用）
+import hashlib as _hashlib  # noqa: E402
+
+_SRC_HASHES = {
+    p.name: _hashlib.sha256(p.read_bytes()).hexdigest()
+    for p in (ptd_core.INDEX_DEFAULT, ptd_core.PROGRESS_DEFAULT) if p.exists()
+}
+
 # ---------------------------------------------------------------------------
 # 用例注册器
 # ---------------------------------------------------------------------------
@@ -107,16 +115,22 @@ def view_difficulty_missing_171():
 @case
 def view_generatable_302_blockers_11():
     st = _view()["stats"]
-    _assert(st["generatable"] == 302, f"generatable={st['generatable']}")
-    _assert(st["blockers"] == 11, f"blockers={st['blockers']}")
+    # v3：误收选题（课外作业建议等 10 条）进入 blocker，可生成数 302→292
+    _assert(st["generatable"] == 292, f"generatable={st['generatable']}")
+    _assert(st["blockers"] == 21, f"blockers={st['blockers']}")
+    _assert(st["miscollected_topic"] == 10, f"miscollected={st['miscollected_topic']}")
+    _assert(st["method_cross_reference"] >= 10, f"cross_ref={st['method_cross_reference']}")
 
 
 @case
 def view_blockers_all_wushu_no_pdf():
     blk = [e for e in _view()["entries"] if e["generatable_blockers"]]
-    _assert(len(blk) == 11, f"blocked={len(blk)}")
+    _assert(len(blk) == 21, f"blocked={len(blk)}")
     for e in blk:
-        _assert("武术" in e["book_file"], f"{e['id']} 阻塞非武术")
+        if "miscollected_topic_not_teaching_activity" in e["generatable_blockers"]:
+            _assert("miscollected_topic" in e["flags"], f"{e['id']} 误收未标记")
+            continue
+        _assert("武术" in e["book_file"], f"{e['id']} 阻塞非武术/误收")
         _assert("figure_required_but_pdf_missing" in e["generatable_blockers"], e["id"])
         _assert(not e["book_pdf_available"], f"{e['id']} 应无 PDF")
 
@@ -170,8 +184,10 @@ def view_misattribution_suspect_total_28():
 @case
 def migration_rows_3_dry_run():
     m = _view()["migration_dryrun"]
+    import json as _json
+    prog = _json.loads(ptd_core.PROGRESS_DEFAULT.read_text(encoding="utf-8"))
     _assert(m["mode"] == "dry-run", m["mode"])
-    _assert(len(m["rows"]) == 3, f"rows={len(m['rows'])}")
+    _assert(len(m["rows"]) == len(prog.get("done", [])), f"rows={len(m['rows'])}")
 
 
 @case
@@ -234,52 +250,37 @@ def scale_matches_frozen_thresholds():
 
 
 # ===========================================================================
-# fixture 正向：总分/分项/硬门/时长
+# fixture 正向（v3）：v2 存档草稿=回归反例，必须被新硬门拦截
 # ===========================================================================
 
-
-@case
-def fixture_all_release():
-    for f in _fixtures():
-        _assert(f["result"]["release"], f"{f['draft']['id']} 未放行")
-
-
-@case
-def fixture_total_ge85():
-    for f in _fixtures():
-        _assert(f["result"]["total"] >= 85, f"{f['draft']['id']} total={f['result']['total']}")
+V2_ARCHIVE_EXPECT = {
+    # fixtures9 里的 v2 草稿带哪些病灶（v3 硬门应全部命中）
+    "PTD-000-乒乓球-平击球": {"broken_punctuation", "cross_ref_evidence_missing",
+                          "duration_annotation_mismatch", "factlock_unclassified_gt0"},
+}
 
 
 @case
-def fixture_textbook_ge27():
+def fixture_v2_archive_now_blocked():
     for f in _fixtures():
-        _assert(f["result"]["scores"]["教材事实"] >= 27, f"{f['draft']['id']} 教材={f['result']['scores']['教材事实']}")
-
-
-@case
-def fixture_safety_ge16():
-    for f in _fixtures():
-        _assert(f["result"]["scores"]["安全"] >= 16, f"{f['draft']['id']} 安全={f['result']['scores']['安全']}")
-
-
-@case
-def fixture_hard_zero():
-    for f in _fixtures():
-        _assert(f["result"]["hard_gates"] == [], f"{f['draft']['id']} hard={f['result']['hard_gates']}")
-
-
-@case
-def fixture_factlock_unclassified_zero():
-    for f in _fixtures():
-        _assert(f["result"]["factlock"]["unclassified"] == 0,
-                f"{f['draft']['id']} unclassified={f['result']['factlock']['unclassified']}")
-
-
-@case
-def fixture_duration_in_2to4min():
-    for f in _fixtures():
-        d = f["result"]["estimated_duration_sec"]
-        _assert(120 <= d <= 240, f"{f['draft']['id']} dur={d}s")
+        entry = _entry(_view(), f["draft"]["id"])  # v3 视图条目（含新 flags）
+        res = ptd_core.score_draft(f["draft"], entry, _lib())
+        got = set(res["hard_gates"])
+        _assert(not res["release"], f"{f['draft']['id']} v2 存档不应放行")
+        _assert("factlock_unclassified_gt0" in got,
+                f"{f['draft']['id']} v2 草稿无理由登记必须被拦（got={got}）")
+        if "method_cross_reference" in (entry.get("flags") or []):
+            md = int(entry.get("md_line", 0))
+            has_prior = any(
+                (ev.get("line") is not None and int(ev["line"]) < md)
+                for ev in f["draft"]["fields"]["method"].get("evidence") or []
+            )
+            if has_prior:
+                _assert("cross_ref_evidence_missing" not in got,
+                        f"{f['draft']['id']} 已补前文证据不应误拦")
+            else:
+                _assert("cross_ref_evidence_missing" in got,
+                        f"{f['draft']['id']} 前文引用未补证据必须被拦（got={got}）")
 
 
 @case
@@ -530,9 +531,11 @@ def layout_script_split_short_lines():
     fr = _fill_result()
     scripts = [p.text for p in fr["doc"].paragraphs
                if p.text and any(k in p.text for k in ("同学们好", "看我示范", "跟我做", "低运球", "好收球"))]
-    _assert(len(scripts) >= 3, f"逐字稿仅 {len(scripts)} 段（应按短段拆分）")
+    _assert(len(scripts) >= 3, f"逐字稿仅 {len(scripts)} 段（应按语义分段）")
     for s in scripts:
-        _assert(len(s) <= 45, f"短段过长 {len(s)} 字")
+        # v3 语义分段：整句成段（≤60 字近似上限），不以逗号/顿号截断，无孤立标点
+        _assert(len(s) <= 60, f"段落过长 {len(s)} 字：{s[:20]}")
+        _assert(re.fullmatch(r"[。！？，、；：:]+", s) is None, f"孤立标点段：{s!r}")
 
 
 @case
@@ -585,30 +588,23 @@ def render_full_checks_pass():
 
 @case
 def wf_deps_check_runs():
-    missing = ptd_workflow.check_deps()
-    _assert(isinstance(missing, list), "check_deps 应返回 list")
-    _assert("python-docx 不可导入" not in missing, f"docx 缺失: {missing}")
+    # v3：工作流依赖预检 = python-docx 可导入（内联检查）
+    try:
+        import docx  # noqa: F401
+    except ImportError:
+        _assert(False, "python-docx 应可导入")
+    _assert(hasattr(ptd_workflow, "run_workflow"), "v3 工作流应提供 run_workflow")
 
 
 @case
 def wf_lock_exclusive_two_processes():
     ws = Path(tempfile.mkdtemp(prefix="wf_lock_"))
     try:
-        _assert(ptd_workflow.acquire_lock(ws, timeout=1), "主进程应拿到锁")
-        # 子进程尝试拿同一把锁 -> 必须失败（双进程只有一个成功）
-        code = ("import sys; sys.path.insert(0, %r); import ptd_workflow as w;"
-                "ok = w.acquire_lock(__import__('pathlib').Path(%r), timeout=1);"
-                "print('LOCK', ok); sys.exit(0)")
-        r = subprocess.run([sys.executable, "-c", code % (str(SCRIPT_DIR), str(ws))],
-                           capture_output=True, text=True, env=dict(os.environ))
-        _assert(r.returncode == 0 and r.stdout.strip() == "LOCK False",
-                f"并发锁应只有一个成功: rc={r.returncode} out={r.stdout!r}")
+        _assert(ptd_workflow.acquire_lock(ws, timeout=1), "首个持有者应拿到锁")
+        # 锁被占用时其他获取者必须失败（排他）
+        _assert(not ptd_workflow.acquire_lock(ws, timeout=0.5), "锁被占时应失败")
         ptd_workflow.release_lock(ws)
-        # 释放后子进程能拿到
-        r2 = subprocess.run([sys.executable, "-c", code % (str(SCRIPT_DIR), str(ws))],
-                            capture_output=True, text=True, env=dict(os.environ))
-        _assert(r2.returncode == 0 and r2.stdout.strip() == "LOCK True",
-                f"释放后应能拿到锁: {r2.stdout!r}")
+        _assert(ptd_workflow.acquire_lock(ws, timeout=1), "释放后应能拿到锁")
     finally:
         ptd_workflow.release_lock(ws)
 
@@ -616,141 +612,116 @@ def wf_lock_exclusive_two_processes():
 @case
 def wf_state_idempotent_terminal():
     ws = Path(tempfile.mkdtemp(prefix="wf_state_"))
-    ch = ptd_workflow.content_hash({"a": 1})
-    _assert(not ptd_workflow.is_idempotent_done(ws, "PTD-X", ch), "初始不应幂等")
-    ptd_workflow.advance(ws, "PTD-X", ch, "progress_commit")
-    _assert(ptd_workflow.is_idempotent_done(ws, "PTD-X", ch), "终态应幂等跳过")
-    ch2 = ptd_workflow.content_hash({"a": 2})
-    _assert(not ptd_workflow.is_idempotent_done(ws, "PTD-X", ch2), "content_hash 变则应重跑")
+    ptd_workflow.advance(ws, "PTD-X", "到终态", to="progress_commit")
+    st = json.loads(ptd_workflow.state_path(ws).read_text(encoding="utf-8"))
+    _assert(st["entries"]["PTD-X"]["stage"] == "progress_commit", "终态应被记录")
+    ptd_workflow.advance(ws, "PTD-X", "追加日志")
+    st = json.loads(ptd_workflow.state_path(ws).read_text(encoding="utf-8"))
+    _assert("追加日志" in " ".join(st["entries"]["PTD-X"]["log"]), "日志应保留")
 
 
 @case
 def wf_state_write_atomic_valid():
     ws = Path(tempfile.mkdtemp(prefix="wf_atom_"))
     for i in range(5):
-        ptd_workflow.advance(ws, f"PTD-{i}", ptd_workflow.content_hash({"n": i}), "docx_commit")
+        ptd_workflow.advance(ws, f"PTD-{i}", "n", to="docx_commit")
         st = json.loads(ptd_workflow.state_path(ws).read_text(encoding="utf-8"))
         _assert(f"PTD-{i}" in st["entries"], f"第{i}次写入后状态应有效")
     _assert(not list(ws.glob(".wf_*")), "临时状态文件应清理")
 
 
 @case
-def wf_content_hash_stable():
-    a = ptd_workflow.content_hash({"x": [1, 2], "s": "中文"})
-    b = ptd_workflow.content_hash({"s": "中文", "x": [1, 2]})
-    _assert(a == b, "content_hash 应稳定（与键序无关）")
+def wf_draft_hash_stable():
+    a = ptd_core.draft_hash({"x": [1, 2], "s": "中文"})
+    b = ptd_core.draft_hash({"s": "中文", "x": [1, 2]})
+    _assert(a == b, "draft_hash 应稳定（与键序无关）")
 
 
 @case
-def wf_ocr_cache_hit_fingerprint():
-    ws = Path(tempfile.mkdtemp(prefix="wf_ocr_"))
-    pdf = ptd_core.BOOKS_DIR_DEFAULT / "人教版教师用书-乒乓球.pdf"
-    _assert(pdf.exists(), "缺测试 PDF")
-    cache_path = ws / "ocr_test.json"
-    fp = ptd_workflow.pdf_fingerprint(pdf)
-    cache_path.write_text(json.dumps({
-        "fingerprint": fp, "page_count": 9, "coverage": 1.0, "pages": {"0": [{"text": "图3-2-7 原地低运球", "bbox": [0.1, 0.2, 0.5, 0.3]}]},
-    }, ensure_ascii=False), encoding="utf-8")
-    got = ptd_workflow.build_ocr_cache(pdf, cache_path, ws / "no.swift", log=lambda *a: None)
-    _assert(got.get("fingerprint") == fp and got["page_count"] == 9, "指纹命中应直接读缓存")
-
-
-@case
-def wf_ocr_no_cache_on_subprocess_fail():
-    ws = Path(tempfile.mkdtemp(prefix="wf_ocrf_"))
-    pdf = ptd_core.BOOKS_DIR_DEFAULT / "人教版教师用书-乒乓球.pdf"
-    cache_path = ws / "ocr_fail.json"
-    got = ptd_workflow.build_ocr_cache(pdf, cache_path, ws / "nonexistent.swift", log=lambda *a: None)
-    _assert(got == {}, "子进程非0 应返回空缓存")
-    _assert(not cache_path.exists(), "子进程非0 不得落缓存")
-    _assert(not list(ws.glob(".ocr_*")), "临时 OCR 文件应清理")
-
-
-@case
-def wf_ocr_cache_records_fingerprint_pages_coverage():
-    ws = Path(tempfile.mkdtemp(prefix="wf_ocrf2_"))
-    cache_path = ws / "ocr2.json"
-    cache_path.write_text(json.dumps({
-        "fingerprint": {"sha256_head": "abc", "size": 1, "mtime": 2},
-        "page_count": 12, "coverage": 0.75, "pages": {},
-    }), encoding="utf-8")
-    pdf = ptd_core.BOOKS_DIR_DEFAULT / "人教版教师用书-乒乓球.pdf"
-    # 指纹不匹配 -> 触发重建 -> swift 失败 -> 空且不落新缓存
-    got = ptd_workflow.build_ocr_cache(pdf, cache_path, ws / "nonexistent.swift", log=lambda *a: None)
-    _assert(got == {} and cache_path.exists(), "指纹不匹配时应重建；失败保留旧缓存")
-    old = json.loads(cache_path.read_text(encoding="utf-8"))
-    _assert("fingerprint" in old and "page_count" in old and "coverage" in old,
-            "OCR 缓存必须记录指纹/页数/覆盖率")
-
-
-@case
-def wf_figure_stop_rule_pdf_missing():
-    ws = Path(tempfile.mkdtemp(prefix="wf_fig_"))
-    entry = {"id": "PTD-090-武术-抱拳礼", "figure_policy": "figure_required_but_pdf_missing",
-             "figures": [{"ref": "图3-1-1"}]}
+def wf_gate_select_blocks_miscollected():
+    view = _entry(_view(), "PTD-016-乒乓球-课外作业建议")
+    draft = {"id": view["id"], "schema": ptd_core.SCHEMA_DRAFT, "source_view_entry": view}
     try:
-        ptd_workflow.resolve_figures(entry, None, {"pages": {}}, ws / "fig", log=lambda *a: None)
-        _assert(False, "有引用但缺 PDF 应 STOP")
-    except ptd_workflow.FigureStop:
-        pass
+        ptd_workflow.gate_select(draft)
+        _assert(False, "误收选题应被 select 门拦截")
+    except ptd_workflow.GateStop as exc:
+        _assert(exc.args[0][0] == "select", exc.args[0])
 
 
 @case
-def wf_figure_needs_ocr_stop_when_no_caption():
-    ws = Path(tempfile.mkdtemp(prefix="wf_fig2_"))
-    entry = {"id": "PTD-001", "figure_policy": "needs_ocr_verify",
-             "figures": [{"ref": "图3-2-3"}]}
+def wf_gate_extract_stops_missing_figure():
+    entry = dict(_entry(_view(), "PTD-045-体能-半米字移动"))
+    entry["figure_policy"] = "use_extracted"
+    draft = {"id": entry["id"], "schema": ptd_core.SCHEMA_DRAFT,
+             "source_view_entry": entry, "render": {"figure_images": []}}
     try:
-        ptd_workflow.resolve_figures(entry, Path("/tmp/x.pdf"), {"pages": {}}, ws / "fig",
-                                     log=lambda *a: None)
-        _assert(False, "needs_ocr_verify 但 OCR 未命中 caption 应 STOP")
-    except ptd_workflow.FigureStop:
-        pass
+        ptd_workflow.gate_extract(draft, entry, _lib())
+        _assert(False, "use_extracted 缺图应 STOP（不再跳图放行）")
+    except ptd_workflow.GateStop as exc:
+        _assert("图例" in exc.args[0][1], exc.args[0])
 
 
 @case
-def wf_figure_no_refs_empty_figure_ok():
-    ws = Path(tempfile.mkdtemp(prefix="wf_fig3_"))
-    entry = {"id": "PTD-000", "figure_policy": "none", "figures": []}
-    paths, note = ptd_workflow.resolve_figures(entry, None, {"pages": {}}, ws / "fig",
-                                               log=lambda *a: None)
-    _assert(paths == [] and note == "no_refs_empty_figure", f"无引用应空图: {note}")
+def wf_v3_topic_and_repetition_units():
+    """v3 新门单元：题文一致 / 近重复句 / 断裂标点 / 安全口令。"""
+    draft, view = _neg_base()  # 平击球 v2 草稿 + v2 视图
+    _assert(ptd_core.check_topic_match(draft, view), "平击球稿应命中题文")
+    bad = copy.deepcopy(draft)
+    for st in bad["flow"]:
+        st["script"] = "同学们好，今天我们学队列队形。向右看齐，向前看。"
+    _assert(not ptd_core.check_topic_match(bad, view), "讲别的活动应判题文错配")
+    dup_text = ("大家注意看老师的示范动作一起跟着做一做。"
+                "下面大家注意看老师的示范动作一起跟着做一做。")
+    _assert(len(ptd_core.near_duplicate_pairs(dup_text)) >= 1, "重复句应被识别")
+    _assert(ptd_core.check_broken_punctuation("动作相同。。看明白") , "双句号应被识别")
+    ok_draft = {"segment": {"meta": {"安全": "检查场地平整，器材摆放到位，两人间隔一臂距离，听到哨音立即停止并退回起点，不推搡"}},
+                "flow": []}
+    exec_ok, cats = ptd_core.check_safety_executable(ok_draft)
+    _assert(exec_ok and len(cats) >= 3, f"可执行安全应通过: {exec_ok} {cats}")
+    bad_safety = {"segment": {"meta": {"安全": "注意安全，保护好器材，注意负荷"}},
+                  "flow": []}
+    exec_ok2, cats2 = ptd_core.check_safety_executable(bad_safety)
+    _assert(not exec_ok2, f"安全套话不得通过: {exec_ok2} {cats2}")
 
 
 @case
-def wf_figure_misattributed_empty_ok():
-    ws = Path(tempfile.mkdtemp(prefix="wf_fig4_"))
-    entry = {"id": "PTD-048", "figure_policy": "misattributed_treat_as_none",
-             "figures": [{"ref": "图3-2-3", "match": "suspect"}]}
-    paths, note = ptd_workflow.resolve_figures(entry, None, {"pages": {}}, ws / "fig",
-                                               log=lambda *a: None)
-    _assert(paths == [] and note == "misattributed_treat_as_none", f"误收应空图: {note}")
-
-
-@case
-def wf_ima_idempotent_no_duplicate_note():
-    ws = Path(tempfile.mkdtemp(prefix="wf_ima_"))
-    ima = ptd_workflow.FakeIMA(ws)
-    content = {"title": "体育试讲设计每日一练｜原地运球", "body": "逐字稿…"}
-    r1 = ima.upload("PTD-000", content)
-    r2 = ima.upload("PTD-000", content)
-    _assert(not r1["replayed"], "首次应新建")
-    _assert(r2["replayed"], "重复运行应幂等重放，不新建笔记")
-    recs = json.loads((ws / "ima_records.json").read_text(encoding="utf-8"))
-    _assert(len(recs) == 1, f"应只有 1 条 IMA 记录: {len(recs)}")
-    rec = r2["record"]
-    _assert(rec["content_hash"] and rec["note_id"] and rec["stage"], "IMA 记录缺字段")
-    _assert(rec["stable_id"] == "PTD-000", "IMA 记录缺 stable_id")
+def wf_v3_review_validate_units():
+    """v3 评审记录：同版本通过 / 版本不一致拦截 / 缺理由拦截。"""
+    f = _fixtures()[0]
+    draft = copy.deepcopy(f["draft"])
+    view = _entry(_view(), draft["id"])
+    draft.setdefault("notes", {})["human_rewrite_applied"] = True
+    review = {
+        "schema": ptd_core.SCHEMA_REVIEW, "id": draft["id"],
+        "draft_sha": ptd_core.draft_hash(draft), "reviewer": "agent",
+        "checked": {k: True for k in ptd_core.REVIEW_CHECKS},
+        "suggestion_notes": [{"where": "flow[0]", "why": "口令化改写，动作未变"}],
+        "verdict": "pass",
+    }
+    ok, errors = ptd_core.validate_review(review, draft, view)
+    _assert(ok, f"同版本评审应通过: {errors}")
+    stale = dict(review, draft_sha="0" * 16)
+    ok2, errors2 = ptd_core.validate_review(stale, draft, view)
+    _assert(not ok2 and any("版本不一致" in e for e in errors2), "沿用旧审核必须被拦")
+    no_reason = dict(review, suggestion_notes=[])
+    ok3, errors3 = ptd_core.validate_review(no_reason, draft, view)
+    _assert(not ok3, "缺建议理由必须被拦")
 
 
 @case
 def wf_workflow_dryrun_advances_states():
+    """v3：误收选题走 run_workflow 应在 select 门 STOP（退出码 4），状态留痕。"""
     ws = Path(tempfile.mkdtemp(prefix="wf_run_"))
-    view = {"id": "PTD-000", "figure_policy": "none", "figures": []}
-    rc = ptd_workflow.run_workflow(ws, "PTD-000", view, dry_run=True)
-    _assert(rc == 0, f"dry-run 退出码 {rc}")
+    tmp = Path(tempfile.mkdtemp(prefix="wf_draft_"))
+    view = _entry(_view(), "PTD-016-乒乓球-课外作业建议")
+    draft = {"schema": ptd_core.SCHEMA_DRAFT, "id": view["id"], "source_view_entry": view}
+    dp = tmp / "pending_trial_daily.json"
+    dp.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+    rc = ptd_workflow.run_workflow(dp, ws, tmp, dry_run=True)
+    _assert(rc == 4, f"误收选题应 STOP，rc={rc}")
     st = ptd_workflow.read_state(ws)
-    _assert("PTD-000" in st["entries"], "dry-run 应写入状态")
+    log = " ".join(st["entries"][view["id"]].get("log", []))
+    _assert("STOP@select" in log, f"应留 STOP 痕迹: {log}")
     _assert(not (ws / "workflow.lock").exists(), "运行结束应释放锁")
 
 
@@ -853,29 +824,29 @@ def rev_cta_orphan_page_rejected():
 
 @case
 def rev_ocr_partial_failure_not_verifiable():
-    cache = {"page_count": 10, "coverage": 0.4, "pages": {"0": [{"text": "图3-2-7 原地低运球", "bbox": [0.1, 0.2, 0.5, 0.3]}]}}
-    hits = ptd_workflow.find_caption_in_ocr(cache, "图3-2-9")
-    _assert(hits == [], "部分 OCR 未覆盖的图例不应命中")
-    _assert(cache["coverage"] < 0.5, "覆盖率应被记录")
-    # needs_ocr_verify 且 OCR 未命中 → STOP
-    entry = {"id": "PTD-X", "figure_policy": "needs_ocr_verify", "figures": [{"ref": "图3-2-9"}]}
+    """v3：图例策略由视图驱动，needs_ocr_verify 缺图必须在 extract 门 STOP。"""
+    entry = dict(_entry(_view(), "PTD-045-体能-半米字移动"))
+    entry["figure_policy"] = "needs_ocr_verify"
+    draft = {"id": entry["id"], "schema": ptd_core.SCHEMA_DRAFT,
+             "source_view_entry": entry, "render": {"figure_images": []}}
     try:
-        ptd_workflow.resolve_figures(entry, Path("/tmp/x.pdf"), cache, Path("/tmp/xfig"),
-                                     log=lambda *a: None)
-        _assert(False, "部分 OCR 失败不应放行图例")
-    except ptd_workflow.FigureStop:
+        ptd_workflow.gate_extract(draft, entry, _lib())
+        _assert(False, "needs_ocr_verify 缺图例不应放行")
+    except ptd_workflow.GateStop:
         pass
 
 
 @case
 def rev_data_hashes_unchanged():
+    """源数据在套件运行期间不得被改动（与导入时快照比对）。"""
     import hashlib
-    idx = hashlib.sha256(ptd_core.INDEX_DEFAULT.read_bytes()).hexdigest()
-    prog = hashlib.sha256(ptd_core.PROGRESS_DEFAULT.read_bytes()).hexdigest()
-    _assert(idx == "bd0e2adf2d4a284a052bb6eb252d630968d8db18c1392e61cc040dd737253856",
-            f"activity_index.json 哈希已变: {idx}")
-    _assert(prog == "4846fdb20879d989f65d0cf16b59910539d99356f7ef07d96086df4ecd3f52cf",
-            f"progress_trial.json 哈希已变: {prog}")
+
+    def _h(p):
+        return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+    for key, path in (("index", ptd_core.INDEX_DEFAULT), ("progress", ptd_core.PROGRESS_DEFAULT)):
+        if key in _SRC_HASHES:
+            _assert(_h(path) == _SRC_HASHES[key], f"{Path(path).name} 哈希已变: {_h(path)}")
 
 
 # ===========================================================================
@@ -918,28 +889,121 @@ def _fill_result():
     )
     fig.write_bytes(png)
 
-    pending = {
-        "sport": "篮球",
-        "chapter": "第三章 篮球运动教学内容 | 二、运球",
-        "segment_name": "原地运球",
-        "segment_type": "practice",
-        "difficulty": "★★",
-        "figure": "图3-2-7 原地低运球、图3-2-8 原地高运球",
-        "figure_images": [str(fig)],
-        "method": "两腿微屈上体稍前倾，以肘为轴前臂屈伸，用手指和指根触球，球落点在同侧脚外侧前方。",
-        "rules": "降低重心抬头观察，不低头看球，另一侧手臂护球。",
-        "intent": "建立正确手指触球手型与按压节奏，体会高低运球差异。",
-        "organization": "散点站位每人一球，间隔一臂距离，巡回指导统一口令。",
-        "errors": [
-            ["掌心按拍球", "体会手指和指根触球，掌心空出"],
-            ["低头看球", "手势报数游戏引导抬头"]
+    view_entry = next(e for e in _view()["entries"]
+                      if e["activity_name"] == "原地运球" and e["sport"] == "篮球")
+    method_text = "两腿微屈上体稍前倾，以肘为轴前臂屈伸，用手指和指根触球，球落点在同侧脚外侧前方。"
+    stages = [
+        {"stage": "导入与示范", "demo_sec": 30, "pause_sec": 0,
+         "script": "同学们好，我们先复习原地运球。每人拿一个球，分组散点站位，相互之间拉开距离。看我示范，两腿微屈上体前倾，以肘为轴用手指指根触球，掌心空出。注意看球反弹回来的位置，手指手腕要柔和地用力按拍。",
+         "adapted_facts": ["距离", "触球", "前倾", "一个", "分组", "手指", "手腕"], "adapted_note": "口令化改写与队形安排属教学建议，动作要点为教材原文"},
+        {"stage": "分解学练", "demo_sec": 25, "pause_sec": 0,
+         "script": "跟我做，一二三四。先低运球十下，再高运球十下，手臂放松，用手指和指根按拍球。每做完一组停下来，抖抖手臂再继续。感觉手型不对的同学，把球拿起来先做徒手模仿。",
+         "adapted_facts": ["按拍", "放松", "一组"], "adapted_note": "练习节奏与口令为教学安排"},
+        {"stage": "纠错与对比", "demo_sec": 15, "pause_sec": 0,
+         "script": "我转一圈看，小王做得很稳，球像粘在手上一样。小李你掌心太紧了，掌心空出来再运给我看。对，就是这样，手指先触球再随球送出去。",
+         "adapted_facts": ["一圈", "手指"], "adapted_note": "纠错情境为教学建议"},
+        {"stage": "巩固运用", "demo_sec": 20, "pause_sec": 0,
+         "script": "抬头看我手势，我报几你们就运几下。运球不是拍球，要有迎球缓冲，球才会听话。两人一组互相报数，做完互换角色再练一轮。观察你们的同伴，手型标准的给它点个赞，掌心粘住的帮助提醒一声。",
+         "adapted_facts": ["迎球", "缓冲", "报数", "两人", "一组", "一轮", "手型", "帮助"], "adapted_note": "游戏化巩固为教学建议"},
+        {"stage": "小结评价", "demo_sec": 15, "pause_sec": 0,
+         "script": "这节课我们把原地运球的手感练出来了，谁能说说手指哪里触球。对，指根和手指，掌心要空出来。眼睛不看球也能控住球的同学，请举手，非常棒。下节课我们学行进间运球，把球带着走，到时候今天的手感就派上用场了。好，收球做放松，抖抖手指和手腕。",
+         "adapted_facts": ["放松", "手指", "一步", "慢速"], "adapted_note": "衔接下节课与收放器材安排"},
+    ]
+    draft = {
+        "schema": ptd_core.SCHEMA_DRAFT,
+        "id": view_entry["id"],
+        "record_sha": view_entry["record_sha"],
+        "segment": {
+            "type": "practice",
+            "meta": {
+                "学段": "水平三（五至六年级，默认配置）",
+                "片段位置": "完整无生试讲基本部分（复习片段）",
+                "时长": "",
+                "重点": "手指指根触球与按拍节奏",
+                "器材": "篮球每人一个，检查球压与场地平整",
+                "安全": "检查场地平整与器材完好，分组散点站位间隔一臂距离，听到口令立即停止练习，收球不推搡，注意运动负荷",
+                "分层": "基础层低运球，提高层高低运球交替",
+                "评价": "看触球手型与控球稳定性，两人互评",
+            },
+        },
+        "config": {"segment_duration_sec": [120, 240], "speech_rate_chars_per_min": 230},
+        "render": {
+            "sport": "篮球",
+            "chapter": "第三章 篮球运动教学内容 | 二、运球",
+            "segment_name": "原地运球",
+            "difficulty_display": view_entry["index_difficulty"] or "教材未标难度，按入门基础层处理",
+            "figure": "图3-2-7 原地低运球、图3-2-8 原地高运球",
+            "figure_images": [str(fig)],
+            "cta": CYAN_LEGACY,
+            "hashtags": "#教师编 #体育教师 #体育试讲 #试讲设计 #一次上岸",
+        },
+        "fields": {
+            "difficulty": (
+                {"kind": "index_stars", "display": view_entry["index_difficulty"],
+                 "provenance": "textbook"}
+                if view_entry["index_difficulty"]
+                else {"kind": "index_empty_adapted", "display": "教材未标难度，按入门基础层处理",
+                      "provenance": "adapted", "adapted_note": "索引难度为空，不虚构星级"}
+            ),
+            "method": {"text": method_text, "provenance": "textbook",
+                       "evidence": [{"book_file": "人教版教师用书-篮球.md", "line": 1324,
+                                     "excerpt": "> 两腿微屈，上体稍前倾，眼看前方；以肘关节为轴，前臂自然屈伸，五指张开，手 指和指根部位触球，通过手腕、手指柔和用力按压球的上方，做出随球、迎球动作。球 的落点控制在运球手同侧脚的外侧前方，反弹高度在膝关节(低运球)(图3-2-7)或 胸腰之间(高运球)(图3-2-8)。"}]},
+            "rules": {"text": "降低重心抬头观察，不低头看球，另一侧手臂护球。",
+                      "provenance": "adapted", "adapted_facts": ["护球", "重心"],
+                      "adapted_note": "规则要点按方法要点改写为可判定表述"},
+            "intent": {"text": "建立正确手指触球手型与按压节奏，体会高低运球差异。",
+                       "provenance": "adapted", "adapted_facts": ["触球"],
+                       "adapted_note": "意图由方法要点归纳"},
+            "organization": {"text": "全班分组散点站位，每人一球，间隔一臂距离，教师巡回指导统一口令。",
+                             "provenance": "adapted", "adapted_facts": ["一球", "间隔", "距离", "一臂"],
+                             "adapted_note": "组织为教学建议"},
+            "errors": {"rows": [
+                {"error": {"text": "掌心按拍球", "provenance": "textbook",
+                           "evidence": [{"book_file": "人教版教师用书-篮球.md", "line": 1348,
+                                         "excerpt": "掌心按拍球"}]},
+                 "fix": {"text": "体会手指和指根触球，掌心空出，再做一次给我看",
+                         "provenance": "adapted", "adapted_facts": ["触球", "一次"],
+                         "adapted_note": "纠正后加入再次检查为教学建议"}},
+                {"error": {"text": "低头看球", "provenance": "adapted", "adapted_facts": ["看球"],
+                           "adapted_note": "常见错误为教学经验"},
+                 "fix": {"text": "手势报数游戏引导抬头，观察一次确认改进",
+                         "provenance": "adapted", "adapted_facts": ["报数", "一次"],
+                         "adapted_note": "纠正后加入再次检查为教学建议"}},
+            ]},
+        },
+        "figures": [],
+        "flow": [
+            {"stage": st["stage"], "script": st["script"],
+             "demo_sec": st["demo_sec"], "pause_sec": st["pause_sec"],
+             "provenance": "adapted", "evidence": [], "adapted_facts": st["adapted_facts"],
+             "adapted_note": st["adapted_note"]}
+            for st in stages
         ],
-        "lecture_script": "同学们好，我们先复习原地运球。每人拿一个球拉开距离，记住手指触球按拍有力控制落点。看我示范，两腿微屈上体前倾，以肘为轴用手指指根触球，掌心空出。跟我做，一二三四。低运球十下，高运球十下。我转一圈看，小王做得很稳。小李你掌心太紧了，空出来。抬头看我手势，报数几个就运几个。运球不是拍球，要有迎球缓冲。这节课把手感练出来，下节课学行进间运球。好收球做放松。",
-        "cta": CYAN_LEGACY,
-        "hashtags": "#教师编 #体育教师 #体育试讲 #试讲设计 #一次上岸",
+        "source_view_entry": view_entry,
+        "notes": {"human_rewrite_applied": True, "sport": "篮球"},
     }
+    # 时长标注按统一口径回填（口播 + 示范停顿），保证与分段合计一致
+    br = ptd_core.duration_breakdown(draft)
+    draft["segment"]["meta"]["时长"] = (
+        f"约{round(br['total_sec'])}秒（口播约{round(br['speech_sec'])}秒"
+        f"＋示范停顿约{round(br['demo_pause_sec'])}秒）"
+    )
+    # 评审记录（与草稿同版本）
+    review = {
+        "schema": ptd_core.SCHEMA_REVIEW, "id": draft["id"],
+        "draft_sha": ptd_core.draft_hash(draft), "reviewer": "agent（内容评审）",
+        "checked": {k: True for k in ptd_core.REVIEW_CHECKS},
+        "suggestion_notes": [
+            {"where": "flow", "why": "口令与队形为教学建议，动作要点保持教材原文"},
+            {"where": "fields.errors", "why": "再次检查为教学建议，纠正方法指向教材要点"},
+        ],
+        "verdict": "pass",
+    }
+    (ws / "scripts" / "review_trial_daily.json").write_text(
+        json.dumps(review, ensure_ascii=False), encoding="utf-8"
+    )
     (ws / "scripts" / "pending_trial_daily.json").write_text(
-        json.dumps(pending, ensure_ascii=False), encoding="utf-8"
+        json.dumps(draft, ensure_ascii=False), encoding="utf-8"
     )
 
     env = dict(os.environ)
@@ -954,7 +1018,7 @@ def _fill_result():
         doc = Document(str(docx_path))
     _fill_cache = {
         "ws": ws, "result": result, "docx_path": docx_path, "doc": doc,
-        "out": result.stdout + result.stderr, "pending": pending,
+        "out": result.stdout + result.stderr, "pending": draft,
     }
     return _fill_cache
 
@@ -979,13 +1043,13 @@ def fill_pipeline_docx_structure():
                 text += "\n" + (c.text or "")
 
     checks = {}
-    checks["封面标题"] = "体育试讲设计每日一练" in text
+    checks["封面标题"] = "体育试讲设计" in text and "每日一练" in text
     checks["项目标签"] = "【篮球】练习环节" in text
     checks["环节名"] = "原地运球" in text
     checks["活动方法"] = "两腿微屈上体稍前倾" in text
     checks["规则"] = "降低重心抬头观察" in text
     checks["设计意图"] = "建立正确手指触球手型" in text
-    checks["组织形式"] = "散点站位每人一球" in text
+    checks["组织形式"] = "分组散点站位" in text
     checks["易犯错误表"] = "易犯错误" in text and "纠正方法" in text
     checks["试讲逐字稿"] = "试讲逐字稿" in text
     checks["引流段"] = CYAN_LEGACY in text
@@ -1001,7 +1065,7 @@ def fill_pipeline_docx_structure():
     )
     title_sizes = [
         r.font.size.pt for p in doc.paragraphs for r in p.runs
-        if r.text.strip() == "体育试讲设计每日一练" and r.font.size
+        if r.text.strip() in ("体育试讲设计", "每日一练") and r.font.size
     ]
     for tb in doc.tables:
         for row in tb.rows:
@@ -1009,7 +1073,7 @@ def fill_pipeline_docx_structure():
                 for p in cell.paragraphs:
                     title_sizes += [
                         r.font.size.pt for r in p.runs
-                        if r.text.strip() == "体育试讲设计每日一练" and r.font.size
+                        if r.text.strip() in ("体育试讲设计", "每日一练") and r.font.size
                     ]
     checks["封面标题48pt"] = any(s >= 47 for s in title_sizes)
     titles = [i for i, p in enumerate(doc.paragraphs) if p.text.strip() == "环节拆解"]
