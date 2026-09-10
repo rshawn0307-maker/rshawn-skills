@@ -18,6 +18,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
 | [structured-tips-daily](#structured-tips-daily) | "结构化答题技巧·每日一练"小红书爆款图文帖子 docx 自动生成 | [查看](#structured-tips-daily) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
+| [PE-bishi-jd-daily](#pe-bishi-jd-daily) | 体育笔试简答题每日一练：简答题 + 参考答案 + 要点解析表，保留原版模板与生成门槛 | [查看](#pe-bishi-jd-daily) |
 
 ### 🌟 社区精选 · 转载
 
@@ -135,6 +136,16 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 触发词：每天一个体育笔试知识点、体育笔试每日一练、出一期体育笔试知识点。
 
 > 注意：本 skill 涉及大量业务工作区路径，文档中为本机绝对路径，使用前请替换为实际路径。
+
+#### PE-bishi-jd-daily
+
+[查看技能文件](skills/PE-bishi-jd-daily/SKILL.md)。基于 PE-bishi-daily 的简答题版本，沿用讲义库举一反三讲稿、固定品牌模板、图表优先布局和原有生成条件。首页用一道简答题替换单选题，正文给出完整参考答案，再用 1–2 张表拆解答题要点、关键词与易漏点；保留 4 段解析引导、5 条考法提醒、话题标签和固定引流段。须经 human-writing 改写与内容复核，支持按要求上传到同一 ima 知识库。
+
+自带填充脚本与隔离回归测试，保留 17 段正文、2 个 drawing、2 处封面镜像、表格自适应和原子提交校验。简答题版使用独立 pending、选题进度、输出和快照，避免影响单选题版；不编造分值或官方评分标准。
+
+触发词：体育笔试简答题每日一练、每天一个体育笔试简答题知识点、出一期体育笔试简答题。
+
+> 注意：沿用本机讲稿与源模板路径，使用前需确认实际路径、可导入 python-docx 的 Python 环境与独立简答题进度。`SPORTS_JD_DAILY_WORKSPACE` 应指向「体育教师编」目录本身，首次启用须确认该版本发布记录；模板与讲稿不随 skill 分发。
 
 #### structured-tips-daily
 

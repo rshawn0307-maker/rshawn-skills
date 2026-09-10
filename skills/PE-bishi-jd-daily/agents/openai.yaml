@@ -1,0 +1,4 @@
+interface:
+  display_name: "体育笔试简答题每日一练"
+  short_description: "从举一反三讲稿生成简答题知识点帖子，保留品牌模板与原有验证门槛"
+  default_prompt: "使用 $PE-bishi-jd-daily 按简答题版进度生成一期体育笔试简答题每日一练 DOCX。"
