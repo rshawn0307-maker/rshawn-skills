@@ -30,6 +30,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | --- | --- | --- |
 | [darwin-skill](#darwin-skill) | 让所有 Skill 自主进化：9 维评估 + 独立评分 + 棘轮机制（来源：花叔） | [查看](#darwin-skill) |
 | [huashu-design](#huashu-design) | 用 HTML 做高保真原型/PPT/动画/可视化与专家评审（来源：花叔） | [查看](#huashu-design) |
+| [huashu-report](#huashu-report) | 机构级研究报告与学术论文：研报/白皮书/调研/arXiv 论文/16:9 咨询 deck（来源：花叔） | [查看](#huashu-report) |
 
 **khazix系列**（收录自 [KKKKhazix](https://github.com/KKKKhazix)）
 
@@ -175,6 +176,14 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 同步：上游更新后可运行 `bash scripts/sync-huashu.sh` 一键拉取最新版（见下方「同步花叔来源 skill」）。
 
+#### huashu-report
+
+做机构级研究报告与学术论文的 skill：覆盖行业研报、白皮书、年度调研、数据洞察、arXiv 论文与 16:9 咨询 deck 型报告（一页一结论）。开工先按读者用途从六种报告原型（学术/咨询 deck/调查/研报/论文/科普）中选型，写下报告的一句话结论、找到外部基准；核心方法是依次扮演研究员（定口径、给机制、定位文献）、编辑、信息设计师、数据可视化师四个角色，并执行「每个数字都要有分母」「图表标题写结论」等五条硬规矩。规范提炼自 2026 年顶级机构报告实测，单篇文章与纯演示 PPT 不适用（走 huashu-design）。触发词：写报告、行业报告、白皮书、调研报告、数据洞察、论文、咨询 deck。
+
+> 来源：[alchaincyf/huashu-report](https://github.com/alchaincyf/huashu-report)（作者：花叔 alchaincyf）
+
+> 同步：上游更新后可运行 `bash scripts/sync-huashu.sh` 一键拉取最新版（见下方「同步花叔来源 skill」）。
+
 **khazix系列**
 
 #### leader
@@ -274,7 +283,7 @@ bash scripts/sync-khazix.sh --push # 更新并自动 commit + push
 
 ## 同步花叔来源 skill
 
-仓库里的 `darwin-skill`、`huashu-design` 收录自花叔（alchaincyf）的两个独立仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
+仓库里的 `darwin-skill`、`huashu-design`、`huashu-report` 收录自花叔（alchaincyf）的三个独立仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
 
 ```bash
 bash scripts/sync-huashu.sh        # 只更新文件并打印变更

@@ -14,6 +14,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCES=(
   "darwin-skill|https://github.com/alchaincyf/darwin-skill.git|.|https://github.com/alchaincyf/darwin-skill|alchaincyf/darwin-skill"
   "huashu-design|https://github.com/alchaincyf/huashu-design.git|.|https://github.com/alchaincyf/huashu-design|alchaincyf/huashu-design"
+  "huashu-report|https://github.com/alchaincyf/huashu-report.git|.|https://github.com/alchaincyf/huashu-report|alchaincyf/huashu-report"
 )
 
 TMP_DIR="$(mktemp -d)"
@@ -85,10 +86,10 @@ done
 
 echo
 echo "==> 变更摘要："
-git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design
+git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design skills/huashu-report
 
 if [ "${1:-}" = "--push" ]; then
-  git -C "$REPO_ROOT" add skills/darwin-skill skills/huashu-design
+  git -C "$REPO_ROOT" add skills/darwin-skill skills/huashu-design skills/huashu-report
   if git -C "$REPO_ROOT" diff --cached --quiet; then
     echo "（无变更可提交）"
   else
