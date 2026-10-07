@@ -15,6 +15,7 @@ SOURCES=(
   "neat-freak|https://github.com/KKKKhazix/khazix-skills.git|neat-freak|https://github.com/KKKKhazix/khazix-skills|khazix-skills"
   "storage-analyzer|https://github.com/KKKKhazix/khazix-skills.git|storage-analyzer|https://github.com/KKKKhazix/khazix-skills|khazix-skills"
   "leader|https://github.com/KKKKhazix/khazix-skills.git|leader|https://github.com/KKKKhazix/khazix-skills|khazix-skills"
+  "khazix-writer|https://github.com/KKKKhazix/khazix-skills.git|khazix-writer|https://github.com/KKKKhazix/khazix-skills|khazix-skills"
   "human-writing|https://github.com/KKKKhazix/human-writing.git|human-writing|https://github.com/KKKKhazix/human-writing|KKKKhazix/human-writing"
 )
 
@@ -100,10 +101,10 @@ done
 
 echo
 echo "==> 变更摘要："
-git -C "$REPO_ROOT" status --short -- skills/neat-freak skills/storage-analyzer skills/leader skills/human-writing skills/gongkao skills/structured-post skills/zhankai
+git -C "$REPO_ROOT" status --short -- skills/neat-freak skills/storage-analyzer skills/leader skills/khazix-writer skills/human-writing skills/gongkao skills/structured-post skills/zhankai
 
 if [ "${1:-}" = "--push" ]; then
-  git -C "$REPO_ROOT" add skills/neat-freak skills/storage-analyzer skills/leader skills/human-writing skills/gongkao skills/structured-post skills/zhankai
+  git -C "$REPO_ROOT" add skills/neat-freak skills/storage-analyzer skills/leader skills/khazix-writer skills/human-writing skills/gongkao skills/structured-post skills/zhankai
   if git -C "$REPO_ROOT" diff --cached --quiet; then
     echo "（无变更可提交）"
   else

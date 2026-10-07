@@ -31,6 +31,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [darwin-skill](#darwin-skill) | 让所有 Skill 自主进化：9 维评估 + 独立评分 + 棘轮机制（来源：花叔） | [查看](#darwin-skill) |
 | [huashu-design](#huashu-design) | 用 HTML 做高保真原型/PPT/动画/可视化与专家评审（来源：花叔） | [查看](#huashu-design) |
 | [huashu-report](#huashu-report) | 机构级研究报告与学术论文：研报/白皮书/调研/arXiv 论文/16:9 咨询 deck（来源：花叔） | [查看](#huashu-report) |
+| [huashu-art-motion](#huashu-art-motion) | 艺术与视频动画：代码画 35 种艺术风格并让画活、9 种解说动画语法、口播整片管线（来源：花叔） | [查看](#huashu-art-motion) |
 
 **khazix系列**（收录自 [KKKKhazix](https://github.com/KKKKhazix)）
 
@@ -40,6 +41,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [neat-freak](#neat-freak) | 项目知识收尾：让文档、规则、记忆与代码现状一致（来源：khazix） | [查看](#neat-freak) |
 | [human-writing](#human-writing) | 通用中文创作与改稿，去 AI 味儿（来源：khazix） | [查看](#human-writing) |
 | [storage-analyzer](#storage-analyzer) | macOS / Windows 只读存储分析与交互式清理报告（来源：khazix） | [查看](#storage-analyzer) |
+| [khazix-writer](#khazix-writer) | 数字生命卡兹克公众号长文写作风格：素材→成稿（来源：khazix） | [查看](#khazix-writer) |
 
 **其他社区精选**
 
@@ -82,7 +84,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
-> 提示：huashu-design 体积较大（约 30MB，含动画模板、音效与案例资源），请整目录复制，不要只拷 SKILL.md。
+> 提示：huashu-design（约 30MB，含动画模板、音效与案例资源）与 huashu-art-motion（约 50MB，含示例素材与渲染引擎脚本）体积较大，请整目录复制，不要只拷 SKILL.md。
 
 ## Skill 详解
 
@@ -184,6 +186,16 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 同步：上游更新后可运行 `bash scripts/sync-huashu.sh` 一键拉取最新版（见下方「同步花叔来源 skill」）。
 
+#### huashu-art-motion
+
+用代码画画的「艺术动画」skill：先按任务分流（复刻拆解 / 指定艺术风格 / 口播整片），「一帧先行」定风格、再用渲染器让画活起来；内置 35 种艺术风格配方、9 种解说动画语法（8 种可按口播参数渲片段）、BPM 节奏配乐网格、长卷穿越片骨架与口播整片管线（含框景检查），人物用 AI 生帧＋代码合成。触发词：复刻这个动画、梵高/莫奈那种风格、艺术动画、解说动画、Kurzgesagt/Vox/3b1b 风格、口播做片。
+
+> 注意：本 skill 体积较大（约 50MB，含示例素材与渲染引擎脚本），安装时请完整复制整个目录。
+
+> 来源：[alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（作者：花叔 alchaincyf）
+
+> 同步：上游更新后可运行 `bash scripts/sync-huashu.sh` 一键拉取最新版（见下方「同步花叔来源 skill」）。
+
 **khazix系列**
 
 #### leader
@@ -215,6 +227,14 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 #### storage-analyzer
 
 macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用大户分为 🟢 可自动清理 / 🟡 需人工判断 / 🔴 谨慎清理 三级，生成可折叠、命令可一键复制的交互式 HTML 报告，并支持在网页上安全清理（移废纸篓/直接删）。扫描全程只读，删除命令仅展示不代跑。
+
+> 来源：[khazix-skills](https://github.com/KKKKhazix/khazix-skills)（作者 KKKKhazix）
+
+> 同步：上游更新后可运行 `bash scripts/sync-khazix.sh` 一键拉取最新版（见下方「同步 khazix 来源 skill」）。
+
+#### khazix-writer
+
+复刻「数字生命卡兹克」公众号长文写作风格的 skill：撰写公众号文章、续写、扩写、按素材出稿（PDF / brief / 新闻链接 / 语音转文字均可），说「帮我把这个写成文章」「用我的风格写一下」也会触发；内置卡兹克的选题眼光、行文节奏与语言习惯。短内容（小红书帖 / 推特 / 朋友圈）与纯标题摘要生成不适用（后者用 wechat-title）。触发词：写文章、写稿子、帮我写、续写、扩写、公众号文章、长文、出稿、按我的风格写。
 
 > 来源：[khazix-skills](https://github.com/KKKKhazix/khazix-skills)（作者 KKKKhazix）
 
@@ -270,7 +290,7 @@ Obsidian 专有 Markdown 语法规范：wikilink、嵌入、callout、properties
 
 ## 同步 khazix 来源 skill
 
-仓库里的 `neat-freak`、`storage-analyzer`、`leader` 收录自 [khazix-skills](https://github.com/KKKKhazix/khazix-skills)，`human-writing` 收录自其独立仓库 [KKKKhazix/human-writing](https://github.com/KKKKhazix/human-writing)。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
+仓库里的 `neat-freak`、`storage-analyzer`、`leader`、`khazix-writer` 收录自 [khazix-skills](https://github.com/KKKKhazix/khazix-skills)，`human-writing` 收录自其独立仓库 [KKKKhazix/human-writing](https://github.com/KKKKhazix/human-writing)。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
 
 ```bash
 bash scripts/sync-khazix.sh        # 只更新文件并打印变更
@@ -283,14 +303,14 @@ bash scripts/sync-khazix.sh --push # 更新并自动 commit + push
 
 ## 同步花叔来源 skill
 
-仓库里的 `darwin-skill`、`huashu-design`、`huashu-report` 收录自花叔（alchaincyf）的三个独立仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
+仓库里的 `darwin-skill`、`huashu-design`、`huashu-report`、`huashu-art-motion` 收录自花叔（alchaincyf）的四个独立仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
 
 ```bash
 bash scripts/sync-huashu.sh        # 只更新文件并打印变更
 bash scripts/sync-huashu.sh --push # 更新并自动 commit + push
 ```
 
-脚本会从上游仓库拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。注意 huashu-design 包含约 30MB 设计资源（动画模板、音效、案例图），同步时会整体覆盖。
+脚本会从上游仓库拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。注意 huashu-design（约 30MB 设计资源）与 huashu-art-motion（约 50MB 示例素材与渲染引擎脚本）体积较大，同步时会整体覆盖。
 
 ## 同步 dashi-ppt 来源 skill
 
