@@ -19,7 +19,7 @@
 
 3 到 30 分钟，你能 ship 一段**产品发布动画**、一个能点击的 App 原型、一套能编辑的 PPT、一份印刷级的信息图。
 
-不是「AI 做的还行」那种水平——是看起来像大厂设计团队做的。给 skill 你的品牌资产（logo、色板、UI 截图），它会读懂你的品牌气质；什么都不给，**三套逻辑顾问 + 40 种 HTML 原生风格库**也能兜底到不出 AI slop。
+不是「AI 做的还行」那种水平——是看起来像大厂设计团队做的。给 skill 你的品牌资产（logo、色板、UI 截图），它会读懂你的品牌气质；什么都不给，**三套逻辑顾问 + 60 种 HTML 原生风格库**也能兜底到不出 AI slop。
 
 **你看到这篇 README 里的每一个动画，都是 huashu-design 自己做的。** 不是 Figma，不是 AE，就是一句话 prompt + skill 跑通。下次产品发布要做宣传片？现在你也能做。
 
@@ -120,7 +120,7 @@ npx skills add alchaincyf/huashu-design
 
 ### 设计方向顾问
 
-模糊需求时的 fallback：**三套互补逻辑并行**——秒数轮盘（20 选 1 打破惯性）+ 现实参照（世界级获奖网站迁移）+ 最佳设计师（顶级工作室哲学），直接出 3 版**真实视觉**让你看着选，不让你在文字里盲选风格。背后是 **40 种 HTML 原生风格库**（网页 20 + PPT 20，纯 CSS 无需生图）。
+模糊需求时的 fallback：**三套互补逻辑并行**——秒数轮盘（20 选 1 打破惯性）+ 现实参照（世界级获奖网站迁移）+ 最佳设计师（顶级工作室哲学），直接出 3 版**真实视觉**让你看着选，不让你在文字里盲选风格。背后是 **60 种 HTML 原生风格库**（网页 20 + PPT 20 + 信息图 20，纯 CSS 无需生图）。
 
 <p align="center"><img src="https://github.com/alchaincyf/huashu-design/releases/download/v2.0/w3-fallback-advisor.gif" width="100%"></p>
 
@@ -231,7 +231,7 @@ A/B 测试（v1 vs v2，各跑 6 agent）：**v2 的稳定性方差比 v1 低 5 
 - **三套互补逻辑并行 subagent**，各出一版**真实视觉**：① 秒数轮盘（`date +%S` 取秒，20 选 1，打破模型偷选极简的惯性）② 现实参照（世界级获奖网站 / PPT / iOS 原型迁移）③ 最佳设计师（预算无上限时最适合的工作室哲学）
 - **绝不让你在没看到视觉时盲选风格**——三版摆出来，看着选
 - 选定后进入主干 Junior Designer 流程
-- 底层是 **40 种 HTML 原生风格库**（网页 20 + PPT 20，按大胆 / 中性 / 安静分级，纯 CSS 无需生图）作弹药，不是教条
+- 底层是 **60 种 HTML 原生风格库**（网页 20 + PPT 20 + 信息图 20，按大胆 / 中性 / 安静分级，纯 CSS 无需生图）作弹药，不是教条
 
 ### Junior Designer 工作流
 
@@ -304,7 +304,7 @@ huashu-design/
 │   └── bgm-*.mp3            # 6 首场景化背景音乐
 ├── references/              # 按任务深入读的子文档
 │   ├── animation-pitfalls.md
-│   ├── design-styles.md     # 40 种 HTML 原生风格库（网页 20 + PPT 20）
+│   ├── design-styles.md     # 60 种 HTML 原生风格库（网页 20 + PPT 20 + 信息图 20）
 │   ├── slide-decks.md
 │   ├── editable-pptx.md
 │   ├── critique-guide.md

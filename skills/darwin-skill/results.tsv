@@ -1,0 +1,6 @@
+timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
+2026-08-12T15:45:00+08:00	baseline	tiyu-bishi-meiri	-	66.3	baseline	-	三条真实提示前向测试，绝对分仅用于triage	full_test
+2026-08-12T16:04:00+08:00	file-backup	tiyu-bishi-meiri	66.3	3-0 better	keep	工作流失败模式检查点	确定选题语义并编码STOP、回滚与进度门槛	paired
+2026-08-12T16:10:00+08:00	file-backup	tiyu-bishi-meiri	-	3-0 better	keep	Frontmatter质量	仅保留name和description，结构校验通过	paired
+2026-08-12T16:18:00+08:00	file-backup	tiyu-bishi-meiri	-	3-0 better	keep	资源整合与Pre-flight	运行前拦截源模板16段且缺HASHTAGS的契约漂移	paired
+2026-08-12T16:25:00+08:00	final-score	tiyu-bishi-meiri	-	97.4	final	-	三名独立评分员平均，仅用于成果卡展示	full_test
