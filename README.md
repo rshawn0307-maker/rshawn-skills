@@ -19,6 +19,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [structured-tips-daily](#structured-tips-daily) | "结构化答题技巧·每日一练"小红书爆款图文帖子 docx 自动生成 | [查看](#structured-tips-daily) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
 | [PE-bishi-jd-daily](#pe-bishi-jd-daily) | 体育笔试简答题每日一练：简答题 + 参考答案 + 要点解析表，保留原版模板与生成门槛 | [查看](#pe-bishi-jd-daily) |
+| [wushi-daily](#wushi-daily) | "公务员务实·岗位业务"小红书图文自动生成（PIL 6 卡 + 双脚本事实门禁） | [查看](#wushi-daily) |
 
 ### 🌟 社区精选 · 转载
 
@@ -155,6 +156,14 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 自动化生成"结构化答题技巧·每日一练"小红书爆款图文帖子 docx。围绕公考结构化面试的答题技巧和思路，用上岸过来人 + 考官视角，按小红书爆款节奏（标题钩子/短句/emoji/普通 vs 高分对照/避坑提醒/话题标签）打磨。基于固定 docx 模板（17 段）+ python-docx 脚本自动替换，从题库索引（tips_index.json，36 条覆盖六大题型）选题防重复，答题须经 human-writing 去 AI 味儿，可同步 ima 知识库「总分总」→「00_结构化答题技巧」。
 
 触发词：出一期答题技巧、技巧每日一练、答题思路、结构化答题技巧。
+
+#### wushi-daily
+
+自动化生成「公务员务实·岗位业务」小红书图文。每期一个岗位一个业务，从《公务员务实手册》16 岗已验收源稿（16 岗 × 每岗 3 业务 = 48 期库存）中逐字提取真实场景、编号步骤、红线与答题嵌入句，用 PIL 渲染答一道 VI 简洁风 6 卡（1080×1440）并配笔记文案——卡片上的步骤、红线、嵌入句全部逐字来自源稿，只有标题/正文/tags 是自由文案。内置双脚本门禁（verbatim 事实校验 + 假大空七禁词）防事实漂移，选题进度追踪防重复出期。
+
+触发词：出一期务实、务实每日一练、岗位业务图文、务实卡片。
+
+> 注意：本 skill 依赖本机源稿目录、HarmonyOS Sans SC 字体、PIL 环境与品牌 logo（Pre-flight 四项检查，缺失即停），使用前请确认路径有效。
 
 ### 🌟 社区精选 · 转载
 
