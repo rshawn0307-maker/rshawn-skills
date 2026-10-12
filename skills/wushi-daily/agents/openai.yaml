@@ -1,0 +1,5 @@
+interface:
+  display_name: "务实每日一帖"
+  short_description: "一岗一业务，务实手册自动出小红书图文"
+  brand_color: "#87110f"
+  default_prompt: "$wushi-daily 出一期公务员务实岗位业务图文"
