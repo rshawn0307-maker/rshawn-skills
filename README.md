@@ -51,6 +51,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [dashi-ppt](#dashi-ppt) | 生成可浏览器编辑的 HTML 演示，支持导出 PPTX / PDF（来源：chuspeeism） | [查看](#dashi-ppt) |
 | [docx](#docx) | 专业 Word 文档创建/编辑/修订/批注（来源：appautomaton） | [查看](#docx) |
 | [defuddle](#defuddle) | 网页转干净 Markdown，收藏前先去噪（来源：kepano） | [查看](#defuddle) |
+| [impeccable](#impeccable) | 前端 UI 设计与打磨：40+ 子命令覆盖设计/审计/批判/动效/排版，支持 live 浏览器迭代（来源：pbakaus） | [查看](#impeccable) |
 | [json-canvas](#json-canvas) | 生成和编辑 Obsidian Canvas 画布文件（来源：kepano） | [查看](#json-canvas) |
 | [obsidian-bases](#obsidian-bases) | 创建编辑 Obsidian Bases 数据库视图（来源：kepano） | [查看](#obsidian-bases) |
 | [obsidian-markdown](#obsidian-markdown) | Obsidian 专有 Markdown 语法规范（来源：kepano） | [查看](#obsidian-markdown) |
@@ -269,6 +270,16 @@ macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用�
 
 网页转干净 Markdown：用 Defuddle CLI 提取正文、去除导航和杂讯以节省 token；以 `.md` 结尾的 URL 直接读取原文即可。（来源：kepano）
 
+#### impeccable
+
+前端 UI 设计全流程 skill：设计/重设计/审计/批判/打磨/加固界面，覆盖视觉层级、排版字体、间距布局、配色、动效微交互、可达性与反模式，40+ 子命令（craft、shape、audit、critique、animate、typeset、polish、live 等），支持浏览器 live 迭代。launcher 首次运行自动下载引擎二进制到 `~/.impeccable/bin/`，无需 Node。
+
+> 注意：引擎二进制约 16MB/平台，沙箱无外网时可设 `IMPECCABLE_BIN` 指向预装二进制。上游采用 Apache 2.0 许可（目录内附 LICENSE）。
+
+> 来源：[pbakaus/impeccable](https://github.com/pbakaus/impeccable)（作者 Paul Bakaus）
+
+> 同步：上游更新后可运行 `bash scripts/sync-impeccable.sh` 一键拉取最新版（见下方「同步 impeccable 来源 skill」）。
+
 #### json-canvas
 
 创建和编辑 JSON Canvas（`.canvas`）文件：节点、连线、分组和连接关系，适合 Obsidian 画布、思维导图、流程图。（来源：kepano）
@@ -331,6 +342,17 @@ bash scripts/sync-dashi.sh --push # 更新并自动 commit + push
 ```
 
 脚本会从上游仓库拉取最新代码、覆盖 skill 目录（并保留 LICENSE），自动补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若上游目录已改名或删除，脚本会跳过并提示。
+
+## 同步 impeccable 来源 skill
+
+仓库里的 `impeccable` 收录自 [pbakaus/impeccable](https://github.com/pbakaus/impeccable)。目录内含 `ORIGIN.md` 出处声明与上游 `LICENSE`（Apache 2.0）。上游更新后，一条命令即可同步最新版：
+
+```bash
+bash scripts/sync-impeccable.sh        # 只更新文件并打印变更
+bash scripts/sync-impeccable.sh --push # 更新并自动 commit + push
+```
+
+脚本会从上游仓库拉取最新代码、取 `plugin/skills/impeccable/` 覆盖 skill 目录（并保留 LICENSE），自动补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`（该 skill 的 SKILL.md 无 H1，声明固定插在 frontmatter 结束的 `---` 之后）。若上游目录已改名或删除，脚本会跳过并提示。
 
 ## 许可
 
