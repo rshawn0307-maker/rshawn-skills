@@ -52,6 +52,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [docx](#docx) | 专业 Word 文档创建/编辑/修订/批注（来源：appautomaton） | [查看](#docx) |
 | [defuddle](#defuddle) | 网页转干净 Markdown，收藏前先去噪（来源：kepano） | [查看](#defuddle) |
 | [impeccable](#impeccable) | 前端 UI 设计与打磨：40+ 子命令覆盖设计/审计/批判/动效/排版，支持 live 浏览器迭代（来源：pbakaus） | [查看](#impeccable) |
+| [anatomy](#anatomy) | 交互式等距 SVG 技术插画：把抽象概念画成可动的真实机械装置，支持 WebGL shader 与 3D 模式（来源：wheresryan22） | [查看](#anatomy) |
 | [json-canvas](#json-canvas) | 生成和编辑 Obsidian Canvas 画布文件（来源：kepano） | [查看](#json-canvas) |
 | [obsidian-bases](#obsidian-bases) | 创建编辑 Obsidian Bases 数据库视图（来源：kepano） | [查看](#obsidian-bases) |
 | [obsidian-markdown](#obsidian-markdown) | Obsidian 专有 Markdown 语法规范（来源：kepano） | [查看](#obsidian-markdown) |
@@ -280,6 +281,16 @@ macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用�
 
 > 同步：上游更新后可运行 `bash scripts/sync-impeccable.sh` 一键拉取最新版（见下方「同步 impeccable 来源 skill」）。
 
+#### anatomy
+
+交互式等距（isometric）SVG 技术插画 skill：核心思想是「物体即解释」——把要讲的技术概念映射成一台真实、精密、可交互的机械装置（试音台、千分表、投币街机、火箭发动机、水波槽），几十到上百个小零件、四阶明暗、严格画家序，配标题卡片与实时读数，平静缓动动画。框架无关（Node 脚本生成 SVG/HTML）与 React/Next 两条路线，可选 WebGL shader（火焰、水波、焦散、灯光）与 3D 转动模式；内置 8 个完整示例与几何审计/截图/线条校验脚本，按 Figure / Hero / Epic 三档定工作量。
+
+> 注意：需要 Node.js 20.10+；截图与校验步骤需要 Chrome/Chromium（headless）。上游采用 MIT 许可（目录内附 LICENSE），本副本约 12MB（含 8 个示例与测试素材），安装时请完整复制整个目录。
+
+> 来源：[wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)（作者 wheresryan22）
+
+> 同步：上游更新后可运行 `bash scripts/sync-anatomy.sh` 一键拉取最新版（见下方「同步 anatomy 来源 skill」）。
+
 #### json-canvas
 
 创建和编辑 JSON Canvas（`.canvas`）文件：节点、连线、分组和连接关系，适合 Obsidian 画布、思维导图、流程图。（来源：kepano）
@@ -353,6 +364,17 @@ bash scripts/sync-impeccable.sh --push # 更新并自动 commit + push
 ```
 
 脚本会从上游仓库拉取最新代码、取 `plugin/skills/impeccable/` 覆盖 skill 目录（并保留 LICENSE），自动补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`（该 skill 的 SKILL.md 无 H1，声明固定插在 frontmatter 结束的 `---` 之后）。若上游目录已改名或删除，脚本会跳过并提示。
+
+## 同步 anatomy 来源 skill
+
+仓库里的 `anatomy` 收录自 [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)。该 skill 的 SKILL.md 位于上游仓库根目录，脚本取仓库整体覆盖 skill 目录（剔除 .github 等仓库协作元文件，保留 LICENSE），自动补回 `SKILL.md` 首个 H1 之后的来源声明和 `ORIGIN.md`。上游更新后，一条命令即可同步最新版：
+
+```bash
+bash scripts/sync-anatomy.sh        # 只更新文件并打印变更
+bash scripts/sync-anatomy.sh --push # 更新并自动 commit + push
+```
+
+注意：脚本走 git clone，github.com 直连易失败，请挂代理后运行。
 
 ## 许可
 
