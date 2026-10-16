@@ -122,7 +122,7 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 OPTS=$(printf '{"clientId":"%s","apiKey":"%s"}' "$IMA_OPENAPI_CLIENTID" "$IMA_OPENAPI_APIKEY")
 
 # stdout 返回正常响应；stderr 返回结构化错误 {"code":-100|-200,"msg":"..."}
-if ! resp=$(node "$SKILL_DIR/ima_api.cjs" "openapi/list_docs" '{"limit":10}' "$OPTS" 2>/tmp/ima_err); then
+if ! resp=$(node "$SKILL_DIR/ima_api.cjs" "openapi/note/v1/list_note" '{"folder_id":"","sort_type":0,"cursor":"","limit":10}' "$OPTS" 2>/tmp/ima_err); then
   err_json=$(cat /tmp/ima_err)
   err_code=$(echo "$err_json" | jq -r '.code // empty' 2>/dev/null)
   err_msg=$(echo "$err_json" | jq -r '.msg // empty' 2>/dev/null)
