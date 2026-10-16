@@ -101,9 +101,9 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 #### ima-skill
 
-统一的 IMA OpenAPI 技能，支持笔记管理和知识库操作：搜索/浏览/创建/追加笔记，上传文件、添加网页到知识库、知识库内容搜索与原文获取。需要自行配置 IMA OpenAPI 凭证（`IMA_OPENAPI_CLIENTID` / `IMA_OPENAPI_APIKEY` 或 `~/.config/ima/`）。
+统一的 IMA OpenAPI 技能（v1.1.10），支持笔记管理和知识库操作：搜索/浏览/创建/追加笔记、插入本地图片到笔记，上传文件、添加网页到知识库、知识库内容搜索与原文获取。需要自行配置 IMA OpenAPI 凭证（`IMA_OPENAPI_CLIENTID` / `IMA_OPENAPI_APIKEY` 或 `~/.config/ima/`）。
 
-触发词：知识库、笔记、备忘录、帮我记一下、上传文件到知识库、搜一下知识库里有没有 XX。
+触发词：知识库、笔记、备忘录、帮我记一下、上传文件到知识库、搜一下知识库里有没有 XX、插入图片到笔记。
 
 #### PE-lecture
 
