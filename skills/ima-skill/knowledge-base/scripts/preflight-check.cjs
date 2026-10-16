@@ -4,8 +4,8 @@
 /**
  * Preflight check for uploading a file to IMA Knowledge Base.
  *
- * Validates file type, size, and extracts all metadata needed for
- * create_media and add_knowledge API calls.
+ * Validates file type, image signature, size, and extracts all metadata
+ * needed for create_media and add_knowledge API calls.
  *
  * Scope: this script only covers FILE-UPLOADABLE media types. The full
  * MediaType enum also includes non-file types that must be added through
@@ -30,6 +30,7 @@
  *   16         WebVideo         add via URL (not a file; Bilibili/YouTube unsupported)
  *   19         Podcast          add via URL (not a file)
  *   20         HTML             file upload                 ← this script
+ *   21         EPUB             file upload                 ← this script
  *   98         Code             created inside IMA
  *   99         Folder           organizational only
  *
@@ -109,6 +110,7 @@ const EXT_MAP = {
   wav: { media_type: 15, content_type: 'audio/wav' },
   aac: { media_type: 15, content_type: 'audio/aac' },
   html: { media_type: 20, content_type: 'text/html' },
+  epub: { media_type: 21, content_type: 'application/epub+zip' },
 };
 
 // ─── Content-Type → media_type (reverse lookup) ─────────────────────────────
@@ -139,6 +141,7 @@ const SIZE_LIMITS = {
   14: 10 * MB, // Xmind
   20: 10 * MB, // HTML
   9: 30 * MB, // Image
+  21: 50 * MB, // EPUB
 };
 const DEFAULT_SIZE_LIMIT = 200 * MB; // PDF, Word, PPT, Audio, etc.
 
@@ -160,13 +163,13 @@ const UNSUPPORTED_VIDEO_CT = new Set([
 // reject with a hint pointing to the correct channel.
 // Maps extension → { media_type, hint }
 const NON_FILE_EXT = {
-  mhtml: { media_type: 2, hint: 'Web pages must be added via URL (add_url_knowledge), not as a file upload.' },
+  mhtml: { media_type: 2, hint: 'Web pages must be added via URL (import_urls), not as a file upload.' },
 };
 
 const NON_FILE_CT = {
   'application/xhtml+xml': {
     media_type: 2,
-    hint: 'Web pages must be added via URL (add_url_knowledge), not as a file upload.',
+    hint: 'Web pages must be added via URL (import_urls), not as a file upload.',
   },
 };
 
@@ -180,6 +183,51 @@ function fail(result) {
 function formatSize(bytes) {
   if (bytes < MB) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / MB).toFixed(1)} MB`;
+}
+
+function detectImageType(buffer) {
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return 'image/png';
+  }
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
+    return 'image/webp';
+  }
+  return '';
+}
+
+function validateImageSignature(filePath, extension, contentType, extensionMapping) {
+  const data = fs.readFileSync(filePath);
+  const detectedType = detectImageType(data);
+  if (!detectedType) {
+    fail({
+      ...base,
+      file_size: data.length,
+      media_type: 9,
+      content_type: contentType,
+      reason: 'Image signature is invalid or unsupported. PNG, JPEG, and WebP files are supported.',
+    });
+  }
+  if (detectedType !== contentType) {
+    fail({
+      ...base,
+      file_size: data.length,
+      media_type: 9,
+      content_type: contentType,
+      reason: `Image MIME type ${contentType} does not match its actual signature (${detectedType}).`,
+    });
+  }
+  if (extension && extensionMapping && (extensionMapping.media_type !== 9 || extensionMapping.content_type !== detectedType)) {
+    fail({
+      ...base,
+      file_size: data.length,
+      media_type: 9,
+      content_type: contentType,
+      reason: `Image extension .${extension} does not match its actual signature (${detectedType}).`,
+    });
+  }
 }
 
 // ─── Argument parsing ───────────────────────────────────────────────────────
@@ -286,7 +334,7 @@ if (ctMediaType != null) {
   }
 }
 
-// 4. Check file size
+// 4. Check file size before reading image bytes.
 const fileSize = stat.size;
 const sizeLimit = SIZE_LIMITS[mediaType] || DEFAULT_SIZE_LIMIT;
 
@@ -300,7 +348,12 @@ if (fileSize > sizeLimit) {
   });
 }
 
-// 5. All checks passed
+// 5. Validate image bytes before any upload-related step.
+if (mediaType === 9) {
+  validateImageSignature(filePath, ext, contentType, extMapping);
+}
+
+// 6. All checks passed
 console.log(
   JSON.stringify({
     pass: true,

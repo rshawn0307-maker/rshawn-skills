@@ -168,6 +168,7 @@
 | 15  | 录音           | `audio/mpeg`(mp3), `audio/x-m4a`(m4a), `audio/wav`(wav), `audio/aac`(aac)                                     |
 | 16  | 视频解析       | **不支持通过 skill 添加**。Bilibili/YouTube等仅支持在 ima 桌面端内添加进知识库                                |
 | 20  | HTML           | `text/html`（.html 文件上传）                                                                          |
+| 21  | EPUB           | `application/epub+zip`（.epub 文件上传）                                                               |
 
 ---
 
@@ -340,7 +341,7 @@ POST /openapi/wiki/v1/get_addable_knowledge_base_list
 
 POST /openapi/wiki/v1/check_repeated_names
 
-**触发场景**：上传文件到知识库前，检查目标知识库（及文件夹）中是否已存在同名文件。仅用于文件类型（media_type 1/3/4/5/7/9/13/14/20），不用于网页（2/6）、笔记（11）等。
+**触发场景**：上传文件到知识库前，检查目标知识库（及文件夹）中是否已存在同名文件。仅用于文件类型（media_type 1/3/4/5/7/9/13/14/20/21），不用于网页（2/6）、笔记（11）等。
 
 #### 请求参数
 
@@ -495,7 +496,7 @@ POST /openapi/wiki/v1/get_media_info
 
 ## Preflight Check
 
-使用 `scripts/preflight-check.cjs` 脚本自动完成类型检测和大小校验。脚本按以下优先级解析：
+使用 `scripts/preflight-check.cjs` 脚本在上传前完成原始文件的类型、图片真实签名和大小校验。脚本按以下优先级解析声明类型；图片还必须通过 MIME/扩展名与真实签名一致性校验：
 
 1. **`--content-type` 已提供且可识别** → content-type 优先，直接使用
 2. **`--content-type` 不可识别** → 回退到扩展名
@@ -504,10 +505,10 @@ POST /openapi/wiki/v1/get_media_info
 
 ```bash
 # 有扩展名（自动推断）
-node <ima-skill 目录>/knowledge-base/scripts/preflight-check.cjs --file report.pdf
+node "$SKILL_DIR/knowledge-base/scripts/preflight-check.cjs" --file report.pdf
 
 # 无扩展名或扩展名不可识别（需传入 content-type）
-node <ima-skill 目录>/knowledge-base/scripts/preflight-check.cjs --file downloaded_file --content-type application/pdf
+node "$SKILL_DIR/knowledge-base/scripts/preflight-check.cjs" --file downloaded_file --content-type application/pdf
 ```
 
 ---
@@ -548,6 +549,7 @@ node <ima-skill 目录>/knowledge-base/scripts/preflight-check.cjs --file downlo
 | -------------------------------- | -------------- | -------- |
 | Excel、TXT、Xmind、Markdown、HTML | 5/13/14/7/20   | 10 MB    |
 | 图片                             | 9              | 30 MB    |
+| EPUB                             | 21             | 50 MB    |
 | PDF、Word、PPT、音频及其他       | 1/3/4/15 等    | 200 MB   |
 
 网页（2/6）、笔记（11）等非文件类型无大小限制。音频文件额外限制：最长 2 小时。
