@@ -34,6 +34,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [huashu-report](#huashu-report) | 机构级研究报告与学术论文：研报/白皮书/调研/arXiv 论文/16:9 咨询 deck（来源：花叔） | [查看](#huashu-report) |
 | [huashu-art-motion](#huashu-art-motion) | 艺术与视频动画：36 种实做风格＋16 种迁移配方、镜头表工作流、9 种解说动画语法、口播整片管线（来源：花叔） | [查看](#huashu-art-motion) |
 | [huashu-motion](#huashu-motion) | 商业级动效/发布片/解说视频：片子即代码，浏览器 studio 指着画面改，自动配乐与口播（来源：花叔） | [查看](#huashu-motion) |
+| [huashu-mac-use](#huashu-mac-use) | 操控无 API 的 macOS 原生 app：四层控制面、零焦点写入、窗口级取证截图（来源：花叔） | [查看](#huashu-mac-use) |
 
 **khazix系列**（收录自 [KKKKhazix](https://github.com/KKKKhazix)）
 
@@ -88,7 +89,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
-> 提示：huashu-design（约 30MB，含动画模板、音效与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 21MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
+> 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 21MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
 
 ## Skill 详解
 
@@ -219,6 +220,16 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 > 来源：[alchaincyf/huashu-motion](https://github.com/alchaincyf/huashu-motion)（作者：花叔 alchaincyf）
 
 > 同步：上游更新后可运行 `bash scripts/sync-huashu-motion.sh` 一键拉取最新版（见下方「同步 huashu-motion 来源 skill」）。
+
+#### huashu-mac-use
+
+操控没有 API 的 macOS 原生 app 并留下可复现取证：四层控制面（内嵌 Chromium 的 app 走 CDP 零焦点 → AX 树 → 窗口坐标 → 像素），读完全后台、写默认不抢焦点（postToPid 直投 + 终端闸/全机锁/在场闸三道闸，借焦点时屏幕四角闪取景框提示），写操作自动差分回执 `effect=confirmed/noop`，写前 `--dry` 预演；后台截指定窗口（被遮挡也能截）+ 取证规范（收据、禁词表、原图归档）；`probe.sh` 探测陌生 app 能否自动化，支持产品实测与多模型同题跑批。明确停手线：不可逆动作、终端/IDE 回车、TCC 弹窗、银行医疗类 app 一律交还用户。触发词：操作原生 app、截这个窗口、点点这个菜单、这个 app 能不能自动化、产品实测跑批。
+
+> 注意：本 skill 首次使用需跑 `scripts/build.sh` 编译 Swift 内核（约 20 秒，要求 Xcode Command Line Tools）；本仓库副本不含编译产物。运行依赖 macOS 辅助功能与屏幕录制权限。
+
+> 来源：[alchaincyf/huashu-mac-use](https://github.com/alchaincyf/huashu-mac-use)（作者：花叔 alchaincyf）
+
+> 同步：本 skill 未纳入一键脚本（需保留本机编译内核 `scripts/mac`），上游更新后参照其目录内 `ORIGIN.md` 的命令手动同步。
 
 **khazix系列**
 
@@ -354,7 +365,7 @@ bash scripts/sync-huashu.sh        # 只更新文件并打印变更
 bash scripts/sync-huashu.sh --push # 更新并自动 commit + push
 ```
 
-脚本会从上游仓库拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。注意 huashu-design（约 30MB 设计资源）与 huashu-art-motion（约 74MB 示例素材与渲染引擎脚本）体积较大，同步时会整体覆盖。
+脚本会从上游仓库拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。注意 huashu-design（约 40MB 设计资源）与 huashu-art-motion（约 74MB 示例素材与渲染引擎脚本）体积较大，同步时会整体覆盖。
 
 ## 同步 huashu-motion 来源 skill
 
