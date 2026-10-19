@@ -32,7 +32,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [darwin-skill](#darwin-skill) | 让所有 Skill 自主进化：9 维评估 + 独立评分 + 棘轮机制（来源：花叔） | [查看](#darwin-skill) |
 | [huashu-design](#huashu-design) | 用 HTML 做高保真原型/PPT/动画/可视化与专家评审（来源：花叔） | [查看](#huashu-design) |
 | [huashu-report](#huashu-report) | 机构级研究报告与学术论文：研报/白皮书/调研/arXiv 论文/16:9 咨询 deck（来源：花叔） | [查看](#huashu-report) |
-| [huashu-art-motion](#huashu-art-motion) | 艺术与视频动画：代码画 35 种艺术风格并让画活、9 种解说动画语法、口播整片管线（来源：花叔） | [查看](#huashu-art-motion) |
+| [huashu-art-motion](#huashu-art-motion) | 艺术与视频动画：36 种实做风格＋16 种迁移配方、镜头表工作流、9 种解说动画语法、口播整片管线（来源：花叔） | [查看](#huashu-art-motion) |
 | [huashu-motion](#huashu-motion) | 商业级动效/发布片/解说视频：片子即代码，浏览器 studio 指着画面改，自动配乐与口播（来源：花叔） | [查看](#huashu-motion) |
 
 **khazix系列**（收录自 [KKKKhazix](https://github.com/KKKKhazix)）
@@ -88,7 +88,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
-> 提示：huashu-design（约 30MB，含动画模板、音效与案例资源）、huashu-art-motion（约 50MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 21MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
+> 提示：huashu-design（约 30MB，含动画模板、音效与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 21MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
 
 ## Skill 详解
 
@@ -202,9 +202,9 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 #### huashu-art-motion
 
-用代码画画的「艺术动画」skill：先按任务分流（复刻拆解 / 指定艺术风格 / 口播整片），「一帧先行」定风格、再用渲染器让画活起来；内置 35 种艺术风格配方、9 种解说动画语法（8 种可按口播参数渲片段）、BPM 节奏配乐网格、长卷穿越片骨架与口播整片管线（含框景检查），人物用 AI 生帧＋代码合成。触发词：复刻这个动画、梵高/莫奈那种风格、艺术动画、解说动画、Kurzgesagt/Vox/3b1b 风格、口播做片。
+用代码画画的「艺术动画」skill（v1.2.0 起采用镜头表工作流）：开工先锁画风写镜头表（画风/色板/角色三行 + 每镜时间段/物/动词/镜头/屏上字/做法），`storyboard_lint.py` 红灯不许写代码；再按镜头表逐镜产出（9 种解说动画语法可按口播参数渲片段、36 种实做风格＋16 种可迁移研究配方的 scenes、人物用 AI 生帧＋代码合成），ffmpeg 硬切拼接成片，`qa.py` 查跳变、`deliver.py` 门禁绿灯才交付（红灯不复制成片）。支持复刻拆解、指定艺术风格、口播整片三条路线，口播可选已有录音/系统声音/语音复刻。触发词：复刻这个动画、梵高/莫奈那种风格、艺术动画、解说动画、Kurzgesagt/Vox/3b1b 风格、口播做片。
 
-> 注意：本 skill 体积较大（约 50MB，含示例素材与渲染引擎脚本），安装时请完整复制整个目录。
+> 注意：本 skill 体积较大（约 74MB，含示例素材与渲染引擎脚本），安装时请完整复制整个目录；渲染依赖 uv + Playwright（Chromium）与 FFmpeg。
 
 > 来源：[alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（作者：花叔 alchaincyf）
 
@@ -354,7 +354,7 @@ bash scripts/sync-huashu.sh        # 只更新文件并打印变更
 bash scripts/sync-huashu.sh --push # 更新并自动 commit + push
 ```
 
-脚本会从上游仓库拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。注意 huashu-design（约 30MB 设计资源）与 huashu-art-motion（约 50MB 示例素材与渲染引擎脚本）体积较大，同步时会整体覆盖。
+脚本会从上游仓库拉取最新代码、覆盖对应 skill 目录，并自动保留/补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若某个 skill 在上游已改名或删除，脚本会跳过并提示。注意 huashu-design（约 30MB 设计资源）与 huashu-art-motion（约 74MB 示例素材与渲染引擎脚本）体积较大，同步时会整体覆盖。
 
 ## 同步 huashu-motion 来源 skill
 
