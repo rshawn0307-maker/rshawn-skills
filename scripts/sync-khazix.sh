@@ -84,7 +84,7 @@ done
 echo
 echo "==> 校验依赖 human-writing 的 skill："
 HUMAN_WRITING_VERSION="$(cat "$REPO_ROOT/skills/human-writing/VERSION" 2>/dev/null || echo '?')"
-DEPENDENTS=(gongkao structured-post zhankai)
+DEPENDENTS=(gongkao structured-post structured-tips-daily)
 for s in "${DEPENDENTS[@]}"; do
   f="$REPO_ROOT/skills/$s/SKILL.md"
   missing=""
@@ -101,10 +101,10 @@ done
 
 echo
 echo "==> 变更摘要："
-git -C "$REPO_ROOT" status --short -- skills/neat-freak skills/storage-analyzer skills/leader skills/khazix-writer skills/human-writing skills/gongkao skills/structured-post skills/zhankai
+git -C "$REPO_ROOT" status --short -- skills/neat-freak skills/storage-analyzer skills/leader skills/khazix-writer skills/human-writing skills/gongkao skills/structured-post skills/structured-tips-daily
 
 if [ "${1:-}" = "--push" ]; then
-  git -C "$REPO_ROOT" add skills/neat-freak skills/storage-analyzer skills/leader skills/khazix-writer skills/human-writing skills/gongkao skills/structured-post skills/zhankai
+  git -C "$REPO_ROOT" add skills/neat-freak skills/storage-analyzer skills/leader skills/khazix-writer skills/human-writing skills/gongkao skills/structured-post skills/structured-tips-daily
   if git -C "$REPO_ROOT" diff --cached --quiet; then
     echo "（无变更可提交）"
   else
