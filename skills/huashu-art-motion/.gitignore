@@ -23,3 +23,10 @@ __pycache__/
 node_modules/
 _archive/
 _private/
+
+# User configuration stays outside the installed skill
+/media.json
+/voices.json
+.huashu/
+media.local.json
+.last-update-check

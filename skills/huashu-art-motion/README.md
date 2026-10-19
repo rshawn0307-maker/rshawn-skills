@@ -1,12 +1,14 @@
 <div align="center">
 
+**简体中文** | [English](README.en.md)
+
 <img src="assets/showcase/hero.png" alt="huashu-art-motion电影画廊：35种艺术风格，9种解说语法" width="100%" />
 
 # huashu-art-motion · 艺术动画
 
 让你的coding agent，把艺术风格写成会动的画。
 
-35种艺术风格 · 9种解说语法 · 8种参数化片段 · 口播整片参考代码
+36种艺术风格 · 9种解说语法 · 8种参数化片段 · 口播整片参考代码
 
 ```sh
 npx skills add alchaincyf/huashu-art-motion
@@ -15,6 +17,10 @@ npx skills add alchaincyf/huashu-art-motion
 [看动画](#动画样片) · [看风格](#看效果) · [开始使用](#里面有什么) · [下载完整样片](https://github.com/alchaincyf/huashu-art-motion/releases/latest)
 
 </div>
+
+## 动态
+
+- 2026-10：[Open Design](https://github.com/nexu-io/open-design)（nexu-io 出品的开源 AI 设计工作区）的 [motion-design skill](https://github.com/nexu-io/open-design/blob/main/skills/motion-design/SOURCES.md) 把 huashu-art-motion 列为设计来源之一，并在 [skills/huashu-art-motion](https://github.com/nexu-io/open-design/tree/main/skills/huashu-art-motion) 收录了一份适配版，保留了 MIT 许可和上游出处。很高兴这套艺术动画的做法被另一个开源项目用起来，谢谢 Open Design 团队。也欢迎更多项目使用、反馈和贡献。
 
 ## 动画样片
 
@@ -32,6 +38,21 @@ npx skills add alchaincyf/huashu-art-motion
 </tr></table>
 
 这组展示的是成片效果；GIF无声、循环播放。[片段时间点与导出参数](assets/showcase/mario-clips.md)。
+
+### Clawd 博物馆奇妙夜
+
+Claude Code 的像素吉祥物 Clawd 从保安电脑的终端里蹦出来，打着手电夜巡纽约大都会博物馆，再穿过中央公园去自然史博物馆，天亮前赶回来装成展品。98秒，16个场景，无口播，配乐也是代码合成的。
+
+<img src="assets/showcase/clawd-vangogh.gif" alt="Clawd跳进梵高《麦田与柏树》，被重画成厚涂笔触，在麦浪里奔跑" width="100%" />
+
+跳进梵高《麦田与柏树》：笔触方向取自原作的结构张量，Clawd被重画成厚涂。
+
+<table><tr>
+<td width="50%"><img src="assets/showcase/clawd-trex.gif" alt="霸王龙骨架像猫追激光点一样追着手电光斑扑来扑去" width="100%" /><br/>霸王龙骨架 · 追手电光斑</td>
+<td width="50%"><img src="assets/showcase/clawd-dawn.gif" alt="天亮，Clawd在画框里装展品，保安的手放下咖啡，Clawd眨了一下眼" width="100%" /><br/>天亮 · 装成展品眨一下眼</td>
+</tr></table>
+
+暗处是炭笔夜景，只有手电照到的地方显出颜色；入画的五幅（梵高、修拉、维米尔、伦勃朗、勒茨）都是大都会开放获取的CC0原作，按各自画家的笔法用代码重画。完整成片在[Releases](https://github.com/alchaincyf/huashu-art-motion/releases/latest)，[片段时间点与说明](assets/showcase/clawd-clips.md)。
 
 ### 花叔穿越名画
 
@@ -51,6 +72,8 @@ npx skills add alchaincyf/huashu-art-motion
 <img src="assets/全风格总览.jpg" alt="35种艺术风格真实样片总览" width="100%" />
 
 35段样片各取一帧：同一位少女、同一只橘白猫、同一张桌子，从公元前 40000 年的岩洞一路穿到 2026 年。每一段都在动：梵高的星空在转，马赛克的颜色从石块上流过去，水墨晕染把画面带进下一个时代。
+
+注意：这 35 格用的是同一个构图，那是艺术史速通片的机制（风格在变、场景不变），不是这些风格的构图。做新题材要为题材重新构图，别把这间屋搬过去。
 
 👉 [下载全风格样片（MP4）](https://github.com/alchaincyf/huashu-art-motion/releases/latest)
 
@@ -74,14 +97,14 @@ npx skills add alchaincyf/huashu-art-motion
 | 你说 | 它做 |
 |---|---|
 | 「复刻这个动画」「拆一下这段」 | 先跑拆解脚本量出转场、节拍网格、每段运动热图，再按机制用代码复刻 |
-| 「做个梵高／莫奈／包豪斯那种的动画」 | 先设计一帧，再让它动起来；35张风格配方卡当起点 |
+| 「做个梵高／莫奈／包豪斯那种的动画」 | 先设计一帧，再让它动起来；36张风格配方卡当起点 |
 | 「用我的口播做一段艺术动画」 | 镜头表 → 定风格 → 世界画布加镜头 → 输出一条画面轨 |
 | 「做一个人穿过一幅幅名画的片子」 | 长卷骨架：每个世界一个段文件，主角一路往右走，跨边界换画风，镜头只进不退 |
 | 「做解说视频的动画段」 | 按口播选语法，喂一份 JSON，出一段时长精确到帧的片段（横竖屏、可透明底） |
 | 「画面里要有人」 | 人交给生图模型出帧，代码负责合成、换帧和材质 |
 | 「配个乐、卡节奏」 | BPM 网格、动机换乐器、结尾音效序列，纯代码合成 |
 
-交付前有一道数字验收：`qa.py` 量稳定、效率、动感、流畅及文字框景线索，再派一个没参与制作的 agent 只看成片挑问题。
+交付前有一道数字验收：`qa.py` 量稳定、效率、动感、流畅及文字框景线索，再派一个没参与制作的 agent 只看成片挑问题；最后 `deliver.py` 一条命令交付——成片先过反 PPT 门禁（整片几乎没有镜头内快动作就红灯，不出片），过了才复制成片、写交付说明，说明里的事实由脚本写。
 
 ---
 
@@ -89,24 +112,27 @@ npx skills add alchaincyf/huashu-art-motion
 
 | | 数量 |
 |---|---|
-| 艺术风格配方卡（参数、母题动作、签名转场、当前短板） | 35张，`references/风格配方/` |
-| 对应的场景代码 | 35个，`scripts/engine/scenes/` |
+| 艺术风格配方卡（参数、母题动作、签名转场、当前短板） | 53张，`references/风格配方/`；其中 38–55 是按原作锚定重做的研究配方（含敦煌壁画） |
+| 对应的场景代码 | 53个，`scripts/engine/scenes/` |
 | 解说动画语法卡 | 9份；其中8种附示范片、参数化片段与示例spec |
 | 口播整片参考代码 | 混合风格、白板、Vox、讲解员；需自备部分素材，详见目录README |
 | 长卷穿越片示范（骨架＋3 段＋角色帧库） | 1 支，`scripts/engine/demos/long_scroll/` |
+| 版面审计与压测（出界／叠字／字太小、竖屏／超长／英文变体、示例回归） | `render.py --audit`、`scripts/clip_lint.py`、`scripts/analyze/stress_clip.py`、`regress_clips.py` |
 | 转场 | 艺术风格签名转场与解说转场，包含淡入、硬切和纸面转场 |
 | 绘画与动画库（笔刷、渲染器、后期、骨架、镜头、图表、排版……） | 17 个，`scripts/engine/lib/` |
-| 方法文档（拆解、机制、一帧先行、纯代码绘制、节奏配乐、角色、长卷……） | 12篇，`references/01`–`12` |
+| 方法文档（拆解、机制、一帧先行、纯代码绘制、节奏配乐、角色、长卷……） | 核心12篇，`references/01`–`12`；另有[可选语音指南](references/capabilities.md) |
 
 ```
 huashu-art-motion/
 ├── SKILL.md                 # 先判断任务，再按表读对应文档
-├── references/              # 01–12方法文档、35张风格配方卡、9张语法卡、正面经验
+├── references/              # 01–16方法文档、53张风格配方卡、9张语法卡、正面经验
 ├── assets/                  # 总览图（README 用）
 └── scripts/
     ├── engine/              # 可整个复制走的动画工程：引擎、转场、库、场景、示范片、片段
     ├── analyze/breakdown.py # 把参考动画拆成「能写代码的地图」
     ├── qa.py                # 一键验收
+    ├── film_gate.py         # 成片门禁：量翻页式 PPT 感、查中段空画面（只读 mp4）
+    ├── deliver.py           # 一条命令交付：门禁→复制成片→写交付说明
     ├── audio/               # 纯代码合成配乐的模板
     └── font_subset.py ...   # 字体子集、绿幕抠图
 ```
@@ -156,6 +182,8 @@ uv run --with playwright python scripts/engine/render.py --spec scripts/engine/e
 
 例外：笔顺衍生数据`reference_films/spacex/spacex_wb/assets/strokes.js`沿用Arphic Public License（原文随文件附带）；`scripts/engine/lib/fonts/` 里的字体沿用各自的 OFL 许可；花叔的卡通形象与角色帧（`scripts/engine/demos/_shared/hero/`、`scripts/engine/demos/long_scroll/frames/`、`assets/角色/`）以及总览图、示范视频中包含的同一形象，只用于本 skill 的示范，不随 MIT 授权用于其他用途。
 
+Clawd 是 Anthropic 的 Claude Code 吉祥物，形象权利归 Anthropic；《Clawd 博物馆奇妙夜》是非官方的同人示范，与 Anthropic 无关，GIF 与成片同样不随 MIT 授权。片中画作来自大都会艺术博物馆开放获取（CC0）。
+
 ---
 
 <div align="center">
@@ -179,8 +207,29 @@ MIT License © [花叔 Huashu](https://github.com/alchaincyf)
 
 ## English
 
-**huashu-art-motion** is an agent skill for making animation with code, where the paintings actually move. It ships 35 art-style recipes (cave painting, Egyptian murals, Van Gogh, Klimt, Bauhaus, Kirby comics, 8-bit, vaporwave, Shinkai and more), each with a working Canvas scene, a style "renderer" and a signature transition; 8 explainer-video grammars (Kurzgesagt, Vox, whiteboard, storytime, kinetic type, 3Blue1Brown, keynote UI, finance charts) with demo films and parameterized clips you drive with a JSON spec, frame-accurate and in landscape, portrait or alpha; a long-scroll skeleton where a character walks left to right through one painting after another (3 sample worlds included); plus a breakdown script that maps a reference animation into cuts, beat grid and motion heatmaps, and a QA script that measures stability, cost per frame, motion and smoothness.
+**News (2026-10):** [Open Design](https://github.com/nexu-io/open-design), an open-source AI design workspace from nexu-io, lists huashu-art-motion as a design source in its [motion-design skill](https://github.com/nexu-io/open-design/blob/main/skills/motion-design/SOURCES.md) and includes an adapted copy at [skills/huashu-art-motion](https://github.com/nexu-io/open-design/tree/main/skills/huashu-art-motion), with the MIT license and upstream link kept. We're glad to see this approach to art animation used in another open-source project, and thank the Open Design team. More projects, feedback and contributions are welcome.
+
+**huashu-art-motion** is an agent skill for making animation with code, where the paintings actually move. It ships 36 art-style recipes (cave painting, Egyptian murals, Van Gogh, Klimt, Bauhaus, Kirby comics, 8-bit, vaporwave, Shinkai and more), with 35 Canvas scenes plus a standalone SVG Rick & Morty-style example; 8 explainer-video grammars (Kurzgesagt, Vox, whiteboard, storytime, kinetic type, 3Blue1Brown, keynote UI, finance charts) with demo films and parameterized clips you drive with a JSON spec, frame-accurate and in landscape, portrait or alpha; a long-scroll skeleton where a character walks left to right through one painting after another (3 sample worlds included); plus a breakdown script that maps a reference animation into cuts, beat grid and motion heatmaps, and a QA script that measures stability, cost per frame, motion and smoothness.
 
 It started as a code-only recreation of Tak's ([@cherry_mx_reds](https://x.com/cherry_mx_reds/status/2106095190285144331)) 15-second *Art History Speedrun*. The scene layouts and the girl-and-cat premise follow his original; every frame here is redrawn in code, and no frames, screenshots or audio from the original are included.
 
-Install: `npx skills add alchaincyf/huashu-art-motion`. Requires uv, ffmpeg and Playwright Chromium. The skill content is in Chinese. The ninth grammar, presenter-led explainers, ships as a reference implementation and requires your own character assets. Full-narration examples are code snapshots, not ready-to-render projects. Code and docs are MIT; the bundled stroke medians retain the Arphic Public License; bundled fonts keep their SIL OFL licenses; the Huashu character artwork, including its appearance in overview images and demo videos, is for demo use only.
+Install: `npx skills add alchaincyf/huashu-art-motion`. Requires uv, ffmpeg and Playwright Chromium. The skill content is in Chinese. The ninth grammar, presenter-led explainers, ships as a reference implementation and requires your own character assets. Full-narration examples are code snapshots, not ready-to-render projects. Code and docs are MIT; the bundled stroke medians retain the Arphic Public License; bundled fonts keep their SIL OFL licenses; the Huashu character artwork, including its appearance in overview images and demo videos, is for demo use only. Clawd is Anthropic's Claude Code mascot; the *Clawd: Night at the Museum* clips are an unofficial fan demo, not affiliated with Anthropic and not covered by MIT. Paintings in it are The Met Open Access (CC0) images redrawn in code.
+
+## 可选媒体能力
+
+基础代码动画不需要语音或图片账号。有素材先沿用；需要生成时，按用户选择和当前环境调用。语音支持macOS系统声音和自己的火山复刻音色；图片支持现有文件导入和当前Agent/MCP工具桥接。
+
+- [语音与私人配置](references/capabilities.md)：按需配置、可跳过，旧koubo入口兼容。
+- [图片工具接入](references/images.md)：先生成计划，由Agent调用工具，再验收并收纳素材。
+- [兼容性与验证范围](references/compatibility.md)：三家安装重装通过；Codex在线回归通过，Claude Code/Kimi在线回归受测试账户条件阻塞，待补验。
+- [维护、扩展与发布](CONTRIBUTING.md)：公共默认与私人配置分离，升级不覆盖个人选择，发布检查覆盖实际待发Git对象。
+
+先运行`python scripts/capabilities.py status --explain`。新增能力默认未选择、未授权；不能从检测到Key或工具推断允许消费。独立图片API执行器为后续可选扩展，不会自动切换供应商。
+
+## 感谢反馈
+
+感谢[@ismilewolf-eng](https://github.com/ismilewolf-eng)（[PR#1](https://github.com/alchaincyf/huashu-art-motion/pull/1)）、[@noahark](https://github.com/noahark)（[PR#2](https://github.com/alchaincyf/huashu-art-motion/pull/2)）提供Windows并发加载故障的修复建议与验证，[@nctt777-hue](https://github.com/nctt777-hue)（[Issue#3](https://github.com/alchaincyf/huashu-art-motion/issues/3)）提供详细的复现、对照实验与复测，以及[@GFXfly](https://github.com/GFXfly)补充macOS排查反馈。这些反馈帮助我们修复了渲染与QA本地服务的并发加载问题。
+
+## 第36种：Rick & Morty风格
+
+新增[风格配方](references/风格配方/37_rick_morty.md)与[可复制示例](scripts/engine/reference_films/rick_morty/index.html)：离线预览、拖时间、可控目光/眨眼/端杯/猫跳动和逐帧视频导出。内部ID是37_rick_morty（36_picasso_blue已占用）。这是独立SVG管线；上方35格历史总览和Canvas gallery不包含本例。下载后打开示例HTML即可预览，导出命令见配方。

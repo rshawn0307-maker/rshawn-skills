@@ -39,6 +39,20 @@ TY.fit = (c, text, maxW, size, fam, { maxLines = 2, min = 0.45, weight = '', sof
   return { size: s, lines, ok: good };
 };
 
+// 保底版 fit：字号不低于 floor（px）。放得下就和 TY.fit 一样；放不下就停在 floor，按 maxLines 截断并加「…」，单行过宽的长词也截。
+// 用在「内容长度不可控」的地方（节点标签、卡片说明、图表标签）：宁可截断，也不缩到看不清。返回 {size, lines, ok, cut}
+TY.fitFloor = (c, text, maxW, size, fam, { maxLines = 2, floor = size * 0.5, weight = '', balance = false } = {}) => {
+  floor = Math.min(floor, size);
+  const r = TY.fit(c, text, maxW, size, fam, { maxLines, min: Math.max(0.2, floor / size), weight, soft: true, balance });
+  if (r.ok) return { ...r, cut: false };
+  const font = `${weight}${floor}px "${fam}"`; c.save(); c.font = font;
+  const w = s => c.measureText(s).width, ell = line => { if (w(line) <= maxW) return line; let l = line; while (l.length > 1 && w(l + '…') > maxW) l = l.slice(0, -1); return l + '…'; };
+  let lines = TY.wrap(c, text, maxW, font), cut = false;
+  if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] = lines[maxLines - 1] + '…'; cut = true; }
+  lines = lines.map(l => { const e = ell(l); if (e !== l) cut = true; return e; });
+  c.restore(); return { size: floor, lines, ok: false, cut };
+};
+
 // ---------- 入场 ----------
 // 逐字错开出现：每字 dur 秒，从 dy 往上、透明→不透明、可带缩放；Kurzgesagt 标题 0.5s/字、错开 45ms。返回总宽。
 TY.charsIn = (c, str, x, y, lt, { font, color, dur = 0.35, stagger = 0.04, dy = 24, scale0 = 1, align = 'left', ease = MO.cubicOut, shadow, spacing = 0 } = {}) => {
