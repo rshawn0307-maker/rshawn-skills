@@ -89,7 +89,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
-> 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 21MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
+> 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 22MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
 
 ## Skill 详解
 
@@ -215,7 +215,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 让 agent 直接做出可编辑的商业级动效片：发布片、产品宣传片、解说视频。片子是代码（`index.html` + GSAP，用本机 Chrome 逐帧渲染），导演流程先读产品与品牌、给三个方向、写 treatment 与节奏谱、先做最难镜头；内置 `om check`/`om still`/`om qa` 做帧级自查（裁切、遮挡、低对比、单帧闪跳、死时间），`om sound` 按场景自动配乐与音效（也可自己写 ABC 乐谱），`om voice` 做口播与字幕，`om render` 导出 mp4/mov/webm/gif（可开运动模糊）。`om studio` 在浏览器里直播预览，用户点画面写一句意见，agent 用 `om inbox`/`om look`/`om done` 只改那一处，版本历史可 `om undo`。触发词：发布片、宣传片、产品视频、动效、解说视频、launch video。
 
-> 注意：本 skill 体积约 21MB（含 CLI、模板、字体与示例），安装时请完整复制整个目录；运行时依赖 Node ≥22、Chrome 与 FFmpeg，装完用 `om doctor` 自检。
+> 注意：本 skill 体积约 22MB（含 CLI、模板、字体与示例），安装时请完整复制整个目录；运行时依赖 Node ≥22、Chrome 与 FFmpeg，装完用 `om doctor` 自检。
 
 > 来源：[alchaincyf/huashu-motion](https://github.com/alchaincyf/huashu-motion)（作者：花叔 alchaincyf）
 

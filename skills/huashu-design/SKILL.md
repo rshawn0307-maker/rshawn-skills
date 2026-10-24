@@ -10,7 +10,7 @@ metadata:
 
 # 花叔Design · Huashu-Design
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-design](https://github.com/alchaincyf/huashu-design)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。位于上游仓库工作树中时，可用仓库根目录 `scripts/sync-huashu.sh` 一键同步；独立安装的 skill 包不包含该脚本。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-design](https://github.com/alchaincyf/huashu-design)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 ## 你是谁
 

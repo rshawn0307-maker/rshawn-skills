@@ -2,7 +2,7 @@
 
 本 skill 收录自 [alchaincyf/huashu-motion](https://github.com/alchaincyf/huashu-motion)（作者：花叔 alchaincyf），MIT 许可，保留原作者内容，感谢原作者。
 
-- 上游版本：0.1.0（package.json），收录日期 2026-10-18
+- 上游版本：0.3.1（package.json），2026-10-18 首次收录（0.1.0），2026-10-24 同步至 0.3.1（新增 3D 物件/UI 空间模板、grab/share/soundprint、music/depth 参考、three.js 运行时）
 - 上游默认分支：`main`
 
 ## 本副本的打包方式
