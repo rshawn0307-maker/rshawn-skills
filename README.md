@@ -23,7 +23,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 ### 🌟 社区精选 · 转载
 
-收录自开源社区，说明列均标注来源；每个目录内都有 `ORIGIN.md` 出处声明，khazix / 花叔 / dashi 系列另有对应的一键同步脚本。
+收录自开源社区，说明列均标注来源；每个目录内都有 `ORIGIN.md` 出处声明，khazix / 花叔系列另有对应的一键同步脚本。
 
 **花叔系列**（收录自 [alchaincyf](https://github.com/alchaincyf)）
 
@@ -45,23 +45,6 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [human-writing](#human-writing) | 通用中文创作与改稿，去 AI 味儿（来源：khazix） | [查看](#human-writing) |
 | [storage-analyzer](#storage-analyzer) | macOS / Windows 只读存储分析与交互式清理报告（来源：khazix） | [查看](#storage-analyzer) |
 | [khazix-writer](#khazix-writer) | 数字生命卡兹克公众号长文写作风格：素材→成稿（来源：khazix） | [查看](#khazix-writer) |
-
-**其他社区精选**
-
-| Skill | 一句话说明 | 讲解 |
-| --- | --- | --- |
-| [dashi-ppt](#dashi-ppt) | 生成可浏览器编辑的 HTML 演示，支持导出 PPTX / PDF（来源：chuspeeism） | [查看](#dashi-ppt) |
-| [docx](#docx) | 专业 Word 文档创建/编辑/修订/批注（来源：appautomaton） | [查看](#docx) |
-| [defuddle](#defuddle) | 网页转干净 Markdown，收藏前先去噪（来源：kepano） | [查看](#defuddle) |
-| [impeccable](#impeccable) | 前端 UI 设计与打磨：40+ 子命令覆盖设计/审计/批判/动效/排版，支持 live 浏览器迭代（来源：pbakaus） | [查看](#impeccable) |
-| [anatomy](#anatomy) | 交互式等距 SVG 技术插画：把抽象概念画成可动的真实机械装置，支持 WebGL shader 与 3D 模式（来源：wheresryan22） | [查看](#anatomy) |
-| [json-canvas](#json-canvas) | 生成和编辑 Obsidian Canvas 画布文件（来源：kepano） | [查看](#json-canvas) |
-| [obsidian-bases](#obsidian-bases) | 创建编辑 Obsidian Bases 数据库视图（来源：kepano） | [查看](#obsidian-bases) |
-| [obsidian-markdown](#obsidian-markdown) | Obsidian 专有 Markdown 语法规范（来源：kepano） | [查看](#obsidian-markdown) |
-| [quiz](#quiz) | 根据已读资料生成测验题（来源：Readwise） | [查看](#quiz) |
-| [xiaohongshu-images](#xiaohongshu-images) | 生成 3:4 小红书配图（来源：iamzifei） | [查看](#xiaohongshu-images) |
-| [xiaohongshu-note-analyzer](#xiaohongshu-note-analyzer) | 小红书笔记发布前审核与优化（来源：softbread） | [查看](#xiaohongshu-note-analyzer) |
-| [find-skills](#find-skills) | 搜索并安装 Agent Skills，安装规则已按个人要求修改（来源：vercel-labs） | [查看](#find-skills) |
 
 ## 安装（通用方法）
 
@@ -275,74 +258,6 @@ macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用�
 
 > 同步：上游更新后可运行 `bash scripts/sync-khazix.sh` 一键拉取最新版（见下方「同步 khazix 来源 skill」）。
 
-**其他社区精选**
-
-#### dashi-ppt
-
-基于预置视觉主题生成可离线打开、可在浏览器编辑的 HTML 演示，支持导出 PPTX / PDF。使用前先把需求整理成 JSON 计划，再调用内置生成器产出 `index.html` 和 `assets/`。触发词：做 PPT、演示文稿、幻灯片、汇报材料。
-
-> 注意：需要 Node.js 20+ 和 npm，首次生成时会在 skill 内置 `project/` 目录安装依赖；上游采用 AGPL-3.0 许可。
-
-> 来源：[chuspeeism/dashi-ppt-skill](https://github.com/chuspeeism/dashi-ppt-skill)（作者 chuspeeism）
-
-> 同步：上游更新后可运行 `bash scripts/sync-dashi.sh` 一键拉取最新版（见下方「同步 dashi-ppt 来源 skill」）。
-
-#### docx
-
-专业 Word 文档创建/编辑/分析，支持修订记录、批注、格式保留和文本提取，适用于新建、修改、审阅等文档任务。（来源：appautomaton）
-
-#### defuddle
-
-网页转干净 Markdown：用 Defuddle CLI 提取正文、去除导航和杂讯以节省 token；以 `.md` 结尾的 URL 直接读取原文即可。（来源：kepano）
-
-#### impeccable
-
-前端 UI 设计全流程 skill：设计/重设计/审计/批判/打磨/加固界面，覆盖视觉层级、排版字体、间距布局、配色、动效微交互、可达性与反模式，40+ 子命令（craft、shape、audit、critique、animate、typeset、polish、live 等），支持浏览器 live 迭代。launcher 首次运行自动下载引擎二进制到 `~/.impeccable/bin/`，无需 Node。
-
-> 注意：引擎二进制约 16MB/平台，沙箱无外网时可设 `IMPECCABLE_BIN` 指向预装二进制。上游采用 Apache 2.0 许可（目录内附 LICENSE）。
-
-> 来源：[pbakaus/impeccable](https://github.com/pbakaus/impeccable)（作者 Paul Bakaus）
-
-> 同步：上游更新后可运行 `bash scripts/sync-impeccable.sh` 一键拉取最新版（见下方「同步 impeccable 来源 skill」）。
-
-#### anatomy
-
-交互式等距（isometric）SVG 技术插画 skill：核心思想是「物体即解释」——把要讲的技术概念映射成一台真实、精密、可交互的机械装置（试音台、千分表、投币街机、火箭发动机、水波槽），几十到上百个小零件、四阶明暗、严格画家序，配标题卡片与实时读数，平静缓动动画。框架无关（Node 脚本生成 SVG/HTML）与 React/Next 两条路线，可选 WebGL shader（火焰、水波、焦散、灯光）与 3D 转动模式；内置 8 个完整示例与几何审计/截图/线条校验脚本，按 Figure / Hero / Epic 三档定工作量。
-
-> 注意：需要 Node.js 20.10+；截图与校验步骤需要 Chrome/Chromium（headless）。上游采用 MIT 许可（目录内附 LICENSE），本副本约 12MB（含 8 个示例与测试素材），安装时请完整复制整个目录。
-
-> 来源：[wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)（作者 wheresryan22）
-
-> 同步：上游更新后可运行 `bash scripts/sync-anatomy.sh` 一键拉取最新版（见下方「同步 anatomy 来源 skill」）。
-
-#### json-canvas
-
-创建和编辑 JSON Canvas（`.canvas`）文件：节点、连线、分组和连接关系，适合 Obsidian 画布、思维导图、流程图。（来源：kepano）
-
-#### obsidian-bases
-
-创建和编辑 Obsidian Bases（`.base`）文件：视图、筛选、公式、汇总，把笔记变成数据库式表格视图。（来源：kepano）
-
-#### obsidian-markdown
-
-Obsidian 专有 Markdown 语法规范：wikilink、嵌入、callout、properties、标签等 Obsidian 特定写法。（来源：kepano）
-
-#### quiz
-
-根据最近读过的资料生成测验题，检验理解和记忆效果。（来源：Readwise）
-
-#### xiaohongshu-images
-
-把 Markdown/HTML 内容转成 3:4 比例的小红书配图。（来源：iamzifei）
-
-#### xiaohongshu-note-analyzer
-
-小红书笔记发布前审核与优化：内容质量、关键词优化、标题吸引力、敏感内容风险、商业化程度、互动潜力分析。（来源：softbread）
-
-#### find-skills
-
-搜索并安装 Agent Skills。本仓库版本已按个人要求修改安装规则：安装前确认目标 agent、默认装到当前对话所在 agent、禁止全局安装。（来源：vercel-labs）
-
 ## 同步 khazix 来源 skill
 
 仓库里的 `neat-freak`、`storage-analyzer`、`leader`、`khazix-writer` 收录自 [khazix-skills](https://github.com/KKKKhazix/khazix-skills)，`human-writing` 收录自其独立仓库 [KKKKhazix/human-writing](https://github.com/KKKKhazix/human-writing)。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
@@ -374,39 +289,6 @@ bash scripts/sync-huashu.sh --push # 更新并自动 commit + push
 ```bash
 bash scripts/sync-huashu-motion.sh        # 只更新文件并打印变更
 bash scripts/sync-huashu-motion.sh --push # 更新并自动 commit + push
-```
-
-注意：脚本走 git clone，github.com 直连易失败，请挂代理后运行。
-
-## 同步 dashi-ppt 来源 skill
-
-仓库里的 `dashi-ppt` 收录自 [chuspeeism/dashi-ppt-skill](https://github.com/chuspeeism/dashi-ppt-skill)。目录内含 `ORIGIN.md` 出处声明与上游 `LICENSE`（AGPL-3.0）。上游更新后，一条命令即可同步最新版：
-
-```bash
-bash scripts/sync-dashi.sh        # 只更新文件并打印变更
-bash scripts/sync-dashi.sh --push # 更新并自动 commit + push
-```
-
-脚本会从上游仓库拉取最新代码、覆盖 skill 目录（并保留 LICENSE），自动补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`。若上游目录已改名或删除，脚本会跳过并提示。
-
-## 同步 impeccable 来源 skill
-
-仓库里的 `impeccable` 收录自 [pbakaus/impeccable](https://github.com/pbakaus/impeccable)。目录内含 `ORIGIN.md` 出处声明与上游 `LICENSE`（Apache 2.0）。上游更新后，一条命令即可同步最新版：
-
-```bash
-bash scripts/sync-impeccable.sh        # 只更新文件并打印变更
-bash scripts/sync-impeccable.sh --push # 更新并自动 commit + push
-```
-
-脚本会从上游仓库拉取最新代码、取 `plugin/skills/impeccable/` 覆盖 skill 目录（并保留 LICENSE），自动补回 `SKILL.md` 顶部的来源声明和 `ORIGIN.md`（该 skill 的 SKILL.md 无 H1，声明固定插在 frontmatter 结束的 `---` 之后）。若上游目录已改名或删除，脚本会跳过并提示。
-
-## 同步 anatomy 来源 skill
-
-仓库里的 `anatomy` 收录自 [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)。该 skill 的 SKILL.md 位于上游仓库根目录，脚本取仓库整体覆盖 skill 目录（剔除 .github 等仓库协作元文件，保留 LICENSE），自动补回 `SKILL.md` 首个 H1 之后的来源声明和 `ORIGIN.md`。上游更新后，一条命令即可同步最新版：
-
-```bash
-bash scripts/sync-anatomy.sh        # 只更新文件并打印变更
-bash scripts/sync-anatomy.sh --push # 更新并自动 commit + push
 ```
 
 注意：脚本走 git clone，github.com 直连易失败，请挂代理后运行。
