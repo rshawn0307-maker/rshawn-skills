@@ -236,7 +236,7 @@ pip install python-docx
 
 ### 步骤 2.5：去 AI 味儿（必跑，套用 human-writing）
 
-**写完初稿 → 必跑 human-writing → 过步骤 2.6 内容复核 → 才能进 pending_answer.json**。这是硬步骤。
+（深度打磨可选项：改写前可先触发 tramstop-skill「电车站」做四层 AI 味诊断与真实素材注入；该 skill 缺席时直接跳过此可选步骤，最终仍必须通过 human-writing 门禁。）**写完初稿 → 必跑 human-writing → 过步骤 2.6 内容复核 → 才能进 pending_answer.json**。这是硬步骤。
 
 操作：
 `

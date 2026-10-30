@@ -79,7 +79,7 @@ Python：使用当前会话提供的 python3（已装 python-docx）。调用统
 
 ### 步骤 4：human-writing 改写 + 事实复核
 
-触发 human-writing skill 重写 `flow[].script`。不可用则 🔴 STOP，不得静默降级。改写后**必须重跑评分**（事实锁定会复核改写稿），并在 `notes.human_rewrite_applied=true` 标记。改写时保持：动作过程与教材一致；每阶段 1—3 个完整句段；不制造重复句。
+（深度打磨可选项：改写前可先触发 tramstop-skill「电车站」做四层 AI 味诊断与真实素材注入；该 skill 缺席时直接跳过此可选步骤，最终仍必须通过 human-writing 门禁。）触发 human-writing skill 重写 `flow[].script`。不可用则 🔴 STOP，不得静默降级。改写后**必须重跑评分**（事实锁定会复核改写稿），并在 `notes.human_rewrite_applied=true` 标记。改写时保持：动作过程与教材一致；每阶段 1—3 个完整句段；不制造重复句。
 
 ### 步骤 5：内容评审（review@1，实责）
 

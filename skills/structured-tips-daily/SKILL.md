@@ -164,7 +164,7 @@ python3 -c "import docx; print('docx', docx.__version__)"   # 期望 1.2.0
 
 ### 步骤 2.5：去 AI 味儿（必跑）
 
-写完初稿 -> **必跑 human-writing** -> 才能进 pending_tips.json。硬步骤，不可跳过。
+（深度打磨可选项：改写前可先触发 tramstop-skill「电车站」做四层 AI 味诊断与真实素材注入；该 skill 缺席时直接跳过此可选步骤，最终仍必须通过 human-writing 门禁。）写完初稿 -> **必跑 human-writing** -> 才能进 pending_tips.json。硬步骤，不可跳过。
 
 重点扫：公考 AI 高危词（体现/彰显/凸显/深入推进/全面落实）、三段式凑数、破折号清零、否定式排比最多 1 处、模糊归因、万能收束。
 

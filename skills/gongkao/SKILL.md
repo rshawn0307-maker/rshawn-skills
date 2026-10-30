@@ -374,7 +374,7 @@ f. 每批验证不通过的文件单独修正后重跑，不要混入下一批
 - "多措并举/综合施策/协同推进" → 列出具体几条
 - "切实保障/有效提升/有力推动" → 给出可量化指标
 
-**改写后自检**：总字数仍在 800-1000 之间；读起来像人话（用 human-writing 的 scripts/check_prose.py 复核，同仓库安装时位于 `../human-writing/scripts/check_prose.py`；冒号/破折号/翻案腔按 human-writing 最新版硬禁令，全部清零）
+（深度打磨可选项：改写前可先触发 tramstop-skill「电车站」做四层 AI 味诊断与真实素材注入；该 skill 缺席时直接跳过此可选步骤，最终仍必须通过 human-writing 门禁。）**改写后自检**：总字数仍在 800-1000 之间；读起来像人话（用 human-writing 的 scripts/check_prose.py 复核，同仓库安装时位于 `../human-writing/scripts/check_prose.py`；冒号/破折号/翻案腔按 human-writing 最新版硬禁令，全部清零）
 
 ### 字数统计口径
 
