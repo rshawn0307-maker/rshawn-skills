@@ -16,6 +16,16 @@ SOURCES=(
   "huashu-design|https://github.com/alchaincyf/huashu-design.git|.|https://github.com/alchaincyf/huashu-design|alchaincyf/huashu-design"
   "huashu-report|https://github.com/alchaincyf/huashu-report.git|.|https://github.com/alchaincyf/huashu-report|alchaincyf/huashu-report"
   "huashu-art-motion|https://github.com/alchaincyf/huashu-art-motion.git|.|https://github.com/alchaincyf/huashu-art-motion|alchaincyf/huashu-art-motion"
+  "huashu-gpt-image|https://github.com/alchaincyf/huashu-gpt-image.git|.|https://github.com/alchaincyf/huashu-gpt-image|alchaincyf/huashu-gpt-image"
+  "huashu-md-html|https://github.com/alchaincyf/huashu-md-html.git|.|https://github.com/alchaincyf/huashu-md-html|alchaincyf/huashu-md-html"
+  "tramstop-skill|https://github.com/alchaincyf/tramstop-skill.git|.|https://github.com/alchaincyf/tramstop-skill|alchaincyf/tramstop-skill"
+  "huashu-icon-set|https://github.com/alchaincyf/huashu-icon-set.git|.|https://github.com/alchaincyf/huashu-icon-set|alchaincyf/huashu-icon-set"
+  "huashu-md-to-pdf|https://github.com/alchaincyf/huashu-skills.git|huashu-md-to-pdf|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
+  "huashu-article-edit|https://github.com/alchaincyf/huashu-skills.git|huashu-article-edit|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
+  "huashu-topic-gen|https://github.com/alchaincyf/huashu-skills.git|huashu-topic-gen|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
+  "huashu-script-polish|https://github.com/alchaincyf/huashu-skills.git|huashu-script-polish|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
+  "huashu-speech-coach|https://github.com/alchaincyf/huashu-skills.git|huashu-speech-coach|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
+  "huashu-skill-updater|https://github.com/alchaincyf/huashu-skills.git|huashu-skill-updater|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
 )
 
 TMP_DIR="$(mktemp -d)"
@@ -87,10 +97,10 @@ done
 
 echo
 echo "==> 变更摘要："
-git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion
+git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-gpt-image skills/huashu-md-html skills/tramstop-skill skills/huashu-icon-set
 
 if [ "${1:-}" = "--push" ]; then
-  git -C "$REPO_ROOT" add skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion
+  git -C "$REPO_ROOT" add skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-gpt-image skills/huashu-md-html skills/tramstop-skill skills/huashu-icon-set
   if git -C "$REPO_ROOT" diff --cached --quiet; then
     echo "（无变更可提交）"
   else

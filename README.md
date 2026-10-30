@@ -35,6 +35,18 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [huashu-art-motion](#huashu-art-motion) | 艺术与视频动画：36 种实做风格＋16 种迁移配方、镜头表工作流、9 种解说动画语法、口播整片管线（来源：花叔） | [查看](#huashu-art-motion) |
 | [huashu-motion](#huashu-motion) | 商业级动效/发布片/解说视频：片子即代码，浏览器 studio 指着画面改，自动配乐与口播（来源：花叔） | [查看](#huashu-motion) |
 | [huashu-mac-use](#huashu-mac-use) | 操控无 API 的 macOS 原生 app：四层控制面、零焦点写入、窗口级取证截图（来源：花叔） | [查看](#huashu-mac-use) |
+| [huashu-gpt-image](#huashu-gpt-image) | GPT-image 生图方法论：真实参考名替代形容词，单图 playbook、批量网格、失败模式树（来源：花叔） | [查看](#huashu-gpt-image) |
+| [huashu-md-html](#huashu-md-html) | md 流水线：万物（PDF/DOCX/EPUB/网页/音频）转干净 md，md 加工成出版级 HTML/DOCX，四套反 AI slop 主题（来源：花叔） | [查看](#huashu-md-html) |
+| [tramstop-skill](#tramstop-skill) | 电车站.skill：证据驱动的去 AI 味，四层 AI 味模型 + 真实素材注入（来源：花叔） | [查看](#tramstop-skill) |
+| [huashu-icon-set](#huashu-icon-set) | 端到端生成风格统一的图标集：4×4 网格批量 + 逐个精度兜底（来源：花叔） | [查看](#huashu-icon-set) |
+| [huashu-md-to-pdf](#huashu-md-to-pdf) | Markdown 转苹果风专业 PDF：书籍级排版、自动封面目录（来源：花叔） | [查看](#huashu-md-to-pdf) |
+| [huashu-article-edit](#huashu-article-edit) | 标准化文章编辑：先列修改项确认范围，增量保存，变更有记录（来源：花叔） | [查看](#huashu-article-edit) |
+| [huashu-topic-gen](#huashu-topic-gen) | 选题生成：3-4 个方案，含标题、大纲、优劣分析和工作量评估（来源：花叔） | [查看](#huashu-topic-gen) |
+| [huashu-script-polish](#huashu-script-polish) | 视频脚本口语化：去书面腔，短句化，标注停顿重音（来源：花叔） | [查看](#huashu-script-polish) |
+| [huashu-speech-coach](#huashu-speech-coach) | 演讲教练：Patrick Winston「How to Speak」方法论（来源：花叔） | [查看](#huashu-speech-coach) |
+| [huashu-skill-updater](#huashu-skill-updater) | 花叔系 skill 更新检查：对比远程最新 commit 报告落后项（来源：花叔） | [查看](#huashu-skill-updater) |
+
+> 🐦 **资源库（不入库分发）**：[alchaincyf/huashu-bird-sticker](https://github.com/alchaincyf/huashu-bird-sticker) — 全球鸟类贴纸库，11064 种现生鸟各一张白边贴纸 + 结构化数据（分类/43 语种鸟名/数据库编号），1.4GB。PolyForm Shield 1.0.0 授权（唯一限制：不得用于竞品观鸟 App）。本仓库不存储内容，端上已安装。
 
 **khazix系列**（收录自 [KKKKhazix](https://github.com/KKKKhazix)）
 
@@ -72,7 +84,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
-> 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）与 huashu-motion（约 22MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
+> 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）、huashu-md-html（约 15MB，含主题与示例）、huashu-gpt-image（约 10MB）与 huashu-motion（约 22MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
 
 ## Skill 详解
 
@@ -213,6 +225,66 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 > 来源：[alchaincyf/huashu-mac-use](https://github.com/alchaincyf/huashu-mac-use)（作者：花叔 alchaincyf）
 
 > 同步：本 skill 未纳入一键脚本（需保留本机编译内核 `scripts/mac`），上游更新后参照其目录内 `ORIGIN.md` 的命令手动同步。
+#### huashu-gpt-image
+
+GPT-image 的 prompt 工程方法论：用真实参考名替代形容词堆砌，含单图 playbook、批量网格生成与失败模式树，配图/封面生图任务直接可用。触发词：生图、配图、封面、GPT-image。
+
+> 来源：[alchaincyf/huashu-gpt-image](https://github.com/alchaincyf/huashu-gpt-image)（作者：花叔 alchaincyf）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-md-html
+
+md 流水线 skill：把万物（PDF/DOCX/EPUB/网页/音频）转成干净 md，再把 md 加工成出版级 HTML/DOCX，内置四套反 AI slop 主题。触发词：转 markdown、md 转 HTML、出版级排版。
+
+> 来源：[alchaincyf/huashu-md-html](https://github.com/alchaincyf/huashu-md-html)（作者：花叔 alchaincyf）。同步：`bash scripts/sync-huashu.sh`
+> 注意：本 skill 约 15MB（含主题与示例），请整目录复制；Python 依赖见目录内 requirements.txt。
+
+#### tramstop-skill
+
+电车站.skill：证据驱动的去 AI 味，四层 AI 味模型 + 真实素材注入，来自四版本盲测实验。触发词：去 AI 味、电车站。
+
+> 来源：[alchaincyf/tramstop-skill](https://github.com/alchaincyf/tramstop-skill)（来源：花叔 alchaincyf）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-md-to-pdf
+
+Markdown 转苹果风专业 PDF：书籍级排版、自动封面目录。 触发词见目录内 SKILL.md。
+
+> 来源：内置收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-article-edit
+
+标准化文章编辑：先列修改项确认范围，增量保存，变更有记录。 触发词见目录内 SKILL.md。
+
+> 来源：内置收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-topic-gen
+
+选题生成：3-4 个方案，含标题、大纲、优劣分析和工作量评估。 触发词见目录内 SKILL.md。
+
+> 来源：内置收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-script-polish
+
+视频脚本口语化：去书面腔，短句化，标注停顿重音。 触发词见目录内 SKILL.md。
+
+> 来源：内置收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-speech-coach
+
+演讲教练：Patrick Winston「How to Speak」方法论。 触发词见目录内 SKILL.md。
+
+> 来源：内置收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-skill-updater
+
+花叔系 skill 更新检查：对比远程最新 commit 报告落后项。 触发词见目录内 SKILL.md。
+
+> 来源：内置收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔）。同步：`bash scripts/sync-huashu.sh`
+
+#### huashu-icon-set
+
+端到端为项目生成风格统一的图标集：4×4 网格批量生成 + 逐个精度兜底 + 智能抠图（豆包环境专用，依赖内置 image_gen）。触发词：图标集、icon、生成图标。
+
+> 来源：[alchaincyf/huashu-icon-set](https://github.com/alchaincyf/huashu-icon-set)（作者：花叔 alchaincyf）。同步：`bash scripts/sync-huashu.sh`
 
 **khazix系列**
 
@@ -273,7 +345,7 @@ bash scripts/sync-khazix.sh --push # 更新并自动 commit + push
 
 ## 同步花叔来源 skill
 
-仓库里的 `darwin-skill`、`huashu-design`、`huashu-report`、`huashu-art-motion` 收录自花叔（alchaincyf）的四个独立仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
+仓库里的 `darwin-skill`、`huashu-design`、`huashu-report`、`huashu-art-motion` 收录自花叔（alchaincyf）的八个独立仓库，另有六个内置轻量 skill 收录自 huashu-skills 仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
 
 ```bash
 bash scripts/sync-huashu.sh        # 只更新文件并打印变更
