@@ -17,6 +17,7 @@ SOURCES=(
   "huashu-report|https://github.com/alchaincyf/huashu-report.git|.|https://github.com/alchaincyf/huashu-report|alchaincyf/huashu-report"
   "huashu-art-motion|https://github.com/alchaincyf/huashu-art-motion.git|.|https://github.com/alchaincyf/huashu-art-motion|alchaincyf/huashu-art-motion"
   "huashu-md-html|https://github.com/alchaincyf/huashu-md-html.git|.|https://github.com/alchaincyf/huashu-md-html|alchaincyf/huashu-md-html"
+  "tramstop-skill|https://github.com/alchaincyf/tramstop-skill.git|.|https://github.com/alchaincyf/tramstop-skill|alchaincyf/tramstop-skill"
   "huashu-md-to-pdf|https://github.com/alchaincyf/huashu-skills.git|huashu-md-to-pdf|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
   "huashu-article-edit|https://github.com/alchaincyf/huashu-skills.git|huashu-article-edit|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
   "huashu-topic-gen|https://github.com/alchaincyf/huashu-skills.git|huashu-topic-gen|https://github.com/alchaincyf/huashu-skills|alchaincyf/huashu-skills 内置"
@@ -94,10 +95,10 @@ done
 
 echo
 echo "==> 变更摘要："
-git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-md-html
+git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-md-html skills/tramstop-skill skills/huashu-md-to-pdf skills/huashu-article-edit skills/huashu-topic-gen skills/huashu-script-polish skills/huashu-speech-coach skills/huashu-skill-updater
 
 if [ "${1:-}" = "--push" ]; then
-  git -C "$REPO_ROOT" add skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-md-html
+  git -C "$REPO_ROOT" add skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-md-html skills/tramstop-skill skills/huashu-md-to-pdf skills/huashu-article-edit skills/huashu-topic-gen skills/huashu-script-polish skills/huashu-speech-coach skills/huashu-skill-updater
   if git -C "$REPO_ROOT" diff --cached --quiet; then
     echo "（无变更可提交）"
   else

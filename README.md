@@ -36,6 +36,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [huashu-motion](#huashu-motion) | 商业级动效/发布片/解说视频：片子即代码，浏览器 studio 指着画面改，自动配乐与口播（来源：花叔） | [查看](#huashu-motion) |
 | [huashu-mac-use](#huashu-mac-use) | 操控无 API 的 macOS 原生 app：四层控制面、零焦点写入、窗口级取证截图（来源：花叔） | [查看](#huashu-mac-use) |
 | [huashu-md-html](#huashu-md-html) | md 流水线：万物（PDF/DOCX/EPUB/网页/音频）转干净 md，md 加工成出版级 HTML/DOCX，四套反 AI slop 主题（来源：花叔） | [查看](#huashu-md-html) |
+| [tramstop-skill](#tramstop-skill) | 电车站.skill：证据驱动的去 AI 味，四层 AI 味模型 + 真实素材注入（来源：花叔） | [查看](#tramstop-skill) |
 | [huashu-md-to-pdf](#huashu-md-to-pdf) | Markdown 转苹果风专业 PDF：书籍级排版、自动封面目录（来源：花叔） | [查看](#huashu-md-to-pdf) |
 | [huashu-article-edit](#huashu-article-edit) | 标准化文章编辑：先列修改项确认范围，增量保存，变更有记录（来源：花叔） | [查看](#huashu-article-edit) |
 | [huashu-topic-gen](#huashu-topic-gen) | 选题生成：3-4 个方案，含标题、大纲、优劣分析和工作量评估（来源：花叔） | [查看](#huashu-topic-gen) |
@@ -228,6 +229,12 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 md 流水线 skill：把万物（PDF/DOCX/EPUB/网页/音频）转成干净 md，再把 md 加工成出版级 HTML/DOCX，内置四套反 AI slop 主题。触发词：转 markdown、md 转 HTML、出版级排版。
 
 > 来源：[alchaincyf/huashu-md-html](https://github.com/alchaincyf/huashu-md-html)（作者：花叔 alchaincyf）。同步：`bash scripts/sync-huashu.sh`
+
+#### tramstop-skill
+
+电车站.skill：证据驱动的去 AI 味，四层 AI 味模型（词汇<句式<结构<经验）+ 真实素材注入，来自四版本盲测实验。与 human-writing 并存分工：改稿先「用电车站诊断/改写」拿质量，最终门禁验收走 human-writing。触发词：去 AI 味、电车站、这稿子读着不对劲。
+
+> 来源：[alchaincyf/tramstop-skill](https://github.com/alchaincyf/tramstop-skill)（作者：花叔 alchaincyf）。同步：`bash scripts/sync-huashu.sh`
 > 注意：本 skill 约 15MB（含主题与示例），请整目录复制；Python 依赖见目录内 requirements.txt。
 
 
@@ -325,7 +332,7 @@ bash scripts/sync-khazix.sh --push # 更新并自动 commit + push
 
 ## 同步花叔来源 skill
 
-仓库里的 `darwin-skill`、`huashu-design`、`huashu-report`、`huashu-art-motion` 收录自花叔（alchaincyf）的五个独立仓库，另有六个内置轻量 skill 收录自 huashu-skills 仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
+仓库里的 `darwin-skill`、`huashu-design`、`huashu-report`、`huashu-art-motion` 收录自花叔（alchaincyf）的六个独立仓库，另有六个内置轻量 skill 收录自 huashu-skills 仓库。每个目录内都有 `ORIGIN.md` 注明出处。上游更新后，一条命令即可同步最新版：
 
 ```bash
 bash scripts/sync-huashu.sh        # 只更新文件并打印变更
