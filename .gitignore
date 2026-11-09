@@ -1,0 +1,4 @@
+# OS / Python 运行垃圾
+.DS_Store
+__pycache__/
+*.pyc
