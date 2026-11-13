@@ -5,7 +5,7 @@ description: 快速生成3-4个选题方向，含标题、大纲和优劣分析�
 
 # 选题生成
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。同步与出处详见本目录 ORIGIN.md。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills 内置](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 快速生成3-4个公众号文章选题方向，每个选题包含标题、大纲、优劣分析。
 

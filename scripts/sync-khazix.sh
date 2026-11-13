@@ -82,7 +82,8 @@ for entry in "${SOURCES[@]}"; do
 done
 
 echo
-echo "==> 校验依赖 human-writing 的 skill："
+echo "==> 校验依赖 human-writing 的 skill：
+echo "MARKER-ECHO-11309 marker-ok""
 HUMAN_WRITING_VERSION="$(cat "$REPO_ROOT/skills/human-writing/VERSION" 2>/dev/null || echo '?')"
 DEPENDENTS=(gongkao structured-post structured-tips-daily)
 for s in "${DEPENDENTS[@]}"; do
@@ -93,9 +94,9 @@ for s in "${DEPENDENTS[@]}"; do
   grep -q "冒号" "$f" || missing="$missing 冒号规则"
   grep -q "翻案" "$f" || missing="$missing 翻案腔规则"
   if [ -z "$missing" ]; then
-    echo "✅ $s 已对齐 human-writing $HUMAN_WRITING_VERSION（引用与硬禁令要点齐全）"
+    echo "[OK] $s aligned with human-writing version $HUMAN_WRITING_VERSION"
   else
-    echo "⚠️  $s 缺少：$missing（human-writing 当前版本 $HUMAN_WRITING_VERSION，请人工检查）"
+    echo "[MISS] $s: $missing -- see human-writing version $HUMAN_WRITING_VERSION"
   fi
 done
 

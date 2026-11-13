@@ -5,7 +5,7 @@ description: 检查并更新花叔系 skills。用户说「检查skill更新」�
 
 # huashu-skill-updater — 花叔系 Skill 更新检查
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。同步与出处详见本目录 ORIGIN.md。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills 内置](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 花叔的 skill 都在持续迭代（修 bug、补方法论、加能力）。这个 skill 负责让用户装过的版本不掉队。
 

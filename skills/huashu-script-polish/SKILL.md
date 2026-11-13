@@ -5,7 +5,7 @@ description: 视频脚本口语化审校，去书面腔让脚本适合说出来�
 
 # 视频脚本口语化审校
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。同步与出处详见本目录 ORIGIN.md。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills 内置](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 让视频脚本更适合实际录制，强化口语感，去掉书面语和AI味。
 

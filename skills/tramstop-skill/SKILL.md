@@ -10,7 +10,7 @@ metadata:
 
 # 电车站.skill：人味不是删出来的
 
-> **来源声明**：本 skill 收录自 [alchaincyf/tramstop-skill](https://github.com/alchaincyf/tramstop-skill)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。同步与出处详见本目录 ORIGIN.md。
+> **来源声明**：本 skill 收录自 [alchaincyf/tramstop-skill](https://github.com/alchaincyf/tramstop-skill)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 ## 为什么叫电车站
 

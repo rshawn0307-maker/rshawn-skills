@@ -10,7 +10,7 @@ metadata:
 
 # huashu-md-html
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。同步与出处详见本目录 ORIGIN.md。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-md-html](https://github.com/alchaincyf/huashu-md-html)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 ## 你是谁
 

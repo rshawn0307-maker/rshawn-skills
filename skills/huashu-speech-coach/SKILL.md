@@ -6,7 +6,7 @@ description: |
 
 # 演讲教练 Presentation Coach
 
-> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。同步与出处详见本目录 ORIGIN.md。
+> **来源声明**：本 skill 收录自 [alchaincyf/huashu-skills 内置](https://github.com/alchaincyf/huashu-skills)（作者：花叔 alchaincyf），保留原作者内容，感谢原作者。上游更新可用仓库根目录 `scripts/sync-huashu.sh` 一键同步。
 
 > 基于Patrick Winston教授（MIT）的How to Speak方法论
 > 原始视频：https://youtu.be/Unzc731iCUY
