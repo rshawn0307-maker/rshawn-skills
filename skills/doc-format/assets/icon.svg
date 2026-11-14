@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- doc-format skill 图标（矢量源文件，可直接改色/改形，再重新导出 PNG） -->
+<!-- 整体思路：沿用 Codex 文档类 skill「折角纸页」的家族造型，把颜色换成朱砂红——对应中文公文的红头与印章 -->
+<!-- 纸页上只放三根白色文本条，第一根右缩进，直接表达「首行缩进两字符」这条最典型的中文排版规则 -->
+<!-- 右下角压一枚白色圆形对勾徽章，表达这个 skill 的另一条命脉：「生成之后核对有没有真的落实」 -->
+<!-- 线条粗细与间距按 16px 倍数取值，缩到 32px 时四根条与徽章仍能分辨，不会糊成一团 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="iconTitle">
+  <!-- 无障碍标题：读屏软件会念出来的名字，也方便别人搜到这个图标是干什么的 -->
+  <title id="iconTitle">doc-format —— 中文文档排版规格官</title>
+  <defs>
+    <!-- 定义区：把渐变、阴影这些「复用素材」集中放在这里，下面用 id 引用，避免重复写色值 -->
+    <!-- 纸页主体渐变：左上朱砂红、右下暖橘红，是中文公文与印章的经典色相，同时与其他文档类图标区分开 -->
+    <linearGradient id="pageFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A81C2E"/>
+      <stop offset="0.55" stop-color="#C9322C"/>
+      <stop offset="1" stop-color="#E0512F"/>
+    </linearGradient>
+    <!-- 折角渐变：比纸页亮，模拟「纸的背面被翻起来」的受光面，让折角看起来是翻折而不是挖空 -->
+    <linearGradient id="foldFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB3A0" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FFE0D6" stop-opacity="0.95"/>
+    </linearGradient>
+    <!-- 文本条渐变：自上而下略微变淡，避免纯白显得死板，也让纸条有纸张反光的层次 -->
+    <linearGradient id="lineFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.86"/>
+    </linearGradient>
+    <!-- 折角下方的柔和投影：让折角与纸页之间有「分离感」，否则两个色块会糊成一片 -->
+    <filter id="foldShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="-3" dy="4" stdDeviation="5" flood-color="#5A0C16" flood-opacity="0.35"/>
+    </filter>
+    <!-- 文本条与徽章的通用投影：给扁平图形补一点厚度，缩到小尺寸时轮廓依然清楚 -->
+    <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#5A0C16" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <!-- 纸页主体：一条闭合路径画出「左上右下圆角 + 右上斜切角」的纸形，和 documents / presentations 图标同款骨架 -->
+  <path d="M72 20 H170 L228 78 V188 A44 44 0 0 1 184 232 H72 A44 44 0 0 1 28 188 V64 A44 44 0 0 1 72 20 Z" fill="url(#pageFill)"/>
+  <!-- 折角本体：先沿斜切边画直线，再用二次曲线兜回左上，形成被卷起的圆润折痕 -->
+  <path d="M170 20 L228 78 Q170 78 170 20 Z" fill="url(#foldFill)" filter="url(#foldShadow)"/>
+  <!-- 折痕高光线：贴着斜切边描一道极淡的白，强化「纸边」这个物理细节，透明度压得很低以免抢戏 -->
+  <path d="M170 20 L228 78" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2"/>
+  <!-- 第一行文本条：比其余几行短且整体右移，一眼看出「首行缩进两字符」这个中文排版标志性规则 -->
+<rect x="92" y="104" width="108" height="13" rx="6.5" fill="url(#lineFill)" filter="url(#softShadow)"/>
+  <!-- 第二行文本条：与下面一行同左边界、通栏到底，代表正文的常规满行 -->
+<rect x="66" y="131" width="134" height="13" rx="6.5" fill="url(#lineFill)" filter="url(#softShadow)"/>
+  <!-- 第三行文本条：同上，三行构成一个段落的基本节奏，便于缩略图下识别「这是一页正文」 -->
+<rect x="66" y="158" width="134" height="13" rx="6.5" fill="url(#lineFill)" filter="url(#softShadow)"/>
+  <!-- 核验徽章底圆：白色实心圆压在纸页右下角并略微溢出，像盖章一样钉在成品上 -->
+  <circle cx="200" cy="203" r="35" fill="#FFFFFF" filter="url(#softShadow)"/>
+  <!-- 徽章对勾：用朱砂红描出折线，与纸页主色呼应，含义是「逐条核对，确认规格真的落实了」 -->
+  <path d="M186 204 L197 215 L215 192" fill="none" stroke="#B02231" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

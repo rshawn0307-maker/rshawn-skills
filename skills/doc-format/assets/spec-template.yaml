@@ -1,0 +1,215 @@
+# ─────────────────────────────────────────────────────────────
+# 排版规格卡 · 填空骨架
+#
+# 用法：复制本文件为 typography.spec.yaml，按用户确认结果逐项替换 <待填>。
+#
+#   想照着已有实例改 → 用 references/presets/ 里某个预设的 YAML 段
+#   想从零自定义     → 用本文件
+#
+# 哪些段必须填，取决于 meta.carriers：
+#   docx / pdf → meta, page, fonts, paragraph, headings, figures_tables, footer
+#   html       → html, screen（纸媒的 page / footer 对公众号无意义）
+#
+# 每个字段的含义、取值范围与换算规则见 references/spec-schema.md —— 本文件只列字段名与格式，不重复解释。
+# 所有 <待填> 都必须由用户确认后替换，不要留着就生成。
+# ─────────────────────────────────────────────────────────────
+
+meta:
+  preset: <待填>                  # 内置预设时填文件名（不含 .md），如 gov-doc-cn
+  name: <待填>                    # 人类可读名称
+  source_type: <待填>             # 国标 | 惯例 | 平台
+  standard: <待填>                # 国标填标准号，惯例与平台填 null
+  verified_at: <待填>             # 格式 YYYY-MM-DD
+  recheck_after: <待填>           # 格式 YYYY-MM-DD
+  carriers: <待填>                # 多选列表，如 [docx, pdf, html]
+  saved_from: <待填>              # 内置预设 | 自定义问询 | 从现有文件反推
+
+# ── 纸张与页面（docx / pdf 用；html 请登记到 excluded）──────────
+page:
+  size: <待填>                    # A4 | custom
+  width_mm: <待填>
+  height_mm: <待填>
+  margin_top_mm: <待填>
+  margin_bottom_mm: <待填>
+  margin_left_mm: <待填>          # 双面印刷改用 margin_inside_mm / margin_outside_mm
+  margin_right_mm: <待填>
+  binding: <待填>                 # left | right
+  mirror_margins: <待填>          # true | false，双面印刷用这个开关（不再单列 two_sided，它没人读）
+
+# ── 字体 ────────────────────────────────────────────────────
+fonts:
+  # 本机缺字体时的规则：要么装上标准要求的字体，要么在下面槽位显式写 resolved。
+  # 没有「自动替换档」——脚本绝不替用户挑替身字体。
+  body:
+    east_asian: <待填>
+    latin: <待填>                 # 必填，西文与数字单独指定
+    size_pt: <待填>
+    size_label: <待填>            # 号数写法，如 三号
+  # 有代码块时才填。必须显式声明：不写就沿用正文字体，写死了本机没有的字体则中止生成。
+  # code:
+  #   east_asian: <待填>
+  #   latin: <待填>               # 等宽体，如 Courier New
+  #   size_pt: <待填>             # 不写则取正文的 95%
+  # 图表题注（图注与表题）专用字体，有图表时才填；不填则整槽沿用正文字体。
+  # 单写 east_asian 而没写 resolved 时，不会去借正文字体的 resolved —— 那等于自动替身。
+  # caption:
+  #   east_asian: <待填>          # 论文常见「宋体」小五号；不填沿用正文
+  #   latin: <待填>               # 不填沿用正文
+  #   size_pt: <待填>             # 不填则用 figures_tables.caption_size_pt，再退回正文字号
+
+# ── 正文段落 ─────────────────────────────────────────────────
+paragraph:
+  indent_mode: <待填>             # first_line | spacing
+  first_line_indent_chars: <待填> # 用字符数，不要用厘米
+  line_spacing_mode: <待填>       # exact | multiple
+  line_spacing_pt: <待填>         # exact 模式用
+  line_spacing_value: <待填>      # multiple 模式用
+  space_before_pt: <待填>
+  space_after_pt: <待填>
+  alignment: <待填>               # justify | left
+
+# ── 块级元素的段前段后（表格/图片/代码块/引用块/分隔线）─────────
+# 为什么要单独一段：这几类元素没有首行缩进，若前后也不留空，就会与上下正文粘成一坨。
+# 单位是「正文空行数」（如 0.5 表示半行），不写则由脚本按 0.5 / 0.5 / 0.3 给默认值并打印说明。
+blocks:
+  space_before_lines: <待填>      # 块与上文之间；公文类建议 0（国标 22 行/页的行网格会被撑破）
+  space_after_lines: <待填>       # 块与下文之间
+  caption_gap_lines: <待填>       # 表题/图注与它标注的表、图之间的小空（太大会看不出在标注谁）
+
+# ── 标题层级（键名按文档体系选：level1/2/3 或 doc_title/chapter/section）──
+headings:
+  doc_title:                      # 公文标题；论文可用 thesis_title，书籍可删掉本项
+    east_asian: <待填>
+    size_pt: <待填>
+    size_label: <待填>
+    bold: <待填>                  # true | false
+    color: <待填>                 # 十六进制，默认 "000000"
+    alignment: <待填>             # center | left
+    page_break_before: <待填>     # true | false
+    space_before_lines:           # 可选：本级标题在上一要素下空几行，如公文标题「红线下空二行」写 2
+    space_after_lines:            # 可选：本体标题下空几行，惯例写 0.5 或 1
+    # 段前段后距有四种写法，用其中一种即可：
+    #   space_before_lines / space_after_lines → 按「空 N 行」算，行高取正文行距（中文排版习惯就是这么说的）
+    #   space_before_pt    / space_after_pt    → 直接给磅值
+    # 两者都不写时，生成脚本会按「段前空一行、段后半行」的惯例补上，并明确告知用户「这是脚本默认的」。
+    # 不写段间距的后果实测过：标题上下紧贴文字，整页看起来挤成一团。
+  level1:
+    east_asian: <待填>
+    size_pt: <待填>
+    size_label: <待填>
+    space_before_lines:           # 可选：段前空几行（惯例 1）
+    space_after_lines:            # 可选：段后空几行（惯例 0.5）
+  level2:
+    east_asian: <待填>
+    size_pt: <待填>
+    line_spacing_pt:              # 可选：本级标题单独的行距；不写则继承正文行距
+    start_on_odd_page: <待填>     # 可选：true 表示本级每个标题都从奇数页（右页）起
+    space_before_lines:
+    space_after_lines:
+  level3:
+    east_asian: <待填>
+    size_pt: <待填>
+    space_before_lines:
+    space_after_lines:
+
+# ── 图表 ────────────────────────────────────────────────────
+figures_tables:
+  table_caption_position: <待填>  # above（中文惯例）| below
+  figure_caption_position: <待填> # below（中文惯例）| above
+  caption_alignment: <待填>       # center | left
+  caption_size_pt: <待填>
+  table_style: <待填>             # three_line（三线表）| grid（全框线）
+  # 下面三个对齐字段默认不填。本 skill 不预设表格对齐风格，只有用户明确要求时才写；
+  # 源 Markdown 自带的对齐标记（:---、---:、:---:）会被自动识别，不需要在这里重复声明。
+  table_alignment:                # 可选：left | center | right，留空即不干预
+  header_alignment:               # 可选，留空即不干预
+  text_column_alignment:          # 可选，留空即不干预
+  number_column_alignment:        # 可选，留空即不干预
+
+# ── 页码与页眉页脚 ───────────────────────────────────────────
+footer:
+  page_number:
+    enabled: <待填>               # true | false
+    east_asian: <待填>
+    size_pt: <待填>
+    position: <待填>              # center | left | right | outside，两边页码相同才用它
+    different_odd_even: <待填>    # true | false，奇偶页页码位置不同时置 true
+    odd_page:                     # center | left | right | outside；留空则退回 position
+    even_page:                    # center | left | right | outside；留空则退回 position
+    # 数字一律按 ASCII 半角写出（OOXML 里数字走西文字体），没有开关可设
+    dash_rule: <待填>             # true | false，页码左右各加一条一字线（公文 §7.5）
+    dash_offset_mm: <待填>        # 一字线上距版心下边缘的毫米数（公文 §7.5 规定 7）
+    # 下面三项只在「前置页与正文分别编页码」时才填。要把正文页码重起，
+    # 必须给出 body_start_heading（标题文字，须完全一致），否则脚本定位不到分界、整项跳过并警告。
+    body_start_at:                # 正文起始页码，如 1
+    body_start_heading:           # 正文从哪个标题开始，如「第一章 绪论」
+    front_matter:
+      cover:                      # none 表示封面不编页码
+      cover_end_heading:          # 封面到哪个标题为止；不填则封面与前言同节，无法只免掉封面
+      preface_toc:                # 前言与目录的页码格式：roman | decimal
+header:
+  enabled: <待填>                 # true | false
+  # 页眉内容由用户决定：下面这些方向问用户挑一个，不要替他默认
+  #   不放页眉（enabled: false）／当前章名 chapter_name／书名 book_title／
+  #   机构名或任意文字／公司 logo 等图片（image）／单双页各放一样（odd_content、even_content）
+  different_odd_even: <待填>      # true | false，单页与双页页眉不同
+  odd_content: <待填>             # chapter_name（当前章名，STYLEREF 域）| book_title | image | none | 自定义文字
+  even_content: <待填>            # 同上；只填一侧时另一侧沿用同一个内容
+  book_title: <待填>              # 上面用了 book_title 就必填；不填会退回用 meta.name 占位
+  image: <待填>                   # 放 logo 等图片时写路径（相对源稿所在目录）；此时内容标记写 image
+  image_height_mm: <待填>         # 页眉图片高度，默认 8mm（太大就把正文往下挤）
+  alignment: <待填>               # center | left | right | outside
+  east_asian: <待填>
+  latin: <待填>
+  size_pt: <待填>
+
+# ── 版记（公文专用：分隔线 + 抄送 + 印发机关/日期）─────────────
+record_section:
+  enabled: <待填>                 # true | false；公文末页版记，不启用就整段不生成
+  issuing_agency: <待填>          # 【启用时必填】印发机关全称，左空一字
+  issue_date: <待填>              # 【启用时必填】印发日期，右空一字，月日不编虚位
+  date_suffix: 印发               # §7.4.3：日期后加「印发」二字；写成 "" 表示这份不要这两个字
+  copy_to: <待填>                 # 可选，抄送机关；留空则只有首条与末条两条分隔线
+  east_asian: <待填>              # 版记用字体，公文为 4 号仿宋
+  size_pt: <待填>
+  # 分隔线一律与版心等宽，没有开关
+  first_last_divider_mm: <待填>   # 首条与末条分隔线粗细（mm），公文 0.35
+  middle_divider_mm: <待填>       # 中间分隔线粗细（mm），公文 0.25
+
+# ── 参考文献（有引文时才填）───────────────────────────────────
+references:
+  enabled: <待填>                 # true | false
+  standard: <待填>                # 如 GB/T 7714-2025；沿用 2015 版须说明原因
+
+# ── 公众号 / 网页专用（仅 carriers 含 html）────────────────────
+html:
+  inline_css: <待填>              # 必须 true：公众号会丢弃 style 标签与 class
+  max_width_px: <待填>            # 公众号常用 677
+  allow_external_links: <待填>    # 必须 false：公众号正文不放外链
+screen:
+  body:
+    font_size_px: <待填>
+    line_height: <待填>           # 倍数，比纸质更松
+    color: <待填>                 # 如 "#3F3F3F"
+    text_align: <待填>            # left
+    padding_left_px: <待填>
+    padding_right_px: <待填>
+    letter_spacing: <待填>
+  quote:
+    border_left_px: <待填>
+    border_color: <待填>
+    background: <待填>
+    padding_px: <待填>
+    color: <待填>
+  image:
+    width: <待填>                 # 如 100%
+    border_radius_px: <待填>
+
+# 注：masthead（红头/发文字号/签发人/分隔线）、body_elements（主送机关/附件说明/署名/成文日期）、
+#     record_section（版记）、binding（装订线）四段只在公文类规格里出现，本骨架不含，
+#     请从 references/presets/gov-doc-cn.md 的 YAML 段取。
+
+# ── 载体限制导致的跳过项（登记下来供交付说明用；无脚本读取）──────
+excluded:
+  - item: <待填>                  # 如 页边距
+    reason: <待填>                # 为什么跳过

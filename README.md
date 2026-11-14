@@ -56,6 +56,12 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [storage-analyzer](#storage-analyzer) | macOS / Windows 只读存储分析与交互式清理报告（来源：khazix） | [查看](#storage-analyzer) |
 | [khazix-writer](#khazix-writer) | 数字生命卡兹克公众号长文写作风格：素材→成稿（来源：khazix） | [查看](#khazix-writer) |
 
+**其他社区精选**（独立仓库收录，另有专属同步脚本）
+
+| Skill | 一句话说明 | 讲解 |
+| --- | --- | --- |
+| [doc-format](#doc-format) | 中文文档排版规格官：先确认规格再生成 Word/PDF/公众号 HTML，内置公文/论文/图书/报告等官方核验预设（来源：da-damu） | [查看](#doc-format) |
+
 ## 安装（通用方法）
 
 ### 方法一：让 Agent 帮你安装
@@ -316,6 +322,16 @@ macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用�
 > 来源：[khazix-skills](https://github.com/KKKKhazix/khazix-skills)（作者 KKKKhazix）
 
 > 同步：上游更新后可运行 `bash scripts/sync-khazix.sh` 一键拉取最新版（见下方「同步 khazix 来源 skill」）。
+
+#### doc-format
+
+中文文档排版规格官：把「帮我排个版」这种没有边界的要求，变成可以逐项确认、可以核验的规格。核心是**先问清规格、查合规、写下来、确认掉，再动手生成**，生成后逐条核对有没有真的落实，报告写明「已落实 / 跳过 / 失败」。内置六套经官方核验的中文排版预设：党政机关公文（GB/T 9704-2012）、学位论文（GB/T 7713.1-2025）、学术论文（GB/T 7713.2-2022 + 参考文献 GB/T 7714-2025）、中文图书、商务报告、微信公众号。支持给已有 Word 换排版（只换样式、文字表格图片原样保留）、从现成文件读出现用规格存成自己的预设、单位自有规矩存一次长期复用。触发词：排版、调格式、首行缩进、表格居中、字号、字体、页边距、页码、行距、参考文献格式、帮我改成 xx 格式的 Word。
+
+> 注意：需要 Python ≥3.9 与 `python-docx`、`PyYAML`、`PyMuPDF`；出 PDF 另需 LibreOffice。原始文件永不被改动，输出永远是新文件。PDF 与图片无法改排版（格式限制），脚本会直说并给替代路径。
+
+> 来源：[da-damu/doc-format-skill](https://github.com/da-damu/doc-format-skill)（作者：da-damu）
+
+> 同步：上游更新后可运行 `bash scripts/sync-doc-format.sh` 一键拉取最新版。
 
 ## 同步 khazix 来源 skill
 

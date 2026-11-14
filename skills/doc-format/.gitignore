@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.spec.yaml
+/预览/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+credentials*.json
+
+# 用户自存预设：现在放在用户自己的目录里（~/.local/share/doc-format/presets/），
+# 不再写进 skill 目录。这两条是保险 —— 万一还有旧预设躺在这儿，别让它跟着代码提交上去。
+references/presets/_user/*.md
+!references/presets/_user/_README.md
