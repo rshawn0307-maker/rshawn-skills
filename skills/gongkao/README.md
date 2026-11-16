@@ -2,13 +2,13 @@
 
 > Skill：公考面试结构化教研与产品题库工具
 
-为公考面试结构化培训提供 **教研与产品题库支持**，覆盖从单题生成到完整讲义和程序可导入 JSON 的 7 个工作流。产品数据模式在原有题目内容上增加版本化评分维度、错因候选和复测约束，并使用独立校验器保证合同一致性。
+为公考面试结构化培训提供 **教研与产品题库支持**，覆盖从单题生成到《公考结构化面试一本通》维护和程序可导入 JSON 的 7 个工作流。产品数据模式在原有题目内容上增加版本化评分维度、错因候选和复测约束，并使用独立校验器保证合同一致性。
 
 ---
 
 ## 功能亮点
 
-- **7 个工作流全覆盖**：题目生成 / 方法论 / 框架模板 / 过渡句 / 素材库 / 讲义组装 / 产品题库 JSON
+- **7 个工作流全覆盖**：题目生成 / 方法论 / 框架模板 / 过渡句 / 素材库 / 一本通维护 / 产品题库 JSON
 - **6 条内容铁律**：有观点、有逻辑、有表达、避套路、拒假大空、接地气可操作
 - **Python 多模式验证**：`validate_question.py` 支持 5 种验证模式（题目/方法论/框架/素材/讲义）
 - **human-writing 深度集成**：逐字稿经过去 AI 味儿处理，避免"标志着/彰显了/体现了"等套路表达
@@ -24,7 +24,7 @@
 gongkao/
 ├── SKILL.md                          # skill 定义文件（核心：调度表 + 流程步骤 + 共享标准）
 ├── README.md                         # 本文件
-├── references/                       # 工作流 B-F 详细输出模板
+├── references/                       # 工作流 B-G 详细输出模板
 │   ├── workflow-b-methodology.md     # 方法论生成模板
 │   ├── workflow-c-framework.md       # 框架模板生成模板
 │   ├── workflow-d-transitions.md     # 过渡句生成模板
@@ -64,8 +64,8 @@ git clone https://github.com/rshawn0307-maker/rshawn-skills.git
 | C. 框架模板生成 | 生成框架/更新框架/框架模板 | 框架模板段落 md |
 | D. 过渡句生成 | 生成过渡句/更新过渡句/过渡句库 | 过渡句段落 md |
 | E. 素材库生成 | 生成素材/补充素材/素材库 | 素材 md 文件 |
-| F. 讲义组装/更新 | 组装讲义/更新讲义/导出讲义 | 完整讲义 md |
-| G. 产品题库输出 | 产品题库/JSON题库/程序导入/复测题数据 | 每题一个标准 JSON |
+| F. 一本通维护 | 组装讲义/更新讲义/导出讲义/一本通 | 《公考结构化面试一本通》md/Word |
+| G. 产品题库输出 | 产品题库/JSON题库/程序导入/复测题数据 | 每题一个 `question-schema-v2` JSON |
 
 ### 工作流 A 示意（题目生成）
 
@@ -76,11 +76,11 @@ git clone https://github.com/rshawn0307-maker/rshawn-skills.git
     ↓
 步骤2: 按 6 条铁律撰写内容
     ↓
-步骤3: 跑 validate_question.py 验证字数
+步骤3: 跑 validate_question.py 验证汉字数（700-800，硬边界 680-820）
     ↓
-步骤4: 扫描 AI 痕迹 + 用语禁忌 → 改写至零命中
+步骤4: 电车站四层诊断 → 分开改写 → human-writing 门禁 + AI 痕迹扫描
     ↓
-步骤5: 写入知识库题库文件夹
+步骤5: 写入知识库题库文件夹（模拟题/<题型>题/）
     ↓
 步骤6: 先 6 道样例 → 用户确认 → 批量生产
 ```
@@ -93,28 +93,28 @@ git clone https://github.com/rshawn0307-maker/rshawn-skills.git
 
 ```bash
 # 题目验证（默认，向后兼容）
-python scripts/validate_question.py 综合分析_01_指尖形式主义.md
+python3 scripts/validate_question.py 综合分析_01_指尖形式主义.md
 
 # 批量验证
-python scripts/validate_question.py 综合分析_*.md
+python3 scripts/validate_question.py 综合分析_*.md
 
 # 方法论验证
-python scripts/validate_question.py 方法论.md --mode methodology
+python3 scripts/validate_question.py 方法论.md --mode methodology
 
 # 框架模板验证
-python scripts/validate_question.py 框架.md --mode framework
+python3 scripts/validate_question.py 框架.md --mode framework
 
 # 素材验证
-python scripts/validate_question.py 素材.md --mode material
+python3 scripts/validate_question.py 素材.md --mode material
 
-# 讲义整体验证
-python scripts/validate_question.py 讲义.md --mode lecture --expected-chapters 9
+# 一本通整体验证（五篇）
+python3 scripts/validate_question.py 公考结构化面试一本通.md --mode lecture --expected-chapters 5
 ```
 
 检查项：
 | 类别 | 内容 |
 |------|------|
-| 字数统计 | 逐字稿 800-1000 字（含标点） |
+| 字数统计 | 逐字稿 700-800 个汉字（不含标点），硬边界 680-820 |
 | AI 痕迹（6类） | 标志性短语、三段式列举、破折号（清零）、模糊归因、否定排比、万能收束 |
 | 公考高危词 | "体现/彰显/凸显""深入推进/全面落实""多措并举/综合施策"等 |
 | 用语禁忌（4类） | 贬义比喻、网络流行词、情绪化表达、政治风险表述 |
@@ -131,16 +131,16 @@ python scripts/validate_question.py 讲义.md --mode lecture --expected-chapters
 - 公考面试结构化培训的题库建设
 - 公务员/事业单位面试备考资料生成
 - 面试培训机构的内容标准化
-- 完整讲义产品的生成与维护
+- 《公考结构化面试一本通》成书维护
 - 个人面试练习的题目来源
 
 ---
 
 ## 版本
 
-- **当前版本**：v2.1.0
-- **更新日期**：2026-08-27
-- **变更摘要**：新增产品题库 JSON 工作流，内置题目 Schema、临时评分量表、错因标签、复测规则和零依赖校验器；原有六项教研工作流保持不变
+- **当前版本**：v2.2.0
+- **更新日期**：2026-11-16
+- **变更摘要**：逐字稿字数口径改为 700-800 汉字（不含标点，硬边界 680-820）；frontmatter 增加 `目标时长` 与 `版本`；模拟题输出目录改为 `01_题库与训练/模拟题/<题型>题/`；电车站四层诊断与 human-writing 门禁改为必选；工作流 F 收敛为《公考结构化面试一本通》单书维护；工作流 G 升级到 `question-schema-v2`、`rubric-v1.2`、`error-tags-v1.1`，`reference_answer` 改为单字符串，`timing` 统一 30/210
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "taxonomy_version": "error-tags-v1",
+  "taxonomy_version": "error-tags-v1.1",
   "status": "frozen",
   "purpose": "training_diagnosis",
   "primary_tag_limit": 1,
@@ -17,8 +17,17 @@
       "code": "common.task_misaligned",
       "name": "任务理解或角色错位",
       "scope": "common",
-      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
-      "mapped_dimension_codes": ["common.task_role"],
+      "question_types": [
+        "ca",
+        "op",
+        "ir",
+        "er",
+        "sa",
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "common.task_role"
+      ],
       "root_cause_group": "task_alignment",
       "default_severity": "critical",
       "definition": "没有回应题目核心任务，或身份、对象、权限和职责边界明显错误。",
@@ -34,8 +43,17 @@
       "code": "common.structure_disorganized",
       "name": "主线散乱或逻辑关系不清",
       "scope": "common",
-      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
-      "mapped_dimension_codes": ["common.structure_logic"],
+      "question_types": [
+        "ca",
+        "op",
+        "ir",
+        "er",
+        "sa",
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "common.structure_logic"
+      ],
       "root_cause_group": "structure_logic",
       "default_severity": "major",
       "definition": "答案缺少可识别主线，观点、原因、步骤或结论之间关系混乱。",
@@ -51,8 +69,17 @@
       "code": "common.expression_vague_template",
       "name": "表达空泛或模板化",
       "scope": "common",
-      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
-      "mapped_dimension_codes": ["common.expression_naturalness"],
+      "question_types": [
+        "ca",
+        "op",
+        "ir",
+        "er",
+        "sa",
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "common.expression_naturalness"
+      ],
       "root_cause_group": "expression_quality",
       "default_severity": "major",
       "definition": "大量使用通用口号、抽象动词或套话，听者无法知道具体判断和动作。",
@@ -68,8 +95,17 @@
       "code": "common.fluency_time_unstable",
       "name": "流畅度或时间分配失衡",
       "scope": "common",
-      "question_types": ["ca", "op", "ir", "er", "sa", "ve"],
-      "mapped_dimension_codes": ["common.fluency_time"],
+      "question_types": [
+        "ca",
+        "op",
+        "ir",
+        "er",
+        "sa",
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "common.fluency_time"
+      ],
       "root_cause_group": "speech_delivery",
       "default_severity": "major",
       "definition": "长停顿、反复重说、口头语或前松后紧已经妨碍信息完整传递。",
@@ -85,8 +121,12 @@
       "code": "ca.judgment_generic",
       "name": "判断模糊或停留在有利有弊",
       "scope": "type_specific",
-      "question_types": ["ca"],
-      "mapped_dimension_codes": ["ca.judgment_essence"],
+      "question_types": [
+        "ca"
+      ],
+      "mapped_dimension_codes": [
+        "ca.judgment_essence"
+      ],
       "root_cause_group": "ca_judgment",
       "default_severity": "major",
       "definition": "没有形成明确、有边界的价值判断，只复述现象或泛泛表示辩证看待。",
@@ -102,8 +142,12 @@
       "code": "ca.analysis_shallow",
       "name": "原因分析停留表面",
       "scope": "type_specific",
-      "question_types": ["ca"],
-      "mapped_dimension_codes": ["ca.mechanism_analysis"],
+      "question_types": [
+        "ca"
+      ],
+      "mapped_dimension_codes": [
+        "ca.mechanism_analysis"
+      ],
       "root_cause_group": "ca_analysis",
       "default_severity": "major",
       "definition": "只列出现象或把问题归因于认识不足，没有解释问题如何产生和持续。",
@@ -119,8 +163,12 @@
       "code": "ca.measure_vague",
       "name": "对策缺少主体和执行路径",
       "scope": "type_specific",
-      "question_types": ["ca"],
-      "mapped_dimension_codes": ["ca.measure_feasibility"],
+      "question_types": [
+        "ca"
+      ],
+      "mapped_dimension_codes": [
+        "ca.measure_feasibility"
+      ],
       "root_cause_group": "ca_measures",
       "default_severity": "major",
       "definition": "措施停留在加强、完善、提升等方向，没有责任主体、动作、流程或验效方式。",
@@ -136,8 +184,12 @@
       "code": "op.goal_need_unclear",
       "name": "目标对象或需求判断不清",
       "scope": "type_specific",
-      "question_types": ["op"],
-      "mapped_dimension_codes": ["op.goal_audience_need"],
+      "question_types": [
+        "op"
+      ],
+      "mapped_dimension_codes": [
+        "op.goal_audience_need"
+      ],
       "root_cause_group": "op_goal_need",
       "default_severity": "major",
       "definition": "没有说清活动或调研要解决什么问题、服务谁以及依据什么确定重点。",
@@ -153,8 +205,12 @@
       "code": "op.process_resource_generic",
       "name": "流程和资源安排模板化",
       "scope": "type_specific",
-      "question_types": ["op"],
-      "mapped_dimension_codes": ["op.process_resource_coordination"],
+      "question_types": [
+        "op"
+      ],
+      "mapped_dimension_codes": [
+        "op.process_resource_coordination"
+      ],
       "root_cause_group": "op_execution",
       "default_severity": "major",
       "definition": "只有事前事中事后框架，缺少关键动作、责任人、资源和部门协同。",
@@ -170,8 +226,12 @@
       "code": "op.risk_evaluation_missing",
       "name": "风险预案或效果评价缺失",
       "scope": "type_specific",
-      "question_types": ["op"],
-      "mapped_dimension_codes": ["op.risk_evaluation"],
+      "question_types": [
+        "op"
+      ],
+      "mapped_dimension_codes": [
+        "op.risk_evaluation"
+      ],
       "root_cause_group": "op_risk_evaluation",
       "default_severity": "major",
       "definition": "没有识别关键实施风险，或只以人数、签到、照片和总结代替实际效果。",
@@ -187,8 +247,12 @@
       "code": "ir.conflict_misread",
       "name": "矛盾来源或关系定位错误",
       "scope": "type_specific",
-      "question_types": ["ir"],
-      "mapped_dimension_codes": ["ir.conflict_relationship"],
+      "question_types": [
+        "ir"
+      ],
+      "mapped_dimension_codes": [
+        "ir.conflict_relationship"
+      ],
       "root_cause_group": "ir_conflict",
       "default_severity": "critical",
       "definition": "简单站队、甩锅、对抗或误判工作关系，没有区分事实、情绪和共同任务。",
@@ -204,8 +268,12 @@
       "code": "ir.principle_empathy_imbalanced",
       "name": "原则与同理心失衡",
       "scope": "type_specific",
-      "question_types": ["ir"],
-      "mapped_dimension_codes": ["ir.principle_empathy"],
+      "question_types": [
+        "ir"
+      ],
+      "mapped_dimension_codes": [
+        "ir.principle_empathy"
+      ],
       "root_cause_group": "ir_principle_empathy",
       "default_severity": "critical",
       "definition": "只讲人情不讲规则，或只讲规则不回应合理情绪和现实困难。",
@@ -221,8 +289,12 @@
       "code": "ir.communication_action_vague",
       "name": "沟通动作笼统",
       "scope": "type_specific",
-      "question_types": ["ir"],
-      "mapped_dimension_codes": ["ir.communication_solution"],
+      "question_types": [
+        "ir"
+      ],
+      "mapped_dimension_codes": [
+        "ir.communication_solution"
+      ],
       "root_cause_group": "ir_communication",
       "default_severity": "major",
       "definition": "只说主动沟通、耐心解释，没有对象、时机、内容和要达成的共识。",
@@ -238,8 +310,12 @@
       "code": "er.priority_stoploss_wrong",
       "name": "处置优先级或止损错误",
       "scope": "type_specific",
-      "question_types": ["er"],
-      "mapped_dimension_codes": ["er.priority_stoploss"],
+      "question_types": [
+        "er"
+      ],
+      "mapped_dimension_codes": [
+        "er.priority_stoploss"
+      ],
       "root_cause_group": "er_priority",
       "default_severity": "critical",
       "definition": "忽视生命安全和风险扩散，优先汇报、追责、宣传或等待指示。",
@@ -255,8 +331,12 @@
       "code": "er.execution_coordination_weak",
       "name": "现场协同或信息处置薄弱",
       "scope": "type_specific",
-      "question_types": ["er"],
-      "mapped_dimension_codes": ["er.execution_coordination_info"],
+      "question_types": [
+        "er"
+      ],
+      "mapped_dimension_codes": [
+        "er.execution_coordination_info"
+      ],
       "root_cause_group": "er_execution",
       "default_severity": "critical",
       "definition": "现场分工、专业协同、信息核验或动态汇报不清，存在越权和二次风险。",
@@ -272,8 +352,12 @@
       "code": "er.recovery_prevention_missing",
       "name": "善后恢复或复发预防缺失",
       "scope": "type_specific",
-      "question_types": ["er"],
-      "mapped_dimension_codes": ["er.recovery_prevention"],
+      "question_types": [
+        "er"
+      ],
+      "mapped_dimension_codes": [
+        "er.recovery_prevention"
+      ],
       "root_cause_group": "er_recovery",
       "default_severity": "major",
       "definition": "现场风险解除后没有恢复服务、解释安抚、记录复盘和针对性预防。",
@@ -288,8 +372,12 @@
       "code": "sa.selfawareness_inauthentic",
       "name": "自我认识空泛或失真",
       "scope": "type_specific",
-      "question_types": ["sa"],
-      "mapped_dimension_codes": ["sa.authentic_selfawareness"],
+      "question_types": [
+        "sa"
+      ],
+      "mapped_dimension_codes": [
+        "sa.authentic_selfawareness"
+      ],
       "root_cause_group": "sa_selfawareness",
       "default_severity": "major",
       "definition": "只有完美化宣传、套路化缺点或无法被经历支持的自我评价。",
@@ -305,8 +393,12 @@
       "code": "sa.experience_reflection_weak",
       "name": "经历证据或反思链条不足",
       "scope": "type_specific",
-      "question_types": ["sa"],
-      "mapped_dimension_codes": ["sa.experience_reflection"],
+      "question_types": [
+        "sa"
+      ],
+      "mapped_dimension_codes": [
+        "sa.experience_reflection"
+      ],
       "root_cause_group": "sa_experience",
       "default_severity": "major",
       "definition": "只报经历名称或结果，没有个人行动、原因、反思和后续改进。",
@@ -322,8 +414,12 @@
       "code": "sa.position_match_weak",
       "name": "岗位理解或匹配证据不足",
       "scope": "type_specific",
-      "question_types": ["sa"],
-      "mapped_dimension_codes": ["sa.position_match"],
+      "question_types": [
+        "sa"
+      ],
+      "mapped_dimension_codes": [
+        "sa.position_match"
+      ],
       "root_cause_group": "sa_position_match",
       "default_severity": "major",
       "definition": "只表达服务群众、工作稳定等一般动机，没有现实岗位理解和个人能力证据。",
@@ -339,8 +435,12 @@
       "code": "ve.audience_purpose_missing",
       "name": "缺少对象意识或沟通目的",
       "scope": "type_specific",
-      "question_types": ["ve"],
-      "mapped_dimension_codes": ["ve.audience_purpose"],
+      "question_types": [
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "ve.audience_purpose"
+      ],
       "root_cause_group": "ve_audience",
       "default_severity": "critical",
       "definition": "没有对具体对象说话，或语气、信息和行动诉求与沟通目的冲突。",
@@ -356,8 +456,12 @@
       "code": "ve.persuasion_unsupported",
       "name": "观点缺少理由和说服证据",
       "scope": "type_specific",
-      "question_types": ["ve"],
-      "mapped_dimension_codes": ["ve.argument_persuasion"],
+      "question_types": [
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "ve.argument_persuasion"
+      ],
       "root_cause_group": "ve_persuasion",
       "default_severity": "major",
       "definition": "只有立场、命令或口号，没有事实、例子、利益关联或疑虑回应。",
@@ -373,8 +477,12 @@
       "code": "ve.scenario_adaptation_weak",
       "name": "表达形式与具体场景不匹配",
       "scope": "type_specific",
-      "question_types": ["ve"],
-      "mapped_dimension_codes": ["ve.scenario_adaptation"],
+      "question_types": [
+        "ve"
+      ],
+      "mapped_dimension_codes": [
+        "ve.scenario_adaptation"
+      ],
       "root_cause_group": "ve_scenario",
       "default_severity": "major",
       "definition": "演讲、劝说、解释或主持的开场、语气、互动和收束方式与场景不符。",

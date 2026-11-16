@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Zero-dependency structural validator for question-schema-v1 JSON files."""
+"""Zero-dependency structural validator for question-schema-v2 JSON files."""
 
 from __future__ import annotations
 
@@ -63,8 +63,8 @@ def validate(data: Any) -> list[str]:
         return result
 
     root = object_at(data, "$", ROOT_REQUIRED, ROOT_FIELDS)
-    if root.get("schema_version") != "question-schema-v1":
-        error("$.schema_version", "必须等于 question-schema-v1")
+    if root.get("schema_version") != "question-schema-v2":
+        error("$.schema_version", "必须等于 question-schema-v2")
 
     question_id = text(root.get("question_id"), "$.question_id", 1, 80)
     match = QUESTION_ID_RE.fullmatch(question_id)
@@ -128,8 +128,10 @@ def validate(data: Any) -> list[str]:
             error("$.competencies.secondary", "能力编码不能重复")
 
     timing = object_at(root.get("timing"), "$.timing", {"thinking_seconds", "answering_seconds"}, {"thinking_seconds", "answering_seconds"})
-    integer_range(timing.get("thinking_seconds"), "$.timing.thinking_seconds", 0, 600, error)
-    integer_range(timing.get("answering_seconds"), "$.timing.answering_seconds", 30, 1200, error)
+    if timing.get("thinking_seconds") != 30:
+        error("$.timing.thinking_seconds", "必须固定为30")
+    if timing.get("answering_seconds") != 210:
+        error("$.timing.answering_seconds", "必须固定为210")
 
     scoring = object_at(root.get("scoring"), "$.scoring", {"rubric_version", "total_points", "score_points", "losing_points"}, {"rubric_version", "total_points", "score_points", "losing_points"})
     rubric_version = text(scoring.get("rubric_version"), "$.scoring.rubric_version", 3, 80)
@@ -170,14 +172,8 @@ def validate(data: Any) -> list[str]:
                 error(f"{path}.severity", f"必须是 {sorted(SEVERITIES)} 之一")
             validate_code_list(obj.get("error_tag_candidates"), f"{path}.error_tag_candidates", code, error, minimum=1)
 
-    answer = object_at(root.get("reference_answer"), "$.reference_answer", {"outline", "sample_answer"}, {"outline", "sample_answer"})
-    outline = answer.get("outline")
-    if not isinstance(outline, list) or not 2 <= len(outline) <= 12:
-        error("$.reference_answer.outline", "必须包含2—12项")
-    else:
-        for index, item in enumerate(outline):
-            text(item, f"$.reference_answer.outline[{index}]", 5, 300)
-    text(answer.get("sample_answer"), "$.reference_answer.sample_answer", 200, 5000)
+    answer = root.get("reference_answer")
+    text(answer, "$.reference_answer", 200, 5000)
 
     retest = object_at(root.get("retest"), "$.retest", {"target_competency_codes", "target_error_tag_codes", "variation_requirements", "related_question_ids"}, {"target_competency_codes", "target_error_tag_codes", "variation_requirements", "related_question_ids"})
     target_competencies = validate_code_list(retest.get("target_competency_codes"), "$.retest.target_competency_codes", code, error, minimum=1)
@@ -259,11 +255,16 @@ def validate_product_contracts(data: dict[str, Any], script_path: Path) -> list[
     errors: list[str] = []
     contract_dir = script_path.parent.parent / "references" / "product"
     try:
-        rubric = json.loads((contract_dir / "interview-rubric-v1-draft.json").read_text(encoding="utf-8"))
-        taxonomy = json.loads((contract_dir / "error-tags-v1.json").read_text(encoding="utf-8"))
+        rubric = json.loads((contract_dir / "interview-rubric-v1.2.json").read_text(encoding="utf-8"))
+        taxonomy = json.loads((contract_dir / "error-tags-v1.1.json").read_text(encoding="utf-8"))
         retest_policy = json.loads((contract_dir / "retest-policy-v1.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return [f"$.contracts: 无法读取产品合同: {exc}"]
+
+    if rubric.get("rubric_version") != "rubric-v1.2":
+        errors.append("$.contracts: 评分量表版本必须为 rubric-v1.2")
+    if taxonomy.get("taxonomy_version") != "error-tags-v1.1":
+        errors.append("$.contracts: 错因标签库版本必须为 error-tags-v1.1")
 
     question_type = data.get("question_type")
     type_rubric = rubric.get("type_rubrics", {}).get(question_type, {})

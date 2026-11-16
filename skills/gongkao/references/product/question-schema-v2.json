@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:gongkao:schemas:question-schema-v1",
-  "title": "公考结构化面试题目数据结构 v1",
-  "description": "供 gongkao Skill、题库导入流程、网页和未来微信小程序共同使用的题目交换合同。",
+  "$id": "urn:gongkao:schemas:question-schema-v2",
+  "title": "公考结构化面试题目数据结构 v2",
+  "description": "供 gongkao Skill、题库导入流程、网页和未来微信小程序共同使用的题目交换合同（v2：reference_answer 为单字符串，timing 固定 30/210）。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -26,7 +26,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "question-schema-v1"
+      "const": "question-schema-v2"
     },
     "question_id": {
       "type": "string",
@@ -38,11 +38,23 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "reviewed", "published", "retired"]
+      "enum": [
+        "draft",
+        "reviewed",
+        "published",
+        "retired"
+      ]
     },
     "question_type": {
       "type": "string",
-      "enum": ["ca", "op", "ir", "er", "sa", "ve"]
+      "enum": [
+        "ca",
+        "op",
+        "ir",
+        "er",
+        "sa",
+        "ve"
+      ]
     },
     "subtype": {
       "type": "string",
@@ -67,7 +79,11 @@
     },
     "difficulty": {
       "type": "string",
-      "enum": ["basic", "standard", "advanced"]
+      "enum": [
+        "basic",
+        "standard",
+        "advanced"
+      ]
     },
     "exam_scopes": {
       "type": "array",
@@ -75,7 +91,10 @@
       "uniqueItems": true,
       "items": {
         "type": "string",
-        "enum": ["civil_service", "public_institution"]
+        "enum": [
+          "civil_service",
+          "public_institution"
+        ]
       }
     },
     "source": {
@@ -91,7 +110,10 @@
       "$ref": "#/$defs/scoring"
     },
     "reference_answer": {
-      "$ref": "#/$defs/referenceAnswer"
+      "type": "string",
+      "minLength": 200,
+      "maxLength": 5000,
+      "description": "完整参考作答，单字符串，不再拆分 outline/sample_answer。"
     },
     "retest": {
       "$ref": "#/$defs/retest"
@@ -114,7 +136,10 @@
     "codedLabel": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "name"],
+      "required": [
+        "code",
+        "name"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -130,7 +155,11 @@
     "material": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["material_id", "title", "content"],
+      "required": [
+        "material_id",
+        "title",
+        "content"
+      ],
       "properties": {
         "material_id": {
           "type": "string",
@@ -151,11 +180,18 @@
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "name"],
+      "required": [
+        "type",
+        "name"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["simulated", "official", "adapted"]
+          "enum": [
+            "simulated",
+            "official",
+            "adapted"
+          ]
         },
         "name": {
           "type": "string",
@@ -179,7 +215,10 @@
     "competencies": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["primary", "secondary"],
+      "required": [
+        "primary",
+        "secondary"
+      ],
       "properties": {
         "primary": {
           "$ref": "#/$defs/codedLabel"
@@ -197,24 +236,36 @@
     "timing": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["thinking_seconds", "answering_seconds"],
+      "required": [
+        "thinking_seconds",
+        "answering_seconds"
+      ],
       "properties": {
         "thinking_seconds": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 600
+          "maximum": 600,
+          "const": 30,
+          "description": "统一思考时长（秒）"
         },
         "answering_seconds": {
           "type": "integer",
           "minimum": 30,
-          "maximum": 1200
+          "maximum": 1200,
+          "const": 210,
+          "description": "统一答题时长（秒），对应 frontmatter 目标时长 210"
         }
       }
     },
     "scorePoint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "description", "max_points", "evidence_required"],
+      "required": [
+        "code",
+        "description",
+        "max_points",
+        "evidence_required"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -239,7 +290,12 @@
     "losingPoint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "description", "severity", "error_tag_candidates"],
+      "required": [
+        "code",
+        "description",
+        "severity",
+        "error_tag_candidates"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -252,7 +308,11 @@
         },
         "severity": {
           "type": "string",
-          "enum": ["minor", "major", "critical"]
+          "enum": [
+            "minor",
+            "major",
+            "critical"
+          ]
         },
         "error_tag_candidates": {
           "type": "array",
@@ -268,7 +328,12 @@
     "scoring": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["rubric_version", "total_points", "score_points", "losing_points"],
+      "required": [
+        "rubric_version",
+        "total_points",
+        "score_points",
+        "losing_points"
+      ],
       "properties": {
         "rubric_version": {
           "type": "string",
@@ -293,28 +358,6 @@
           "items": {
             "$ref": "#/$defs/losingPoint"
           }
-        }
-      }
-    },
-    "referenceAnswer": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["outline", "sample_answer"],
-      "properties": {
-        "outline": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 12,
-          "items": {
-            "type": "string",
-            "minLength": 5,
-            "maxLength": 300
-          }
-        },
-        "sample_answer": {
-          "type": "string",
-          "minLength": 200,
-          "maxLength": 5000
         }
       }
     },
@@ -369,7 +412,13 @@
     "metadata": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["created_at", "updated_at", "created_by", "reviewed_by", "language"],
+      "required": [
+        "created_at",
+        "updated_at",
+        "created_by",
+        "reviewed_by",
+        "language"
+      ],
       "properties": {
         "created_at": {
           "type": "string",
@@ -385,7 +434,10 @@
           "maxLength": 80
         },
         "reviewed_by": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "maxLength": 80
         },
         "language": {

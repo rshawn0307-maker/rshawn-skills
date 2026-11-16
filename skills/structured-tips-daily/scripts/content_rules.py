@@ -398,7 +398,7 @@ def _strip_frontmatter(text: str) -> str:
 
 def check_index(index_path: Path, errors: list) -> None:
     data = json.loads(index_path.read_text(encoding="utf-8"))
-    root = Path(data.get("_meta", {}).get("source_root", ""))
+    root = Path(data.get("_meta", {}).get("source_root", "")).expanduser()
     tips = data.get("tips", [])
     if data.get("_meta", {}).get("count") not in (None, len(tips)):
         _err(errors, "R1-索引元数据", f"_meta.count={data['_meta'].get('count')} 与实际 {len(tips)} 条不一致")
