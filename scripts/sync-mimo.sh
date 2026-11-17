@@ -29,6 +29,27 @@ for NAME in "${SKILLS[@]}"; do
   fi
   mkdir -p "$DST"
   rsync -a --delete --exclude='.git' "$SRC/" "$DST/"
+  # 本地补丁：Token Plan 套餐端点覆盖（上游无此变量，每次同步后自动重打）
+  python3 - "$DST" <<'PY'
+import pathlib, sys
+d = pathlib.Path(sys.argv[1])
+old = 'return OpenAI(api_key=api_key, base_url="https://api.xiaomimimo.com/v1")'
+new = ('base_url = os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1")   # 本地补丁：支持 Token Plan 套餐专属端点\n'
+       '    return OpenAI(api_key=api_key, base_url=base_url)')
+for name in ["mimo_tts.py", "mimo_tts_voicedesign.py", "mimo_tts_voiceclone.py"]:
+    p = d / "scripts" / name
+    if not p.exists():
+        continue
+    t = p.read_text(encoding="utf-8")
+    if "MIMO_BASE_URL" in t:
+        continue
+    if old not in t or "import os" not in t:
+        print(f"  ⚠️ {name}: 结构变化，补丁未打，请人工核对")
+        continue
+    t = t.replace(old, new, 1)
+    p.write_text(t, encoding="utf-8")
+    print(f"  补丁已重打: {name}")
+PY
   cat > "$DST/ORIGIN.md" <<'EOF'
 # 出处 / Origin
 

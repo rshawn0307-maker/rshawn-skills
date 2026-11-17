@@ -39,7 +39,8 @@ def build_client() -> OpenAI:
     if not api_key:
         print("MIMO_API_KEY is not set", file=sys.stderr)
         sys.exit(1)
-    return OpenAI(api_key=api_key, base_url="https://api.xiaomimimo.com/v1")
+    base_url = os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1")   # 本地补丁：支持 Token Plan 套餐专属端点
+    return OpenAI(api_key=api_key, base_url=base_url)
 
 
 def main() -> None:
