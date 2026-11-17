@@ -61,6 +61,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | Skill | 一句话说明 | 讲解 |
 | --- | --- | --- |
 | [doc-format](#doc-format) | 中文文档排版规格官：先确认规格再生成 Word/PDF/公众号 HTML，内置公文/论文/图书/报告等官方核验预设（来源：da-damu） | [查看](#doc-format) |
+| [mimo-v2-5-tts](#mimo-v2-5-tts) | 小米 MiMo V2.5 语音合成：预置音色/音色设计/音色克隆、情绪方言唱歌，导出可发飞书（来源：XiaomiMiMo） | [查看](#mimo-v2-5-tts) |
 
 ## 安装（通用方法）
 
@@ -332,6 +333,16 @@ macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用�
 > 来源：[da-damu/doc-format-skill](https://github.com/da-damu/doc-format-skill)（作者：da-damu）
 
 > 同步：上游更新后可运行 `bash scripts/sync-doc-format.sh` 一键拉取最新版。
+
+#### mimo-v2-5-tts
+
+小米 MiMo V2.5 TTS 语音合成：三种模型分工——`mimo-v2.5-tts`（预置精品音色，支持唱歌）、`mimo-v2.5-tts-voicedesign`（文本描述定制音色）、`mimo-v2.5-tts-voiceclone`（音频样本复刻音色）。支持中英文、情绪风格标签、方言、自然语言控制与导演模式；长文本自动分段拼接（ffmpeg），可经飞书 API 直接发语音消息（需 FEISHU_APP_ID/SECRET）。触发词：文字转语音、语音消息、朗读、说出来、语音回复。
+
+> 注意：需 `MIMO_API_KEY`（MiMo 开放平台获取，用户自行配置）与 `openai` Python 库；TTS 有随机性，同输入效果可能不同，可多生成几次挑选。
+
+> 来源：[XiaomiMiMo/MiMo-Skills](https://github.com/XiaomiMiMo/MiMo-Skills)（作者：小米 XiaomiMiMo，MIT 许可）
+
+> 同步：上游更新后可运行 `bash scripts/sync-mimo.sh` 一键拉取最新版。
 
 ## 同步 khazix 来源 skill
 
