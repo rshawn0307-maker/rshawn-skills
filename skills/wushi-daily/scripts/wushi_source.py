@@ -20,7 +20,7 @@ import unicodedata
 
 DEFAULT_SOURCE_DIR = (
     "/Users/shawn/Desktop/AI工作区/02-Areas/公考面试结构化培训/"
-    "03_热点与素材/公务员务实"
+    "02_答题方法与框架/公务员务实"
 )
 
 # 弯引号统一为直角引号，NBSP/全角空格剔除——normalize 后比较可容忍复制转换

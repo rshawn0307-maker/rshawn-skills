@@ -15,7 +15,7 @@ description: 自动生成「公务员务实·岗位业务」小红书图文。�
 ## Pre-flight（全过才动手）
 
 1. 源稿目录存在 16 个 `{岗}岗-公务员务实.md`：
-   `/Users/shawn/Desktop/AI工作区/02-Areas/公考面试结构化培训/03_热点与素材/公务员务实/`（已内置为脚本默认，勿改）
+   `/Users/shawn/Desktop/AI工作区/02-Areas/公考面试结构化培训/02_答题方法与框架/公务员务实/`（已内置为脚本默认，勿改）
 2. 字体齐全：`/Users/shawn/Library/Fonts/HarmonyOS_Sans_SC_{Black,Bold,Medium,Regular}.ttf`
 3. `python3 -c "import PIL"` 可用；总品牌 logo 在位：`/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png`（页眉贴图用，缺失即 STOP）
 4. 进度文件 `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/公务员务实/progress_wushi.json`；不存在则首建
