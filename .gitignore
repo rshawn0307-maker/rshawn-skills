@@ -2,3 +2,6 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# SDD ledger（本地记账，不推远程）
+.chuigong/
