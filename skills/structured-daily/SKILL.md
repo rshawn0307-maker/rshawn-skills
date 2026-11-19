@@ -36,11 +36,11 @@ metadata:
 
 | 步 | 动作 | 依据 |
 |---|---|---|
-| 1 | 查索引选题（按卡点，2-3 候选弹窗给用户挑） | `references/tips-card-point-taxonomy.md`（Task7 填充）、`references/shared-sourcing.md` |
+| 1 | 查索引选题（按卡点，2-3 候选弹窗给用户挑） | `references/tips-card-point-taxonomy.md`、`references/shared-sourcing.md` |
 | 2 | 写前读源（四源 + 审题五维 + 读源四要素） | `references/shared-sourcing.md` |
 | 3 | 写 15 字段草稿 + draft_meta 记录 | `references/tips-content-strategy.md`、`references/shared-sourcing.md`（draft_meta schema） |
 | 4 | 去 AI 味流水线（诊断 → 改写 → 程序红线清零 → 回核读源） | `references/shared-gates.md` 步 2-5 |
-| 5 | 门禁验收：独立审稿 → 盲测试答 → content_rules 全量（R0-R15 exit0，最终出厂程序门禁） → CHECKPOINT 弹窗 | `references/shared-gates.md` 步 6-9、`references/blind-test-protocol.md`（Task8 填充） |
+| 5 | 门禁验收：独立审稿 → 盲测试答 → content_rules 全量（R0-R15 exit0，最终出厂程序门禁） → CHECKPOINT 弹窗 | `references/shared-gates.md` 步 6-9、`references/blind-test-protocol.md` |
 | 6 | 引擎生成 docx + progress 更新 + 渲染近似检查 + 报告 | `references/shared-engine-safety.md`、`references/shared-gates.md` 步 10 |
 
 IMA 上传是可选附加步（仅用户明确要求时执行）：node + ima-skill。
@@ -81,8 +81,8 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 | skill | `references/shared-gates.md` | 门禁栈 + 去 AI 味 10 步流水线 |
 | skill | `references/shared-engine-safety.md` | 引擎安全机制模式 + 退出码 0-4 契约 |
 | skill | `references/tips-content-strategy.md` | 技巧线 15 字段职责表 + 内容规范 |
-| skill | `references/tips-card-point-taxonomy.md` | 卡点标签体系（stub，Task7 填充） |
-| skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议（stub，Task8 填充） |
+| skill | `references/tips-card-point-taxonomy.md` | 卡点标签体系：6 大类卡点+18 标签词表+选题机制（含弹窗交互） |
+| skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议：persona/盲测任务/判据/评审代理流程/回炉/假设记账 |
 | skill | `scripts/fill_tips_post.py` | 技巧线引擎 v3.0（15 字段 / 23 段 / pic:pic==4 计数 / 安全模式 exit0-4） |
 | skill | `scripts/test_fill_tips_post.py` | 引擎回归测试（沙箱临时副本；真实 vault 模板 sha256 前后断言） |
 | skill | `scripts/build_tips_template.py` | 模板 baseline 可复现构建脚本（Task3） |
