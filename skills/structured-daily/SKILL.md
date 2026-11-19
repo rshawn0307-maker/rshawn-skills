@@ -69,7 +69,7 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 
 ### ③ 引擎归属
 
-唯一执行引擎是 **skill 内 `scripts/fill_tips_post.py`**（Task4 填充）。项目根 `scripts/` 下遗留的 v1 `fill_tips_post.py` **已废弃勿用**（无写入前预检、先保存后验证，危险）。安全模式与退出码契约见 `references/shared-engine-safety.md`。
+唯一执行引擎是 **skill 内 `scripts/fill_tips_post.py`（v3.0）**（已落地：15 字段 / 23 段 / pic:pic==4 计数 / 安全模式 exit0-4）。项目根 `scripts/` 下遗留的 v1 `fill_tips_post.py` **已废弃勿用**（无写入前预检、先保存后验证，危险）。安全模式与退出码契约见 `references/shared-engine-safety.md`。
 
 ## 文件清单
 
@@ -83,9 +83,13 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 | skill | `references/tips-content-strategy.md` | 技巧线 15 字段职责表 + 内容规范 |
 | skill | `references/tips-card-point-taxonomy.md` | 卡点标签体系（stub，Task7 填充） |
 | skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议（stub，Task8 填充） |
-| skill | `scripts/` | 引擎与自检脚本（现仅 .gitkeep 占位；Task4/5/6 填充） |
-| skill | `assets/` | 模板 baseline 与资产（现仅 .gitkeep 占位；Task3 填充） |
-| vault | `desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx` | 技巧线模板（覆盖目标；Task3 换 23 段新模板） |
+| skill | `scripts/fill_tips_post.py` | 技巧线引擎 v3.0（15 字段 / 23 段 / pic:pic==4 计数 / 安全模式 exit0-4） |
+| skill | `scripts/test_fill_tips_post.py` | 引擎回归测试（沙箱临时副本；真实 vault 模板 sha256 前后断言） |
+| skill | `scripts/build_tips_template.py` | 模板 baseline 可复现构建脚本（Task3） |
+| skill | `scripts/content_rules.py` | 门禁规则（R0/R14 骨架，Task5 扩展） |
+| skill | `scripts/test_content_rules.py` | content_rules 自测（Task2） |
+| skill | `assets/tips-template-baseline.docx` | 技巧线模板 baseline（23 段 4 图，已部署 vault 模板 3） |
+| vault | `desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx` | 技巧线活模板（已部署 23 段 baseline，与 assets/tips-template-baseline.docx 一致） |
 | vault | `scripts/tips_index.json` | 技巧索引（选题池；Task7 加卡点标签） |
 | vault | `scripts/progress_tips.json` | 已完成记录（done_ids 选题过滤，跑完更新） |
 | vault | `scripts/_draft_tips/` | 草稿与 draft_meta 工作区（pending） |
@@ -94,12 +98,46 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 
 **事实源约定**：选题与进度读 vault `scripts/` 下 `tips_index.json` 与 `progress_tips.json`；skill 内同名文件（如有）仅为出厂参考，不作为事实源。
 
-## 模板铁律（C2 段位契约占位，**Task3 定稿**）
+## 模板铁律（C2 段位契约，Task3 已定稿，本表为准）
 
-- 技巧线新模板契约：**23 段 4 图，15 字段**映射进段位；具体段位映射表 Task3 定稿后回填本节，当前为占位。
-- **字体铁律**：模板字体通用，不引云字体、不内嵌字体文件。
-- 段位契约三要素（占位）：段数 23 / 图 4 / 字段 15。
+- 技巧线模板契约：**23 段 / pic:pic 4 图 / 15 字段**；引擎 `scripts/fill_tips_post.py` v3.0 按下表段位写入。
+- **图数口径：`pic:pic == 4`**（真实图片元素计数）。`w:drawing == 5` 不作图数契约——多出的 1 个是封面文本框形状（`w:drawing` 包裹 wps 文本框）；封面文本框双镜像 `txbxContent == 2`（drawing txbxContent + VML fallback），引擎预检与验证均按此口径。
+- **字体铁律**：通用字体（微软雅黑 / 宋体 / Wingdings 等），不引云字体、不内嵌字体文件。
+- **品牌蓝 003153**：6 个蓝色标题段继承 Heading 2 样式定义色（styleId=4），run 不写显式色值。
+- **样式指纹零漂移基准**：以 baseline 实际逐段 pPr/rPr 为准；**段 3 基准含 b+bCs**（首行缩进 2 字符 firstLineChars=200 + color 85120F + b + bCs），沿旧版式保留。
 - 旧 18 段段位表随 v2 技能（structured-tips-daily）冻结，不再作为本技能契约。
+
+### C2 段位映射表（23 段逐段）
+
+| 段 | 内容 | 样式 | 引擎行为（v3.0） |
+|---|---|---|---|
+| 0 | 封面文本框：前缀"结构化答题技巧：" + tip_title | Heading 2 + 封面背景图（品牌"总分总"） | 双镜像同步：前缀 + 标题各 2 处（drawing txbxContent + VML fallback） |
+| 1 | "卡点诊断" | Heading 2，品牌蓝 003153 + 装饰图 | 不动 |
+| 2 | card_point | Normal | 替换 |
+| 3 | fix_summary | Normal，firstLineChars=200 首行缩进 2 字符 + color 85120F + **b + bCs** | 替换（rPr 原样保留） |
+| 4 | "定调版示范" | Heading 2，品牌蓝 | 不动 |
+| 5 | demo | Normal | 替换 + 段首 👍（引擎自动加，JSON 不含） |
+| 6 | "改法拆解" | Heading 2，品牌蓝 | 不动 |
+| 7 | step1 | Normal，numPr 圆点项目符号（numId=12） | 替换 |
+| 8 | step2 | 同段 7 | 替换 |
+| 9 | step3 | 同段 7 | 替换 |
+| 10 | "对照点评" | Heading 2，品牌蓝 | 不动 |
+| 11 | case_normal | Normal | 替换 + 段首 🙅‍♂️（引擎自动加，JSON 不含） |
+| 12 | contrast_note | Markdown引用（pStyle 99）+ 浅灰底 shd F2F2F2 | 替换 |
+| 13 | "适用边界" | Heading 2，品牌蓝 + 装饰图 | 不动 |
+| 14 | boundary_scope | Normal，run b + bCs + u single | 替换 |
+| 15 | boundary_misuse | 同段 14 | 替换 |
+| 16 | boundary_evidence | 同段 14 | 替换 |
+| 17 | "迁移练习" | Heading 2，品牌蓝 | 不动 |
+| 18 | exercise | 同段 14 | 替换 |
+| 19 | self_check | 同段 14 | 替换 |
+| 20 | hashtags | endnote text（pStyle 51），sz 24（12pt） | 替换 |
+| 21 | 引流段（原文冻结） | endnote text + b + color 85120F + jc center | 不动（原文 + 样式冻结） |
+| 22 | 末图 | Normal + 图 | 不动 |
+
+- 固定不动段：1 / 4 / 6 / 10 / 13 / 17（蓝色标题）、21（引流段）、22（末图）。
+- 4 图分布：段 0 封面背景（品牌"总分总"）、段 1 / 段 13 标题旁装饰图、段 22 末图。
+- 引流段原文（冻结）："关注我，后续分享更多面试实战技巧和考场避坑指南，帮你少走弯路，一次上岸"。
 
 ## 失败处理 / 回归测试 / 脚本行为要点
 
