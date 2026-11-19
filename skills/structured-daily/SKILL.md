@@ -16,7 +16,7 @@ metadata:
   prerequisites:
     - python3 + python-docx 1.2.0
     - 电车站 tramstop-skill（去 AI 味诊断）
-    - human-writing（改写 + check_prose 红线清零）
+    - human-writing（改写；check_prose 已收录为 skill 内副本 `scripts/check_prose.py`，上游更新手动同步）
     - node + ima-skill（仅 IMA 上传，可选）
 ---
 
@@ -40,7 +40,7 @@ metadata:
 | 2 | 写前读源（四源 + 审题五维 + 读源四要素） | `references/shared-sourcing.md` |
 | 3 | 写 15 字段草稿 + draft_meta 记录 | `references/tips-content-strategy.md`、`references/shared-sourcing.md`（draft_meta schema） |
 | 4 | 去 AI 味流水线（诊断 → 改写 → 程序红线清零 → 回核读源） | `references/shared-gates.md` 步 2-5 |
-| 5 | 门禁验收：content_rules + 独立审稿 + 盲测出厂 + CHECKPOINT 弹窗 | `references/shared-gates.md` 步 6-9、`references/blind-test-protocol.md`（Task8 填充） |
+| 5 | 门禁验收：独立审稿 → 盲测试答 → content_rules 全量（R0-R15 exit0，最终出厂程序门禁） → CHECKPOINT 弹窗 | `references/shared-gates.md` 步 6-9、`references/blind-test-protocol.md`（Task8 填充） |
 | 6 | 引擎生成 docx + progress 更新 + 渲染近似检查 + 报告 | `references/shared-engine-safety.md`、`references/shared-gates.md` 步 10 |
 
 IMA 上传是可选附加步（仅用户明确要求时执行）：node + ima-skill。
@@ -88,6 +88,8 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 | skill | `scripts/build_tips_template.py` | 模板 baseline 可复现构建脚本（Task3） |
 | skill | `scripts/content_rules.py` | 门禁规则（R0/R14 骨架，Task5 扩展） |
 | skill | `scripts/test_content_rules.py` | content_rules 自测（Task2） |
+| skill | `scripts/check_prose.py` | 通用红线检查：human-writing v1.2.0 副本+公考高危词叠加+字段前缀冒号豁免（Task6） |
+| skill | `scripts/test_check_prose.py` | check_prose 自测（Task6） |
 | skill | `assets/tips-template-baseline.docx` | 技巧线模板 baseline（23 段 4 图，已部署 vault 模板 3） |
 | vault | `desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx` | 技巧线活模板（已部署 23 段 baseline，与 assets/tips-template-baseline.docx 一致） |
 | vault | `scripts/tips_index.json` | 技巧索引（选题池；Task7 加卡点标签） |
