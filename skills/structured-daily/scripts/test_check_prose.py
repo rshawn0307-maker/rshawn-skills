@@ -7,7 +7,7 @@
   （不允许假绿）。
 - 沙箱纪律：样本文件只写系统临时目录（tempfile），真实 vault 只读。
 
-用例（Task6 简报指定 6 项 + TR1 修复轮 1 新增 2 项）：
+用例（Task6 简报指定 6 项 + TR1 修复轮 1 新增 2 项 + TR2 裁定新增 1 项）：
 1. dash        破折号检出（exit 非 0，报「破折号」）
 2. pivot       翻案腔检出（不是…而是；exit 非 0）
 3. gongkao     公考高危词检出（体现；exit 非 0，报「公考高危词」）
@@ -19,6 +19,8 @@
                合规大纲稿 → exit 0（前缀豁免 1+结构行豁免 2=3）
 8. outline 对抗（修复轮 1）：正文句中冒号仍拦；行首带「（」但非整行提示行
                （句中冒号+行尾非「）」）仍拦
+9. title_prefix 答题线封面前缀豁免（TR2 裁定）：含「结构化每日一练：」前缀行的
+               合规样本 → exit 0（豁免计数含该前缀）
 """
 
 import os
@@ -29,7 +31,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHECK_CLI = os.path.join(HERE, "check_prose.py")
 
-MIN_CASES = 8  # 用例数下限，防框架坏后假绿
+MIN_CASES = 9  # 用例数下限，防框架坏后假绿
 
 
 def run_cli(sample_text):
@@ -132,6 +134,16 @@ def case_outline_adversarial(check):
     rc2, out2 = run_cli("（这里有个前提：预算得批）我们再谈执行。\n")
     check(rc2 != 0, "行首括号+句中冒号的正文句未拦，exit=%s" % rc2)
     check("中文冒号" in out2, "括号半行句未报中文冒号")
+
+
+@case("title_prefix 答题线封面前缀豁免（TR2 裁定：结构化每日一练：放行）")
+def case_title_prefix(check):
+    rc, out = run_cli(
+        "结构化每日一练：\n"
+        "大厅一黑先查人再修电，电梯配电房逐处确认，业务恢复排在人身安全之后。\n"
+    )
+    check(rc == 0, "答题线封面前缀冒号未豁免，exit=%s out=%s" % (rc, out[-200:]))
+    check("模板前缀冒号豁免 1" in out, "豁免计数未含答题线封面前缀")
 
 
 def main() -> int:
