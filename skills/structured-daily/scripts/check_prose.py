@@ -105,6 +105,7 @@ GONGKAO_JARGON = (
 TEMPLATE_PREFIXES = (
     "考官想听的",   # tip_title 原栏目式前缀
     "结构化每日一练",  # 答题线标题前缀，TR2 裁定补（封面契约值，对应 fill_answer_post.py 封面前缀）
+    "结构化历年考题",  # 真题库标题前缀，终审 A1 补（封面契约值，对应 fill_answer_post.py REAL_EXAM_TITLE_PREFIX 真题分支）
     "适用题型",     # card_point
     "破题角度",     # fix_summary / answer break_angle（答题线共用）
     "切入理由",     # answer break_angle_reason（TR1 答题线）

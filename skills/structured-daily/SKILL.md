@@ -77,7 +77,7 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 
 ### ③ 引擎唯一入口
 
-唯一执行引擎是 **skill 内 `scripts/fill_answer_post.py`**（自 structured-post 引擎 v2 原样移植：19 段 5 图契约 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已随技巧线退役删除。安全机制与失败回退见 `references/shared-engine-safety.md`。
+唯一执行引擎是 **skill 内 `scripts/fill_answer_post.py`**（自 structured-post 引擎 v2 原样移植：19 段 5 图契约 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已从本技能删除（技巧线退役；vault `scripts/` 下遗留的 8 月旧版副本废弃勿用，勿当作入口）。安全机制与失败回退见 `references/shared-engine-safety.md`。
 
 ## 文件清单
 
@@ -94,9 +94,9 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 | skill | `scripts/content_rules.py` | 出厂规则门禁（R0 读源记录 / R14 审稿记录，`--line answer`） |
 | skill | `scripts/test_content_rules.py` | content_rules 自测（R0/R14 answer 用例） |
 | skill | `scripts/check_prose.py` | 通用红线检查：human-writing v1.2.0 副本+公考高危词叠加+字段前缀冒号豁免 |
-| skill | `scripts/test_check_prose.py` | check_prose 自测（6 用例） |
+| skill | `scripts/test_check_prose.py` | check_prose 自测（10 用例） |
 | skill | `scripts/test-prompts.json` | 冻结自测提示集（答题线 3 场景：全流程 / 失败边界 / 盲测出厂） |
-| skill | `assets/answer-template-baseline.docx` | 模板 baseline（19 段 5 图，只读复制自 vault 模板 1，sha256 一致；沙箱回归与漂移恢复用） |
+| skill | `assets/answer-template-baseline.docx` | 模板 baseline（19 段 5 图，只读复制自 vault 模板 1，sha256 入库时一致，出稿后以 vault 活模板为准；沙箱回归与漂移恢复用） |
 | vault | `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx` | 活模板（唯一写目标，覆盖写入） |
 | vault | `scripts/pending_answer.json` | 中间文件（引擎读取成功后自动删除） |
 | vault | `scripts/_snapshots/` | 引擎自动快照（最多 10 个，超出按修改时间倒序清理） |
@@ -109,7 +109,7 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 - 模板契约：**19 段 / w:drawing 5 图 / 16 必填字段**；引擎 `scripts/fill_answer_post.py` 按下表段位写入（表自引擎 `REPLACE_MAP` 提取）。
 - **图数口径：`w:drawing == 5`**（引擎 validate 按此口径，现行健康）；封面文本框双镜像 `txbxContent == 2`（drawing 镜像 + VML fallback）。
 - **字体铁律**：通用字体（微软雅黑等），不引云字体、不内嵌字体文件。
-- **写目标唯一**：vault `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx`；`assets/answer-template-baseline.docx` 为其只读 baseline（sha256 一致），只用于沙箱回归与漂移恢复，**永远不作为写目标**。
+- **写目标唯一**：vault `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx`；`assets/answer-template-baseline.docx` 为其只读 baseline（sha256 入库时一致，出稿后以 vault 活模板为准，漂移恢复=恢复出厂态），只用于沙箱回归与漂移恢复，**永远不作为写目标**。
 
 ### 19 段段位映射表（逐段）
 
@@ -161,5 +161,5 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
   ```bash
   python3 scripts/test_fill_answer_post.py   # 引擎沙箱 11 用例
   python3 scripts/test_content_rules.py      # R0/R14 answer 用例
-  python3 scripts/test_check_prose.py        # check_prose 6 用例
+  python3 scripts/test_check_prose.py        # check_prose 10 用例
   ```

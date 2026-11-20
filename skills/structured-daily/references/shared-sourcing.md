@@ -51,7 +51,7 @@
 | quote_excerpts[] | 共 | string[] | 两线必填 | 逐条原文短句 |
 | applicable_conditions[] | 共 | string[] | 两线必填 | 教师注权限/安全原样 |
 | review_conclusion | 共 | string | 两线必填 | **独立审稿后写**；=="通过" 才放行（R14），此前为"待审"等值一律拒 |
-| render_check | 共 | string | 两线必填 | "近似通过" 或 "发布端通过" |
+| render_check | 共 | string | 两线必填 | 生命周期两段：草稿期（步 8 content_rules 前）以"待引擎"占位（R14 对本字段仅查非空，占位可过）；步 10 引擎渲染后回写终值 "近似通过" 或 "发布端通过" |
 | blind_test_result | 共 | string | 两线必填 | **盲测试答后写**；=="通过" 才出厂（R14），此前为"未过"等值一律拒 |
 | card_point | tips | string | line=="tips" 必填 | 本期卡点 |
 | cognitive_gain | tips | string | line=="tips" 必填 | 认知增量点：读者原来想错了什么 |
