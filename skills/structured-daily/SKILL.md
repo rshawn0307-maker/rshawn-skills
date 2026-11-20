@@ -1,8 +1,8 @@
 ---
 name: structured-daily
-description: 自动化生成「结构化每日一练」答题帖 docx：出题（热点自出 / 真题库 / 模拟题库三选一）＋审题五维＋思路大纲＋定调版逐字稿（opening+三观点 lead/body+closing，正文 700–800 汉字不含标点，硬边界 680–820），电车站诊断/改写、check_prose 门禁、独立审稿、盲测验收、pending_answer 套版式出稿一气呵成，保留模板配图/引流段样式。用户说「答一道 / 出题 / 出一道题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子」等出题作答类表述时触发。本技能接替 structured-post（触发词全盘接替，防双触发由 TR3 归档旧技能保证）；原双线（技巧线/答题线）已收敛为本答一道单线。
+description: 自动化生成「结构化每日一练」答题帖并直接出图（6 张 1080×1440 PNG + 笔记文案.md，答一道 VI 简洁风）：出题（热点自出 / 真题库 / 模拟题库三选一）＋审题五维＋思路大纲＋定调版逐字稿（opening+三观点 lead/body+closing，正文 700–800 汉字不含标点，硬边界 680–820），电车站诊断/改写、check_prose 门禁、独立审稿、盲测验收、render_answer_cards.py 渲染出图一气呵成。用户说「答一道 / 出题 / 出一道题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子」等出题作答类表述时触发。本技能接替 structured-post（触发词全盘接替，防双触发由 TR3 归档旧技能保证）；原双线（技巧线/答题线）已收敛为本答一道单线；docx 产线（fill_answer_post.py + 模板）已归档保留，不再执行。
 version: 3.1.0
-author: Shawn × AI（2026-11 重构；TR1 答一道单线转型）
+author: Shawn × AI（2026-11 重构；TR1 答一道单线转型；2026-11-20 TR4 产线切换直接出图）
 metadata:
   triggers:
     - 答一道
@@ -12,10 +12,12 @@ metadata:
     - 结构化面试练习
     - 做一篇结构化帖子
   outputs:
-    - 覆盖 vault docx 模板（desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx）
-    - scripts/_snapshots/ 快照（最多 10 个）
+    - vault 图片输出/第N期-{题型}-{主题}/（6 张 1080×1440 PNG + 笔记文案.md）
+    - vault 图片输出/progress_answer.json（期号进度 done 数组，渲染成功后追加）
   prerequisites:
-    - python3 + python-docx 1.2.0
+    - python3 + Pillow（PIL，6 卡渲染产线必需）
+    - 字体 HarmonyOS_Sans_SC_{Black,Bold,Medium,Regular}.ttf @ /Users/shawn/Library/Fonts ＋ 品牌 logo（公考橙皮书 assets/logo-zfz.png），任一缺失渲染即 STOP
+    - python3 + python-docx 1.2.0（仅归档 docx 引擎及其回归测试用，产线不再执行）
     - 电车站 tramstop-skill（去 AI 味诊断）
     - human-writing（改写；check_prose 已收录为 skill 内副本 `scripts/check_prose.py`，上游更新手动同步）
     - node + ima-skill（仅 IMA 上传，可选）
@@ -40,7 +42,7 @@ metadata:
 | 7 | 盲测试答出厂验收：学生 persona 只读帖子全文（题目+思路大纲+逐字稿），独立产出新题完整定调版答题；判据四项全过 `blind_test_result=="通过"`，未过回炉（回步 3） | `references/blind-test-protocol.md`、`references/shared-gates.md` 步 7 |
 | 8 | content_rules 出厂程序门禁：`python3 scripts/content_rules.py --line answer --pending <pending_answer> --meta <draft_meta>`，R0/R14 exit 0 才进 CHECKPOINT | `scripts/content_rules.py`、`references/shared-gates.md` 步 8 |
 | 9 | CHECKPOINT 复核：两处弹窗记录齐备（①步 1 题干确认 ②步 4 后成稿前后对比 3-5 处），缺一不进渲染 | `references/shared-gates.md` 步 9 与「CHECKPOINT 用户弹窗」 |
-| 10 | 出稿：draft 写入 `pending_answer.json` → 引擎生成 docx（exit 0）→ 渲染近似检查 → 向用户报告 | `references/shared-engine-safety.md`、`references/shared-gates.md` 步 10 |
+| 10 | 出稿（图片产线）：draft 写入 16 键 final JSON → `python3 scripts/render_answer_cards.py --project-root <项目根> --final <final JSON> --type <题型> --topic <主题>` 直接渲染 6 张 1080×1440 PNG + 笔记文案.md（exit 0，logo 像素校验通过后才追加 progress done）→ 目检 + `--check` 复核 → 向用户报告。docx 引擎 `fill_answer_post.py` 与模板已退出产线（归档保留，不再执行） | `scripts/render_answer_cards.py`、`references/shared-engine-safety.md` |
 | 后置 | 发布后第 7 天数据回填：阅读/收藏/反馈关键词写入 vault `scripts/daily_metrics.json`；收藏率=收藏÷第 7 天阅读；不阻塞出厂 | vault `scripts/daily_metrics.json` |
 
 IMA 上传是可选附加步（仅用户明确要求时执行）：node + ima-skill。
@@ -75,9 +77,19 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 - **命令陷阱**：本机用 `python3` / `pip3`，不是 `python`。
 - **包名陷阱**：装包用 `pip install python-docx`，不是 `pip install docx`（会装同名垃圾包）。
 
-### ③ 引擎唯一入口
+### ③ 引擎唯一入口（2026-11-20 起为图片渲染产线）
 
-唯一执行引擎是 **skill 内 `scripts/fill_answer_post.py`**（自 structured-post 引擎 v2 原样移植：19 段 5 图契约 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已从本技能删除（技巧线退役；vault `scripts/` 下遗留的 8 月旧版副本废弃勿用，勿当作入口）。安全机制与失败回退见 `references/shared-engine-safety.md`。
+唯一执行引擎是 **skill 内 `scripts/render_answer_cards.py`**（PIL 直出 6 张 1080×1440 PNG + 笔记文案.md；只折行不截断、超高自动降档、字体/logo 缺失 STOP，exit 0/1）。docx 引擎 `fill_answer_post.py` 与 docx 模板**退出产线：归档保留，不再执行**（`assets/answer-template-baseline.docx` 与 `test_fill_answer_post.py` 随之归档，仅作历史回溯参考）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已从本技能删除（技巧线退役；vault `scripts/` 下遗留的 8 月旧版副本废弃勿用，勿当作入口）。安全机制与失败回退见 `references/shared-engine-safety.md`。
+
+### ④ 视觉资产（PIL / 字体 / logo，缺一即 STOP）
+
+```bash
+python3 -c "import PIL; print(PIL.__version__)"    # Pillow（12.3.0 实测）
+ls /Users/shawn/Library/Fonts/HarmonyOS_Sans_SC_Black.ttf /Users/shawn/Library/Fonts/HarmonyOS_Sans_SC_Bold.ttf /Users/shawn/Library/Fonts/HarmonyOS_Sans_SC_Medium.ttf /Users/shawn/Library/Fonts/HarmonyOS_Sans_SC_Regular.ttf
+ls "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png"
+```
+
+四档 HarmonyOS Sans SC 字体与总分总品牌 logo 任一缺失，渲染引擎直接 STOP exit 非 0，不静默降级、不手绘替代。
 
 ## 文件清单
 
@@ -89,22 +101,29 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 | skill | `references/shared-gates.md` | 门禁栈 10 步流水线 + 诊断/改写契约 + 独立审稿 8 查项 |
 | skill | `references/shared-engine-safety.md` | 引擎安全机制、失败回退与沙箱回归纪律 |
 | skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议（学生 persona / 判据四项 / 白盒禁令） |
-| skill | `scripts/fill_answer_post.py` | 答一道引擎（19 段 5 图 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1） |
-| skill | `scripts/test_fill_answer_post.py` | 引擎回归测试（沙箱临时副本；真实模板 sha256 前后断言） |
+| skill | `scripts/render_answer_cards.py` | **现行产线**：答一道 6 卡图片渲染引擎（PIL 1080×1440 ×6 + 笔记文案.md；期号读 progress_answer.json、logo 像素校验、只折行不截断、超高降档/FAIL，exit 0/1） |
+| skill | `scripts/test_render_answer_cards.py` | 渲染引擎回归测试（9 用例，沙箱 tempfile 输出） |
+| skill | `scripts/fill_answer_post.py` | 答一道 docx 引擎（19 段 5 图 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1）——**归档保留，退出产线不再执行** |
+| skill | `scripts/test_fill_answer_post.py` | docx 引擎回归测试（沙箱临时副本；真实模板 sha256 前后断言）——**归档** |
 | skill | `scripts/content_rules.py` | 出厂规则门禁（R0 读源记录 / R14 审稿记录，`--line answer`） |
 | skill | `scripts/test_content_rules.py` | content_rules 自测（R0/R14 answer 用例） |
 | skill | `scripts/check_prose.py` | 通用红线检查：human-writing v1.2.0 副本+公考高危词叠加+字段前缀冒号豁免 |
 | skill | `scripts/test_check_prose.py` | check_prose 自测（10 用例） |
 | skill | `scripts/test-prompts.json` | 冻结自测提示集（答题线 3 场景：全流程 / 失败边界 / 盲测出厂） |
-| skill | `assets/answer-template-baseline.docx` | 模板 baseline（19 段 5 图，只读复制自 vault 模板 1，sha256 入库时一致，出稿后以 vault 活模板为准；沙箱回归与漂移恢复用） |
-| vault | `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx` | 活模板（唯一写目标，覆盖写入） |
-| vault | `scripts/pending_answer.json` | 中间文件（引擎读取成功后自动删除） |
-| vault | `scripts/_snapshots/` | 引擎自动快照（最多 10 个，超出按修改时间倒序清理） |
+| skill | `assets/answer-template-baseline.docx` | 模板 baseline（19 段 5 图，只读复制自 vault 模板 1）——**归档保留，不作写目标** |
+| vault | `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx` | docx 活模板——**归档保留，退出产线，不再作为写目标** |
+| vault | `scripts/pending_answer.json` | docx 产线中间文件（随引擎归档，不再生成） |
+| vault | `scripts/_snapshots/` | docx 引擎自动快照（随引擎归档，不再新增） |
+| vault | `scripts/_draft_answer/` | final JSON 草稿目录（图片产线渲染输入，16 键只读） |
+| vault | `图片输出/第XXX期-题型-主题/` | 图片产线期目录（6 PNG + 笔记文案.md，**唯一 vault 写授权**，另加 progress_answer.json） |
+| vault | `图片输出/progress_answer.json` | 期号进度（`done` 数组；期号 = done 数+1 三位补零，渲染成功后才追加） |
 | vault | `scripts/daily_metrics.json` | 发布后指标回填（第 7 天，轻量效果回收） |
 
-**事实源约定**：读源/选题素材事实源在 vault（方法论/一本通/题库双根/教师注，见 `references/shared-sourcing.md`）；效果指标事实源为 vault `scripts/daily_metrics.json`。答一道线不设索引与 progress 台账（T2 裁定保持现状）。
+**事实源约定**：读源/选题素材事实源在 vault（方法论/一本通/题库双根/教师注，见 `references/shared-sourcing.md`）；效果指标事实源为 vault `scripts/daily_metrics.json`；期号进度事实源为 vault `图片输出/progress_answer.json`（仅图片产线写）。答一道线不设索引台账（T2 裁定保持现状）。
 
 ## 模板铁律（19 段 5 图契约，本表为准）
+
+> **产线已切换为图片（2026-11-20）：docx 为归档资产，不再作为发布载体；思路区/逐字稿区颜色分区保留在归档模板中。** 本节以下内容为归档模板契约，仅供回溯；现行发布载体为 `图片输出/` 下 6 卡 PNG + 笔记文案.md（`render_answer_cards.py`）。
 
 - 模板契约：**19 段 / w:drawing 5 图 / 16 必填字段**；引擎 `scripts/fill_answer_post.py` 按下表段位写入（表自引擎 `REPLACE_MAP` 提取）。
 - **图数口径：`w:drawing == 5`**（引擎 validate 按此口径，现行健康）；封面文本框双镜像 `txbxContent == 2`（drawing 镜像 + VML fallback）。
@@ -158,9 +177,10 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 ## 失败处理 / 回归测试
 
 - 失败回退：引擎任何失败先看 `scripts/_snapshots/` 最新快照；写入失败时 `[KEEP] pending_answer.json 保留`，按报错逐项修后重跑。快照机制与沙箱回归纪律统一见 `references/shared-engine-safety.md`。
-- 三套自测（改引擎/规则/检查器后必跑，全过才算交付）：
+- 四套自测（改引擎/规则/检查器/渲染器后必跑，全过才算交付）：
   ```bash
-  python3 scripts/test_fill_answer_post.py   # 引擎沙箱 11 用例
+  python3 scripts/test_render_answer_cards.py  # 6 卡图片渲染 9 用例（现行产线）
+  python3 scripts/test_fill_answer_post.py   # docx 引擎沙箱 11 用例（归档，改动时才跑）
   python3 scripts/test_content_rules.py      # R0/R14 answer 用例
   python3 scripts/test_check_prose.py        # check_prose 10 用例
   ```
