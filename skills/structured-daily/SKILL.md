@@ -109,6 +109,7 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 - 模板契约：**19 段 / w:drawing 5 图 / 16 必填字段**；引擎 `scripts/fill_answer_post.py` 按下表段位写入（表自引擎 `REPLACE_MAP` 提取）。
 - **图数口径：`w:drawing == 5`**（引擎 validate 按此口径，现行健康）；封面文本框双镜像 `txbxContent == 2`（drawing 镜像 + VML fallback）。
 - **字体铁律**：通用字体（微软雅黑等），不引云字体、不内嵌字体文件。
+- **视觉分区铁律（2026-11-20）**：答题思路区内容段（**段 2-8**）正文统一字体颜色**深蓝 `#1F4E79`**；逐字稿区（**段 9-16**）保持黑色；段 1"答题思路"标题走 Heading2 品牌蓝，段 17 引流段保持 `#85120F` 品牌红——思路与逐字稿一眼可分。段 2-8 染色已固化进 `assets/answer-template-baseline.docx` 与 vault 活模板；引擎写入落在既有 run 上，不改 rPr，颜色随模板保留（已用临时项目根引擎仿真验证）。重建 baseline 时必须保留此染色。
 - **写目标唯一**：vault `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx`；`assets/answer-template-baseline.docx` 为其只读 baseline（sha256 入库时一致，出稿后以 vault 活模板为准，漂移恢复=恢复出厂态），只用于沙箱回归与漂移恢复，**永远不作为写目标**。
 
 ### 19 段段位映射表（逐段）
