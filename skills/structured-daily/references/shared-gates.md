@@ -32,7 +32,7 @@
   1. 这篇稿子的细节里，有几个是"换成别的例子也成立"的？
   2. 判断有没有押注？还是全在两头堵？
   3. 删掉所有修辞后，剩下的信息量撑得起这篇文章吗？
-- **落盘**：报告写入 vault `scripts/_draft_tips/`（沿用作草稿工作区，文件名 `tramstop_diagnosis_<question_id>.md`），作为诊断与改写两 agent 之间**唯一交接物**，供改写 agent 读。
+- **落盘**：报告写入 vault `scripts/_draft_answer/`（本次启用的答一道草稿工作区，文件名 `tramstop_diagnosis_<question_id>.md`），作为诊断与改写两 agent 之间**唯一交接物**，供改写 agent 读。
 - **边界**：诊断 agent 只出报告不改稿；不产出改写稿、不读任何改写产物（白熊隔离）。
 - **不可用即 STOP**：tramstop-skill 不可用时无降级，不跳过诊断。
 

@@ -43,7 +43,7 @@
 
 | 字段 | 线 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
-| skill_version | 共 | string | 两线必填 | "3.0.0" |
+| skill_version | 共 | string | 两线必填 | "3.1.0" |
 | line | 共 | string | 两线必填 | "tips" 或 "answer" |
 | tip_id / question_id | 共 | string | 两线必填（tips 填 tip_id / answer 填 question_id，二选一非空） | 选题 id |
 | method_points / point_labels | 共 | number / string[] | 两线必填 | 要点数如实 |

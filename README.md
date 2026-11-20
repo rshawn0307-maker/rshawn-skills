@@ -15,8 +15,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [PE-lecture](#PE-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#PE-lecture) |
 | [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成（考试规则可配置 + 独立验真） | [查看](#PE-trial) |
 | [PE-trial-daily](#PE-trial-daily) | 体育试讲设计每日一练：拆解教学环节 + 图例 + 试讲逐字稿 docx 自动生成 | [查看](#PE-trial-daily) |
-| [structured-post](#structured-post) | "结构化每日一练"帖子 docx 自动生成 | [查看](#structured-post) |
-| [structured-tips-daily](#structured-tips-daily) | "结构化答题技巧·每日一练"小红书爆款图文帖子 docx 自动生成 | [查看](#structured-tips-daily) |
+| [structured-daily](#structured-daily) | "结构化每日一练"答一道帖：题目+思路框架+定调版逐字稿 docx 自动生成（原 structured-post 与 structured-tips-daily 已归档合并） | [查看](#structured-daily) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
 | [PE-bishi-jd-daily](#pe-bishi-jd-daily) | 体育笔试简答题每日一练：简答题 + 参考答案 + 要点解析表，保留原版模板与生成门槛 | [查看](#pe-bishi-jd-daily) |
 | [wushi-daily](#wushi-daily) | "公务员务实·岗位业务"小红书图文自动生成（PIL 6 卡 + 双脚本事实门禁） | [查看](#wushi-daily) |
@@ -87,7 +86,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 复制 `SKILL.md` 的内容作为项目规则文件（如 `CLAUDE.md` / `AGENTS.md`）的参考，或直接粘贴给 Agent 作为系统提示词。
 
-> 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-post、structured-tips-daily 依赖 human-writing，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
+> 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-daily 依赖 human-writing、tramstop-skill，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
 > 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）、huashu-md-html（约 15MB，含主题与示例）与 huashu-motion（约 22MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
 
@@ -133,11 +132,13 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 注意：本 skill 涉及大量业务工作区路径，文档中为本机绝对路径，使用前请替换为实际路径。
 
-#### structured-post
+#### structured-daily
 
-自动化生成"结构化每日一练"小红书/公众号帖子 docx。基于固定 docx 模板 + python-docx 脚本，自动替换题目文本框、正文段落、分页符并保留配图/引流段样式，答题须经 human-writing 去 AI 味儿（v1.3.2：新增 Pre-flight 三项检查、分题型高分要素、用语禁忌与 IMA 笔记上传）。
+「结构化每日一练」答一道帖自动生成：出题（热点自出 / 真题库 / 模拟题库）+ 审题五维 + 思路大纲 + 定调版逐字稿（opening+三观点 lead/body+closing，700–800 汉字不含标点，硬边界 680–820，210 秒，破题定调三禁）。流水线＝读源四源（方法论/一本通/题库/教师注）→电车站诊断→human-writing 改写（逐字稿引文保真）→check_prose 红线→回核读源→独立审稿→盲测出厂验收→pending_answer 套版式出稿；引擎为 skill 内 `scripts/fill_answer_post.py`（19 段 5 图契约，写入前段数预检 + 写入前快照 + 写入后验证，exit 0/1）。原 structured-post（答一道）与 structured-tips-daily（技巧线）已合并并归档至 `skills/_archive/`，git 历史可查。
 
-触发词：答一道、出题、做一篇结构化帖子、每日一练。
+触发词：答一道、出题、出一道题、每日一练、结构化面试练习、做一篇结构化帖子。
+
+> 归档说明：`skills/_archive/structured-post`、`skills/_archive/structured-tips-daily` 仅作历史留存，不再作为现行技能使用（其触发词已由 structured-daily 全盘接替，避免双触发）。
 
 #### PE-bishi-daily
 
@@ -157,11 +158,9 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 > 注意：沿用本机讲稿与源模板路径，使用前需确认实际路径、可导入 python-docx 的 Python 环境与独立简答题进度。`SPORTS_JD_DAILY_WORKSPACE` 应指向「体育教师编」目录本身，首次启用须确认该版本发布记录；模板与讲稿不随 skill 分发。
 
-#### structured-tips-daily
+#### structured-tips-daily（已归档）
 
-自动化生成"结构化答题技巧·每日一练"小红书爆款图文帖子 docx。围绕公考结构化面试的答题技巧和思路，用上岸过来人 + 考官视角，按小红书爆款节奏（标题钩子/短句/emoji/普通 vs 高分对照/避坑提醒/话题标签）打磨。基于固定 docx 模板（19 段）+ python-docx 脚本自动替换，从题库索引（tips_index.json，38 条覆盖六大题型）选题防重复，答题须经 human-writing 去 AI 味儿，可同步 ima 知识库「总分总」→「00_结构化答题技巧」。
-
-触发词：出一期答题技巧、技巧每日一练、答题思路、结构化答题技巧。
+原"结构化答题技巧·每日一练"小红书图文技能（一期一技巧+普通 vs 高分对照+卡点标签体系），2026-11-20 因形态不吸引读者，随重构转型退役，文件保留在 `skills/_archive/structured-tips-daily/`。其定调版口径、读源链、门禁栈等可复用能力已并入 structured-daily。
 
 #### wushi-daily
 

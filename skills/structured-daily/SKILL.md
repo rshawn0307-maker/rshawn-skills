@@ -1,7 +1,7 @@
 ---
 name: structured-daily
 description: 自动化生成「结构化每日一练」答题帖 docx：出题（热点自出 / 真题库 / 模拟题库三选一）＋审题五维＋思路大纲＋定调版逐字稿（opening+三观点 lead/body+closing，正文 700–800 汉字不含标点，硬边界 680–820），电车站诊断/改写、check_prose 门禁、独立审稿、盲测验收、pending_answer 套版式出稿一气呵成，保留模板配图/引流段样式。用户说「答一道 / 出题 / 出一道题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子」等出题作答类表述时触发。本技能接替 structured-post（触发词全盘接替，防双触发由 TR3 归档旧技能保证）；原双线（技巧线/答题线）已收敛为本答一道单线。
-version: 3.0.0
+version: 3.1.0
 author: Shawn × AI（2026-11 重构；TR1 答一道单线转型）
 metadata:
   triggers:
