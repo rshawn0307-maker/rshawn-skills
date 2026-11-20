@@ -3,13 +3,16 @@
 """test_render_answer_cards —— render_answer_cards.py（答一道 6 卡图片产线）回归测试（沙箱）。
 
 运行：python3 scripts/test_render_answer_cards.py
-- 全 9 用例全过 exit 0；任一失败或用例数 <9 → exit 1（不允许假绿，筛选不中即失败）。
+- 全 10 用例全过 exit 0；任一失败或用例数 <10 → exit 1（不允许假绿，筛选不中即失败）。
 - 沙箱纪律：全程只写系统临时目录；final 样本为 TR2 draft_yj-01_final.json 的内嵌只读副本；
   不触碰真实 vault（图片输出/progress 仅在首期实跑时由人工执行，不入本测试）。
-- 覆盖 9 用例：黄金路径全契约（exit0 / 6 PNG 1080×1440 / 目录命名 / 笔记文案含标签 /
-  progress done 追加）/ 期号递增（已有 1 条 done → 第002期）/ 超长题干自动降档仍可渲染 /
+- 覆盖 10 用例：黄金路径全契约（exit0 / 6 PNG 1080×1440 / 目录命名 / 笔记文案含标签 /
+  progress done 追加 / TR4.1 右上角期数徽章已删（旧徽章区域纯米底）/ 页脚全卡存在
+  （页脚带非米底像素>阈值，修复轮 1 C1 回归）/ 逐字稿 40/36 设计档 /
+  删徽章后 --check 通过）/ 期号递增（已有 1 条 done → 第002期）/ 超长题干自动降档仍可渲染 /
   超高 FAIL exit 非0 指出卡片且不写进度 / 缺字体 monkeypatch STOP / 缺 logo monkeypatch
-  STOP / --check 通过与失败两路径 / wrap_text 只折行不截断+避头标点 / outdir 越界拒绝。
+  STOP / --check 通过与失败两路径 / wrap_text 只折行不截断+避头标点 / outdir 越界拒绝 /
+  TR4.1 版式常量断言（逐字稿正文≥36、标签≥28、编号方块≤26、档位表自洽）。
 """
 
 import importlib.util
@@ -25,7 +28,15 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 RENDER = os.path.join(HERE, "render_answer_cards.py")
 
-MIN_CASES = 9
+MIN_CASES = 10
+
+# TR4.1 右上角期数徽章旧绘制区域（最长态起点约 x≈664，至 W-56，y 84–144）：
+# 删徽章后该区域在全部 6 卡上必须为纯画布米底，一个杂色像素都不许有。
+BADGE_REGION = (640, 84, 1024, 144)
+# 页脚存在性断言区（修复轮 1 C1）：页脚带 (60,1340)-(1020,1420) 必须含
+# GOLD 细线＋系列名＋页码（非米底像素 >1000；仅金线即约 1880px，6 卡统一覆盖）。
+FOOTER_REGION = (60, 1340, 1020, 1420)
+FOOTER_BG = (251, 246, 237)
 
 # TR2 首期 final（draft_yj-01_final.json）内嵌只读副本；16 键内容不动
 SAMPLE = {
@@ -109,13 +120,14 @@ def case(name):
     return wrap
 
 
-@case("golden 黄金路径全契约（6 PNG/尺寸/命名/文案/进度）")
+@case("golden 黄金路径全契约（6 PNG/尺寸/命名/文案/进度/删徽章/40-36 档/--check）")
 def case_golden(check):
     with tempfile.TemporaryDirectory(prefix="render_answer_test_") as tmpdir:
         root, final_path = make_sandbox(tmpdir)
         rc, out = run_render(root, final_path)
         check(rc == 0, "exit=%s out=%s" % (rc, out[-400:]))
         check("✅" in out, "无成功标记")
+        check("档位 lead/body = 40/36" in out, "逐字稿未落在 40/36 设计档: %s" % out[-300:])
         outdir = issue_dir(root, "001")
         check(outdir.is_dir(), "期目录未生成: %s" % outdir)
         for name in CARD_FILES:
@@ -124,6 +136,17 @@ def case_golden(check):
             if p.is_file():
                 im = Image.open(p)
                 check(im.size == (1080, 1440), "%s 尺寸=%s" % (name, im.size))
+                # TR4.1 硬性要求①：全卡删右上角期数徽章——旧徽章区域须纯米底
+                region = im.convert("RGB").crop(BADGE_REGION)
+                colors = region.getcolors(maxcolors=1_000_000)
+                check(colors == [(region.size[0] * region.size[1], (251, 246, 237))],
+                      "%s 右上角仍有非米底像素（徽章未删净?）: %s" % (name, colors[:3]))
+                # 修复轮 1 C1 回归：页脚（金线+系列名+页码）全卡必须存在
+                band = im.convert("RGB").crop(FOOTER_REGION)
+                non_bg = sum(c for c, col in band.getcolors(maxcolors=1_000_000)
+                             if col != FOOTER_BG)
+                check(non_bg > 1000,
+                      "%s 页脚带非米底像素 %s ≤1000（页脚缺失?）" % (name, non_bg))
         note = outdir / "笔记文案.md"
         check(note.is_file(), "缺 笔记文案.md")
         if note.is_file():
@@ -137,6 +160,9 @@ def case_golden(check):
         if prog.is_file():
             data = json.loads(prog.read_text(encoding="utf-8"))
             check(data.get("done") == ["yj-01"], "done=%r" % data.get("done"))
+        # TR4.1：删徽章后 --check 仍通过（封面/内页两套 logo 校验框）
+        rc2, out2 = run_check(root, outdir)
+        check(rc2 == 0, "删徽章后 --check 未通过: exit=%s out=%s" % (rc2, out2[-200:]))
 
 
 @case("期号递增（progress 已有 1 条 done → 第002期）")
@@ -289,6 +315,39 @@ def case_outdir_escape(check):
         check(rc != 0, "越界 outdir 未拒绝 exit=%s" % rc)
         check("不在" in out, "未报越界: %s" % out[-200:])
         check(not outside.exists(), "越界目录被创建")
+
+
+@case("TR4.1 版式常量断言（逐字稿正文≥36/标签≥28/方块≤26/档位自洽）")
+def case_layout_constants(check):
+    mod = load_mod()
+    # 逐字稿卡：正文达 huashu 底线 36px，lead ≥ 正文
+    check(mod.SCRIPT_BODY_SIZE >= 36, "SCRIPT_BODY_SIZE=%s < 36" % mod.SCRIPT_BODY_SIZE)
+    check(mod.SCRIPT_LEAD_SIZE >= mod.SCRIPT_BODY_SIZE,
+          "lead %s < body %s" % (mod.SCRIPT_LEAD_SIZE, mod.SCRIPT_BODY_SIZE))
+    # 标签底线 28px：页眉字标（内页）/封面眉标/页脚/小胶囊标签
+    check(mod.HEADER_WORDMARK_SIZE >= 28, "内页字标 %s < 28" % mod.HEADER_WORDMARK_SIZE)
+    check(mod.EYEBROW_SIZE >= 28, "封面眉标 %s < 28" % mod.EYEBROW_SIZE)
+    check(mod.FOOTER_SIZE >= 28, "页脚 %s < 28" % mod.FOOTER_SIZE)
+    check(mod.LABEL_SIZE >= 28, "小胶囊标签 %s < 28" % mod.LABEL_SIZE)
+    # 装饰收缩：编号方块 ≤26px（TR4.1 36→26）
+    check(mod.SQ_SIZE <= 26, "编号方块 %s > 26" % mod.SQ_SIZE)
+    # 君上裁定（修复轮 1）：卡 03 观点正文 30px 长期口径＝清单条目按标签底线 ≥28px，
+    # 降档表各档 vw 均不得下穿 28
+    check(min(t[4] for t in mod.OUTLINE_TIERS) >= 28,
+          "卡 03 观点正文降档下穿 28px 标签底线: %r" % (mod.OUTLINE_TIERS,))
+    # 档位表自洽：首档=设计档且逐档递减（自动降档只降不升）
+    check(mod.SCRIPT_TIERS[0] == (mod.SCRIPT_LEAD_SIZE, mod.SCRIPT_BODY_SIZE),
+          "逐字稿首档 %r ≠ 设计档 (%s, %s)"
+          % (mod.SCRIPT_TIERS[0], mod.SCRIPT_LEAD_SIZE, mod.SCRIPT_BODY_SIZE))
+    leads = [t[0] for t in mod.SCRIPT_TIERS]
+    bodies = [t[1] for t in mod.SCRIPT_TIERS]
+    check(leads == sorted(leads, reverse=True) and bodies == sorted(bodies, reverse=True),
+          "降档表非单调递减: %r" % (mod.SCRIPT_TIERS,))
+    # 各卡设计档：题干 40 / 金句 48 / ×36 / √40（TR4.1 数值）
+    check(mod.QUESTION_TIERS[0] == 40, "题干首档 %s ≠ 40" % mod.QUESTION_TIERS[0])
+    check(mod.GOLDEN_TIERS[0] == 48, "金句首档 %s ≠ 48" % mod.GOLDEN_TIERS[0])
+    check(mod.FAKE_SIZE == 36 and mod.REAL_SIZE == 40,
+          "×/√ 行 %s/%s ≠ 36/40" % (mod.FAKE_SIZE, mod.REAL_SIZE))
 
 
 def main() -> int:
