@@ -7,7 +7,7 @@
   （不允许假绿）。
 - 沙箱纪律：样本文件只写系统临时目录（tempfile），真实 vault 只读。
 
-用例（Task6 简报指定 6 项）：
+用例（Task6 简报指定 6 项 + TR1 修复轮 1 新增 2 项）：
 1. dash        破折号检出（exit 非 0，报「破折号」）
 2. pivot       翻案腔检出（不是…而是；exit 非 0）
 3. gongkao     公考高危词检出（体现；exit 非 0，报「公考高危词」）
@@ -15,6 +15,10 @@
                附反例：非前缀提示性冒号仍拦
 5. clean       干净文本放行（exit 0）
 6. negation    否定式排比≤1（两处拒 exit 非 0；一处放行 exit 0）
+7. outline 结构性大纲提示行豁免（修复轮 1）：含「（…递进：…）：」intro 行的
+               合规大纲稿 → exit 0（前缀豁免 1+结构行豁免 2=3）
+8. outline 对抗（修复轮 1）：正文句中冒号仍拦；行首带「（」但非整行提示行
+               （句中冒号+行尾非「）」）仍拦
 """
 
 import os
@@ -25,7 +29,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHECK_CLI = os.path.join(HERE, "check_prose.py")
 
-MIN_CASES = 6  # 用例数下限，防框架坏后假绿
+MIN_CASES = 8  # 用例数下限，防框架坏后假绿
 
 
 def run_cli(sample_text):
@@ -105,6 +109,29 @@ def case_negation(check):
     check("否定式排比 2 处" in out, "计数未报 2 处")
     rc1, _ = run_cli("不是没努力，不是没方法，是没把方法落到题上。\n")
     check(rc1 == 0, "一处否定式排比未放行（红线≤1），exit=%s" % rc1)
+
+
+@case("outline 结构性大纲提示行豁免（黄金样本：含（…递进：…）：intro 行）")
+def case_outline_golden(check):
+    rc, out = run_cli(
+        "破题角度：从制度目标与个体负担的平衡切入，不站队单向否定。\n"
+        "（按紧迫度排序，三个递进：先救人 → 再控场控直播 → 最后善后与制度）：\n"
+        "1. 人命第一，判断伤情不盲目搬动，先打 120 并报告请求支援。\n"
+    )
+    check(rc == 0, "合规大纲稿被拦，exit=%s out=%s" % (rc, out[-200:]))
+    check("模板前缀冒号豁免 3" in out,
+          "豁免计数未含结构行（前缀 1+结构行 2=3）")
+
+
+@case("outline 对抗：正文句中冒号不含豁免特征仍拦")
+def case_outline_adversarial(check):
+    rc, out = run_cli("他的理由有三：一是懒，二是拖，三是侥幸。\n")
+    check(rc != 0, "正文句中冒号未拦，exit=%s" % rc)
+    check("中文冒号" in out, "未报中文冒号")
+    # 行首带「（」但整行不是括号包裹的提示行（冒号在句中、行尾非「）」）→ 不豁免
+    rc2, out2 = run_cli("（这里有个前提：预算得批）我们再谈执行。\n")
+    check(rc2 != 0, "行首括号+句中冒号的正文句未拦，exit=%s" % rc2)
+    check("中文冒号" in out2, "括号半行句未报中文冒号")
 
 
 def main() -> int:

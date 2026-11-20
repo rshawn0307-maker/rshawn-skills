@@ -1,29 +1,22 @@
-# 引擎安全机制模式（shared-engine-safety）
+# 引擎安全机制（shared-engine-safety）
 
-两线引擎（技巧线 `fill_tips_post.py` / 答题线引擎）各自实现，共用此模式与测试基架。凡写入 docx 模板的引擎必须逐条满足：
+答一道引擎 skill 内 `scripts/fill_answer_post.py`（TR1 自 structured-post 引擎 v2 原样移植，现行健康口径；旧技巧线引擎 fill_tips_post.py 已随技巧线退役删除，其 v3.0 安全模式记载随 git 历史可找回）。
 
-1. **schema 全量校验先于任何写盘**
-2. **写入前段数预检**（≠契约段数直接 exit 1，模板未动）
-3. **先写临时文件 → 验证（结构 + 内容 + 逐段样式指纹 pPr/rPr 零漂移，含封面文本框）→ os.replace 原子替换**
-4. **快照写入前生成（最多 10 个）**
-5. **任何失败模板字节不变；pending 清理失败（exit 4）自动回滚为写入前字节**
-6. **退出码契约**（见下表）
-7. **回归测试沙箱纪律**：只写临时副本，真实模板 sha256 不变；IMA 用例强制本地 fake stub，绝无真实网络调用、绝不创建真实笔记；筛选 0 用例即失败退出不允许假绿
-8. **两线引擎各自实现，共用此模式与测试基架**
-9. **引擎归属统一**：两线引擎收 skill 内 `scripts/`；项目根只留数据/模板/索引/progress/pending/快照；项目根遗留 v1 `fill_tips_post.py` 废弃（无写入前预检、先保存后验证，危险）
-10. **项目根解析**：`--project-root` > 环境变量 `TIPS_PROJECT_ROOT` > 报错要求显式传（引擎收 skill 内后 `parent.parent` 是 skill 目录非 vault，取消旧 fallback 防误写）
+## 引擎安全机制（fill_answer_post.py 实装口径）
 
-## 退出码契约
+1. **项目根解析**：`--project-root` > 环境变量 `ANSWER_PROJECT_ROOT` > 报错 exit 1（移植时取消旧 `__file__` 相对路径 fallback——引擎收 skill 内后相对解析指向 skill 目录非 vault，保留会误写 skill 目录）。
+2. **写入前段数预检**：模板段数 ≠ 19 直接 exit 1（"请勿强行写入"），模板未动。
+3. **快照先行**：每次运行前自动快照当前模板到 vault `scripts/_snapshots/`（最多 10 个，超出按修改时间倒序清理）——任何失败都可用最新快照回退。
+4. **写入只改文本**：找第一个纯文本 run（有 w:t 无 drawing）写入，图片 run 完全不动；封面文本框双镜像（drawing 镜像 + VML fallback）同步写入。
+5. **版式锁定**：段[9] 正文首段强制 pageBreakBefore，大纲区（段 2-8）分页符清除。
+6. **写入后自动验证**：段数 19 / w:drawing 5 / 引流段样式（居中+加粗+#85120F）/ 封面双镜像前缀 / 分页符版式，任一不符 exit 1 且 `[KEEP] pending_answer.json 保留` 便于排查。
+7. **退出码契约**：0=成功（pending 清理）；1=环境或验证失败（pending 缺失 / 模板缺失 / 段数预检失败 / 缺 question / 真题前缀违规 / 写入后验证不过）。缺大纲字段按源版本语义抛 KeyError 退出 1（原样保留，不另设码）。
+8. **真题封面前缀铁律**：source 含真题类标记而 title_prefix 非「结构化历年考题：」直接 exit 1，防静默用错封面。
+9. **引擎归属统一**：引擎收 skill 内 `scripts/`；项目根只留数据/模板/pending/快照；项目根遗留 `fill_structured_post.py` 已废弃勿用。
+10. **失败回退**：验证失败不回滚字节（源版本口径：快照已留存写入前版本），从 `_snapshots/` 复制最新快照覆盖回模板路径即回退；pending 保留排查。
 
-| 退出码 | 含义 | 模板状态 |
-|---|---|---|
-| 0 | 成功 | 已原子替换，pending 已清理 |
-| 1 | 环境错误（含段数预检失败） | 未动 |
-| 2 | pending JSON 无效 | 未动 |
-| 3 | 写入后验证失败（含样式指纹漂移） | 字节不变，按 errors 改内容后重跑 |
-| 4 | 模板已替换但 pending 清理失败 → 自动回滚 | 回滚为写入前字节，pending 保留 |
+## 回归测试与沙箱纪律
 
-## 回归测试与脚本行为要点（引用入口）
-
-- 回归测试沙箱纪律见第 7 条：改引擎/模板/测试后必跑，真实模板 sha256 前后一致才算通过。
-- 脚本行为要点（不预设 run[0] 是文本 run、封面 2 处同步、emoji 引擎自动加、样式指纹零漂移等）在引擎落地（Task4）时随引擎一并实现并写入引擎自测。
+- `scripts/test_fill_answer_post.py`：模板源用 skill 内 `assets/answer-template-baseline.docx`，全程只写系统临时目录副本；结束断言 vault 模板 1 与 baseline 的 sha256 前后不变；用例数低于下限即失败退出（不允许假绿）。
+- 改引擎/模板/测试后必跑三套自测：`test_fill_answer_post.py` + `test_content_rules.py` + `test_check_prose.py`，全过才算交付。
+- IMA 用例（如有）强制本地 fake stub，绝无真实网络调用、绝不创建真实笔记。

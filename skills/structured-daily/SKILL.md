@@ -1,18 +1,19 @@
 ---
 name: structured-daily
-description: 自动化生成"结构化答题技巧·每日一练"小红书图文帖子 docx。卡点驱动 + 定调版示范：先诊断读者卡在哪，再用普通答法 vs 示范对照讲透关键改动，教读者真能照做、可迁移的结构化答题技巧。用户说"出一期答题技巧 / 技巧每日一练 / 答题思路 / 结构化答题技巧 / 出一期答题思路"或类似含糊表述（如"来一期技巧""讲讲答题方法""出个技巧帖"）时触发本技能技巧线。本技能含两条工作流线（技巧线 / 答题线）：阶段 1 只启用技巧线，本 description 只覆盖技巧线触发词；答题线（逐题作答出稿）阶段 2 才启用，当前暂由 structured-post 承接，本技能暂不响应该线请求，避免双触发。
+description: 自动化生成「结构化每日一练」答题帖 docx：出题（热点自出 / 真题库 / 模拟题库三选一）＋审题五维＋思路大纲＋定调版逐字稿（opening+三观点 lead/body+closing，正文 700–800 汉字不含标点，硬边界 680–820），电车站诊断/改写、check_prose 门禁、独立审稿、盲测验收、pending_answer 套版式出稿一气呵成，保留模板配图/引流段样式。用户说「答一道 / 出题 / 出一道题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子」等出题作答类表述时触发。本技能接替 structured-post（触发词全盘接替，防双触发由 TR3 归档旧技能保证）；原双线（技巧线/答题线）已收敛为本答一道单线。
 version: 3.0.0
-author: Shawn × AI（2026-11 重构）
+author: Shawn × AI（2026-11 重构；TR1 答一道单线转型）
 metadata:
   triggers:
-    - 出一期答题技巧
-    - 技巧每日一练
-    - 答题思路
-    - 结构化答题技巧
-    - 出一期答题思路
+    - 答一道
+    - 出题
+    - 出一道题
+    - 每日一练
+    - 结构化面试练习
+    - 做一篇结构化帖子
   outputs:
-    - 覆盖 vault docx 模板原子替换（desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx）
-    - _snapshots_tips 快照（最多 10 个）
+    - 覆盖 vault docx 模板（desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx）
+    - scripts/_snapshots/ 快照（最多 10 个）
   prerequisites:
     - python3 + python-docx 1.2.0
     - 电车站 tramstop-skill（去 AI 味诊断）
@@ -20,44 +21,50 @@ metadata:
     - node + ima-skill（仅 IMA 上传，可选）
 ---
 
-# 结构化每日一练
+# 结构化每日一练（答一道）
 
-技术技能：两条工作流线（技巧线 / 答题线）共用一套共享 references（定调口径 / 读源 / 门禁 / 引擎安全），线间差异只在内容策略与模板。阶段 1 只启用技巧线，答题线相关文件与字段在阶段 2 填充。
+技术技能：答一道单线——出题＋思路框架（破题角度+3 观点）＋定调版逐字稿，学生直接参考练习。
 
-## 两线触发路由表
+> **接替说明（历史，全文件唯一处）**：本技能由双线（技巧线/答题线）收敛为答一道单线，触发词全盘接替旧 structured-post；旧技巧线资产已删除（git 历史可找回），旧技能归档由 TR3 落地。本文件其余部分不再涉及旧线。
 
-| 用户表述 | 路由 | 状态 |
-|---|---|---|
-| 出一期答题技巧 / 技巧每日一练 / 答题思路 / 结构化答题技巧 / 出一期答题思路（及类似含糊表述） | 技巧线工作流（本文件） | 阶段 1 active |
-| 答一道 / 出题 / 每日一练（逐题作答线表述） | 答题线 | 阶段 2 启用；当前暂用 structured-post，本技能不响应，避免双触发 |
-| 裸"每日一练"（歧义：技巧帖还是逐题作答帖） | 阶段 2 弹窗选线 | 阶段 2 启用；阶段 1 答题线未启用，遇歧义先向用户确认走技巧线还是 structured-post |
-
-## 工作流总览（技巧线 6 步）
+## 工作流总览（答一道 10 步，一步不跳）
 
 | 步 | 动作 | 依据 |
 |---|---|---|
-| 1 | 查索引选题（按卡点，2-3 候选弹窗给用户挑） | `references/tips-card-point-taxonomy.md`、`references/shared-sourcing.md` |
-| 2 | 写前读源（四源 + 审题五维 + 读源四要素） | `references/shared-sourcing.md` |
-| 3 | 写 15 字段草稿 + draft_meta 记录 | `references/tips-content-strategy.md`、`references/shared-sourcing.md`（draft_meta schema） |
-| 4 | 去 AI 味流水线（诊断 → 改写 → 程序红线清零 → 回核读源） | `references/shared-gates.md` 步 2-5 |
-| 5 | 门禁验收：独立审稿 → 盲测试答 → content_rules 全量（R0-R15 exit0，最终出厂程序门禁） → CHECKPOINT 弹窗 | `references/shared-gates.md` 步 6-9、`references/blind-test-protocol.md` |
-| 6 | 引擎生成 docx + progress 更新 + 渲染近似检查 + 报告 | `references/shared-engine-safety.md`、`references/shared-gates.md` 步 10 |
-| 后置 | 发布后第 7 天数据回填：主对话提醒用户回填阅读/收藏/反馈关键词到 vault `scripts/daily_metrics.json`；收藏率=收藏÷第 7 天阅读；不阻塞出厂；真实反馈校准卡点标签 | `scripts/daily_metrics.json`（C6/D21 轻量闭环） |
+| 1 | 出题 + 读源 + 审题 + 草稿：题目三选一（热点自出 / 真题库 / 模拟题库，题干 ≤80 字硬上限，写完 `len()` 自检）→ 题干确认弹窗（CHECKPOINT 第一处，用户选"换一道"回本步）→ 四源读源（讲义定源一本通对应章节）+ 审题五维 + 读源四要素 → 大纲区 7 字段 + 逐字稿 8 字段草稿（定调版口径）→ draft_meta 落盘（answer 扩展字段必填） | 本文件「出题规则」「封面前缀铁律」、`references/shared-sourcing.md`（四源/审题五维/draft_meta schema）、`references/shared-calibration.md`（定调版口径） |
+| 2 | 电车站诊断 agent（tramstop 模式一，读 checklist 四层扫描）：扫大纲与解说段；逐字稿引自题库定调版时为教学事实源保真区，不扫措辞不改一字 | `references/shared-gates.md` 步 2 与「电车站诊断 agent 契约」 |
+| 3 | human-writing 改写 agent（另起会话，白熊隔离）：只动大纲/解说措辞（新写逐字稿含措辞），逐字稿引文保真；保留字段前缀 | `references/shared-gates.md` 步 3 与「human-writing 改写 agent 契约」 |
+| 4 | check_prose.py 程序红线清零：检查文本=改写后大纲/解说＋新写逐字稿 8 字段（引文保真区不进检查文本）；FAIL 项清零才过，不可用即 STOP 无降级 | `references/shared-gates.md` 步 4 |
+| 5 | 回核读源：改写稿对四源回核，术语/条件/方法含义不丢；教学事实源严禁改写 | `references/shared-gates.md` 步 5 |
+| 6 | 独立审稿（换视角/评审代理）：8 查项逐项证据，`review_conclusion=="通过"` 才进盲测；任一查项不过回步 3 | `references/shared-gates.md` 步 6 与「独立审稿查项」 |
+| 7 | 盲测试答出厂验收：学生 persona 只读帖子全文（题目+思路大纲+逐字稿），独立产出新题完整定调版答题；判据四项全过 `blind_test_result=="通过"`，未过回炉（回步 3） | `references/blind-test-protocol.md`、`references/shared-gates.md` 步 7 |
+| 8 | content_rules 出厂程序门禁：`python3 scripts/content_rules.py --line answer --pending <pending_answer> --meta <draft_meta>`，R0/R14 exit 0 才进 CHECKPOINT | `scripts/content_rules.py`、`references/shared-gates.md` 步 8 |
+| 9 | CHECKPOINT 复核：两处弹窗记录齐备（①步 1 题干确认 ②步 4 后成稿前后对比 3-5 处），缺一不进渲染 | `references/shared-gates.md` 步 9 与「CHECKPOINT 用户弹窗」 |
+| 10 | 出稿：draft 写入 `pending_answer.json` → 引擎生成 docx（exit 0）→ 渲染近似检查 → 向用户报告 | `references/shared-engine-safety.md`、`references/shared-gates.md` 步 10 |
+| 后置 | 发布后第 7 天数据回填：阅读/收藏/反馈关键词写入 vault `scripts/daily_metrics.json`；收藏率=收藏÷第 7 天阅读；不阻塞出厂 | vault `scripts/daily_metrics.json` |
 
 IMA 上传是可选附加步（仅用户明确要求时执行）：node + ima-skill。
+
+## 出题规则（步 1，自出题适用；真题库/模拟题库题干已固定，只做字数与可答性检查）
+
+- **题干必须 ≤80 字（硬上限）**：超过 80 字阅读节奏断档、热点反差感丢失；写完先 `len(question)` 自检，超就砍。
+- 选题优先近期热点且适合结构化题目的话题：有矛盾张力、能多角度展开；热点话题、政策类、社会现象为首选题材；避免过于专业的岗位题，用户指定岗位时按指定岗位出题。
+- **真题库/模拟题库选题**：题干照录，用户确认后作答，不再自出题；路径与双根口径见 `references/shared-sourcing.md`（题库双根：模拟题根＋真题根）。
+- **收尾类型在草稿阶段定**：判据式（40–60 汉字）或总结式（80–100 汉字），记入 draft_meta `closing_type`；口径见 `references/shared-calibration.md`。
 
 ## Pre-flight 检查（缺一不开工）
 
 ### ① 项目根核实
 
-**项目根** = vault 路径 `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化`。核实模板与索引存在：
+**项目根** = vault 路径 `/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化`。核实模板存在：
 
 ```bash
-ls "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化/desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx" \
-   "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化/scripts/tips_index.json" && echo "✅ 路径正确" || echo "❌ 路径错，先确认"
+ls "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化/desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx" && echo "✅ 路径正确" || echo "❌ 路径错，先确认"
 ```
 
-引擎不依赖 cwd，一律用 `--project-root "<项目根>"` 显式传入。
+引擎不依赖 cwd，一律用 `--project-root "<项目根>"` 显式传入（或环境变量 `ANSWER_PROJECT_ROOT`）。
+
+**模板防混用**：desktop-attachments 下若同时有 `2 展开说说-帖子内容编辑模板.docx` 等其他系列模板，那是另一套，**别混用**——脚本不通用，跑错模板会破坏版式。
 
 ### ② Python 环境
 
@@ -65,85 +72,94 @@ ls "/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目
 python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 ```
 
-- **命令陷阱**：本机用 `python3` / `pip3`，不是 `python`（含所有文档示例与手工操作）。
+- **命令陷阱**：本机用 `python3` / `pip3`，不是 `python`。
 - **包名陷阱**：装包用 `pip install python-docx`，不是 `pip install docx`（会装同名垃圾包）。
 
-### ③ 引擎归属
+### ③ 引擎唯一入口
 
-唯一执行引擎是 **skill 内 `scripts/fill_tips_post.py`（v3.0）**（已落地：15 字段 / 23 段 / pic:pic==4 计数 / 安全模式 exit0-4）。项目根 `scripts/` 下遗留的 v1 `fill_tips_post.py` **已废弃勿用**（无写入前预检、先保存后验证，危险）。安全模式与退出码契约见 `references/shared-engine-safety.md`。
+唯一执行引擎是 **skill 内 `scripts/fill_answer_post.py`**（自 structured-post 引擎 v2 原样移植：19 段 5 图契约 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已随技巧线退役删除。安全机制与失败回退见 `references/shared-engine-safety.md`。
 
 ## 文件清单
 
 | 位置 | 文件 | 用途 |
 |---|---|---|
-| skill | `SKILL.md` | 本文件：两线路由 / 工作流总览 / Pre-flight / 契约入口 |
-| skill | `references/shared-calibration.md` | 定调版口径单一事实源（技巧线示范与答题线逐字稿共用） |
-| skill | `references/shared-sourcing.md` | 四源读源 + 权威讲义链 + draft_meta 统一 schema |
-| skill | `references/shared-gates.md` | 门禁栈 + 去 AI 味 10 步流水线 |
-| skill | `references/shared-engine-safety.md` | 引擎安全机制模式 + 退出码 0-4 契约 |
-| skill | `references/tips-content-strategy.md` | 技巧线 15 字段职责表 + 内容规范 |
-| skill | `references/tips-card-point-taxonomy.md` | 卡点标签体系：6 大类卡点+18 标签词表+选题机制（含弹窗交互） |
-| skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议：persona/盲测任务/判据/评审代理流程/回炉/假设记账 |
-| skill | `scripts/fill_tips_post.py` | 技巧线引擎 v3.0（15 字段 / 23 段 / pic:pic==4 计数 / 安全模式 exit0-4） |
-| skill | `scripts/test_fill_tips_post.py` | 引擎回归测试（沙箱临时副本；真实 vault 模板 sha256 前后断言） |
-| skill | `scripts/build_tips_template.py` | 模板 baseline 可复现构建脚本（Task3） |
-| skill | `scripts/content_rules.py` | 门禁规则（R0/R14 骨架，Task5 扩展） |
-| skill | `scripts/test_content_rules.py` | content_rules 自测（Task2） |
-| skill | `scripts/check_prose.py` | 通用红线检查：human-writing v1.2.0 副本+公考高危词叠加+字段前缀冒号豁免（Task6） |
-| skill | `scripts/test_check_prose.py` | check_prose 自测（Task6） |
-| skill | `scripts/test-prompts.json` | v3 冻结自测提示集（4 场景：全流程 / 卡点轮转 / 失败边界 / 盲测出厂；Task8） |
-| skill | `assets/tips-template-baseline.docx` | 技巧线模板 baseline（23 段 4 图，已部署 vault 模板 3） |
-| vault | `desktop-attachments/3 结构化答题技巧-帖子内容编辑模板.docx` | 技巧线活模板（已部署 23 段 baseline，与 assets/tips-template-baseline.docx 一致） |
-| vault | `scripts/tips_index.json` | 技巧索引（选题池；Task7 加卡点标签） |
-| vault | `scripts/progress_tips.json` | 已完成记录（done_ids 选题过滤，跑完更新） |
-| vault | `scripts/_draft_tips/` | 草稿与 draft_meta 工作区（pending） |
-| vault | `scripts/_snapshots_tips/` | 引擎自动快照（最多 10 个） |
-| vault | `scripts/tips_metrics.json` | 发布后指标回填（Task9 定 schema） |
-| vault | `scripts/daily_metrics.json` | 两线共用轻量效果回收（C6/D21：发布后第 7 天回填，收藏率=收藏÷第 7 天阅读；阶段 1 tips 线，阶段 2 answer 线启用） |
+| skill | `SKILL.md` | 本文件：工作流总览 / 出题规则 / Pre-flight / 模板铁律 |
+| skill | `references/shared-calibration.md` | 定调版口径唯一事实源（字数/8 字段/三禁/收尾两型） |
+| skill | `references/shared-sourcing.md` | 四源读源（讲义定源一本通）+ 审题五维 + draft_meta 统一 schema |
+| skill | `references/shared-gates.md` | 门禁栈 10 步流水线 + 诊断/改写契约 + 独立审稿 8 查项 |
+| skill | `references/shared-engine-safety.md` | 引擎安全机制、失败回退与沙箱回归纪律 |
+| skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议（学生 persona / 判据四项 / 白盒禁令） |
+| skill | `scripts/fill_answer_post.py` | 答一道引擎（19 段 5 图 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1） |
+| skill | `scripts/test_fill_answer_post.py` | 引擎回归测试（沙箱临时副本；真实模板 sha256 前后断言） |
+| skill | `scripts/content_rules.py` | 出厂规则门禁（R0 读源记录 / R14 审稿记录，`--line answer`） |
+| skill | `scripts/test_content_rules.py` | content_rules 自测（R0/R14 answer 用例） |
+| skill | `scripts/check_prose.py` | 通用红线检查：human-writing v1.2.0 副本+公考高危词叠加+字段前缀冒号豁免 |
+| skill | `scripts/test_check_prose.py` | check_prose 自测（6 用例） |
+| skill | `scripts/test-prompts.json` | 冻结自测提示集（答题线 3 场景：全流程 / 失败边界 / 盲测出厂） |
+| skill | `assets/answer-template-baseline.docx` | 模板 baseline（19 段 5 图，只读复制自 vault 模板 1，sha256 一致；沙箱回归与漂移恢复用） |
+| vault | `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx` | 活模板（唯一写目标，覆盖写入） |
+| vault | `scripts/pending_answer.json` | 中间文件（引擎读取成功后自动删除） |
+| vault | `scripts/_snapshots/` | 引擎自动快照（最多 10 个，超出按修改时间倒序清理） |
+| vault | `scripts/daily_metrics.json` | 发布后指标回填（第 7 天，轻量效果回收） |
 
-**事实源约定**：选题与进度读 vault `scripts/` 下 `tips_index.json` 与 `progress_tips.json`；skill 内同名文件（如有）仅为出厂参考，不作为事实源。
+**事实源约定**：读源/选题素材事实源在 vault（方法论/一本通/题库双根/教师注，见 `references/shared-sourcing.md`）；效果指标事实源为 vault `scripts/daily_metrics.json`。答一道线不设索引与 progress 台账（T2 裁定保持现状）。
 
-## 模板铁律（C2 段位契约，Task3 已定稿，本表为准）
+## 模板铁律（19 段 5 图契约，本表为准）
 
-- 技巧线模板契约：**23 段 / pic:pic 4 图 / 15 字段**；引擎 `scripts/fill_tips_post.py` v3.0 按下表段位写入。
-- **图数口径：`pic:pic == 4`**（真实图片元素计数）。`w:drawing == 5` 不作图数契约——多出的 1 个是封面文本框形状（`w:drawing` 包裹 wps 文本框）；封面文本框双镜像 `txbxContent == 2`（drawing txbxContent + VML fallback），引擎预检与验证均按此口径。
-- **字体铁律**：通用字体（微软雅黑 / 宋体 / Wingdings 等），不引云字体、不内嵌字体文件。
-- **品牌蓝 003153**：6 个蓝色标题段继承 Heading 2 样式定义色（styleId=4），run 不写显式色值。
-- **样式指纹零漂移基准**：以 baseline 实际逐段 pPr/rPr 为准；**段 3 基准含 b+bCs**（首行缩进 2 字符 firstLineChars=200 + color 85120F + b + bCs），沿旧版式保留。
-- 旧 18 段段位表随 v2 技能（structured-tips-daily）冻结，不再作为本技能契约。
+- 模板契约：**19 段 / w:drawing 5 图 / 16 必填字段**；引擎 `scripts/fill_answer_post.py` 按下表段位写入（表自引擎 `REPLACE_MAP` 提取）。
+- **图数口径：`w:drawing == 5`**（引擎 validate 按此口径，现行健康）；封面文本框双镜像 `txbxContent == 2`（drawing 镜像 + VML fallback）。
+- **字体铁律**：通用字体（微软雅黑等），不引云字体、不内嵌字体文件。
+- **写目标唯一**：vault `desktop-attachments/1 结构化每日一练-帖子内容编辑模板.docx`；`assets/answer-template-baseline.docx` 为其只读 baseline（sha256 一致），只用于沙箱回归与漂移恢复，**永远不作为写目标**。
 
-### C2 段位映射表（23 段逐段）
+### 19 段段位映射表（逐段）
 
-| 段 | 内容 | 样式 | 引擎行为（v3.0） |
-|---|---|---|---|
-| 0 | 封面文本框：前缀"结构化答题技巧：" + tip_title | Heading 2 + 封面背景图（品牌"总分总"） | 双镜像同步：前缀 + 标题各 2 处（drawing txbxContent + VML fallback） |
-| 1 | "卡点诊断" | Heading 2，品牌蓝 003153 + 装饰图 | 不动 |
-| 2 | card_point | Normal | 替换 |
-| 3 | fix_summary | Normal，firstLineChars=200 首行缩进 2 字符 + color 85120F + **b + bCs** | 替换（rPr 原样保留） |
-| 4 | "定调版示范" | Heading 2，品牌蓝 | 不动 |
-| 5 | demo | Normal | 替换 + 段首 👍（引擎自动加，JSON 不含） |
-| 6 | "改法拆解" | Heading 2，品牌蓝 | 不动 |
-| 7 | step1 | Normal，numPr 圆点项目符号（numId=12） | 替换 |
-| 8 | step2 | 同段 7 | 替换 |
-| 9 | step3 | 同段 7 | 替换 |
-| 10 | "对照点评" | Heading 2，品牌蓝 | 不动 |
-| 11 | case_normal | Normal | 替换 + 段首 🙅‍♂️（引擎自动加，JSON 不含） |
-| 12 | contrast_note | Markdown引用（pStyle 99）+ 浅灰底 shd F2F2F2 | 替换 |
-| 13 | "适用边界" | Heading 2，品牌蓝 + 装饰图 | 不动 |
-| 14 | boundary_scope | Normal，run b + bCs + u single | 替换 |
-| 15 | boundary_misuse | 同段 14 | 替换 |
-| 16 | boundary_evidence | 同段 14 | 替换 |
-| 17 | "迁移练习" | Heading 2，品牌蓝 | 不动 |
-| 18 | exercise | 同段 14 | 替换 |
-| 19 | self_check | 同段 14 | 替换 |
-| 20 | hashtags | endnote text（pStyle 51），sz 24（12pt） | 替换 |
-| 21 | 引流段（原文冻结） | endnote text + b + color 85120F + jc center | 不动（原文 + 样式冻结） |
-| 22 | 末图 | Normal + 图 | 不动 |
+| 段 | 内容 | 引擎行为 |
+|---|---|---|
+| 0 | 封面文本框：前缀 + 题目正文 | 写入 `title_prefix` + `question`，2 镜像同步，前缀字体保留 |
+| 1 | 标题"答题思路"（Heading 2） | 不动 |
+| 2 | `break_angle`（破题角度） | 替换 |
+| 3 | `break_angle_reason`（切入理由） | 替换 |
+| 4 | `core_views_title`（核心观点标题） | 替换 |
+| 5 | `core_views_intro`（观点导语） | 替换 |
+| 6 | `core_views[0]` | 替换 |
+| 7 | `core_views[1]` | 替换 |
+| 8 | `core_views[2]` | 替换 |
+| 9 | `opening`（正文首段） | 替换 + 强制 pageBreakBefore（正文从第 3 页开始，大纲区分页符清除） |
+| 10 | `point1_lead` | 替换 |
+| 11 | `point1_body` | 替换 |
+| 12 | `point2_lead` | 替换 |
+| 13 | `point2_body` | 替换 |
+| 14 | `point3_lead` | 替换 |
+| 15 | `point3_body` | 替换 |
+| 16 | `closing`（收束段） | 替换 |
+| 17 | 引流段（居中 + 加粗 + #85120F） | 不动（原文与样式冻结） |
+| 18 | 末尾装饰图 | 不动 |
 
-- 固定不动段：1 / 4 / 6 / 10 / 13 / 17（蓝色标题）、21（引流段）、22（末图）。
-- 4 图分布：段 0 封面背景（品牌"总分总"）、段 1 / 段 13 标题旁装饰图、段 22 末图。
-- 引流段原文（冻结）："关注我，后续分享更多面试实战技巧和考场避坑指南，帮你少走弯路，一次上岸"。
+- 固定不动段：1（标题）、17（引流段）、18（末图）；写入只找"第一个纯文本 run"，图片 run 完全不动。
+- 5 图分布含封面文本框形状（引擎按 w:drawing 总数 5 校验，与模板 1 实测一致）。
 
-## 失败处理 / 回归测试 / 脚本行为要点
+### 封面前缀铁律（随来源切换）
 
-统一引用 `references/shared-engine-safety.md`（安全模式 10 条 / 退出码 0-4 / 沙箱纪律 / 快照与 exit4 回滚 / 引擎收 skill 内 / 项目根解析 fallback 取消），本文件不重复细节。
+封面文本框前缀由 `title_prefix` 控制，引擎写入段[0] 两个镜像并按该值校验：
+
+| 题目来源 | `source` | `title_prefix` |
+|---------|----------|----------------|
+| 热点自出题 | 可省略或 `自出题` | `"结构化每日一练："`（可省略，默认值） |
+| **真题库选题** | **`"真题库"`** | **必须** `"结构化历年考题："` |
+| 模拟题库选题 | `"模拟题库"` | `"结构化每日一练："`（可省略，默认值） |
+
+真题库来源时**必须同时**写 `source` 与 `title_prefix`；`source` 含「真题」却漏传或传错前缀时引擎直接报错退出，防止静默用错封面。报告里写明本次来源类型和封面前缀。
+
+### pending_answer.json schema（16 必填 + 2 可选，与引擎 REPLACE_MAP 同表）
+
+必填（缺任一引擎即拒）：`question` ＋ 大纲区 7 字段（`break_angle` / `break_angle_reason` / `core_views_title` / `core_views_intro` / `core_views`[恰 3 元素]）＋ 逐字稿 8 字段（`opening` / `point1_lead` / `point1_body` / `point2_lead` / `point2_body` / `point3_lead` / `point3_body` / `closing`）。可选：`source`、`title_prefix`（语义见封面前缀铁律）。开场/收尾类型、诊断结论只进 draft_meta，不进 pending（引擎不消费）。JSON 字符串内部用中文双引号或转义 `\"`，推荐 Python `json.dump` 生成。
+
+## 失败处理 / 回归测试
+
+- 失败回退：引擎任何失败先看 `scripts/_snapshots/` 最新快照；写入失败时 `[KEEP] pending_answer.json 保留`，按报错逐项修后重跑。快照机制与沙箱回归纪律统一见 `references/shared-engine-safety.md`。
+- 三套自测（改引擎/规则/检查器后必跑，全过才算交付）：
+  ```bash
+  python3 scripts/test_fill_answer_post.py   # 引擎沙箱 11 用例
+  python3 scripts/test_content_rules.py      # R0/R14 answer 用例
+  python3 scripts/test_check_prose.py        # check_prose 6 用例
+  ```

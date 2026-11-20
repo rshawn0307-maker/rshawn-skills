@@ -10,7 +10,9 @@ scripts/check_prose.py（~/.zcode/skills/human-writing/），收录日期 2026-1
 1. 公考高危词表 12 词（GONGKAO_JARGON）——出现即 FAIL，报「公考高危词」；
 2. 模板字段前缀冒号豁免（TEMPLATE_PREFIXES，清单按 tips-content-strategy.md
    C1 字段职责派生，新栏目前缀随之扩充）——字段前缀后的冒号是模板契约，
-   不作提示性冒号拦截；
+   不作提示性冒号拦截；TR1 修复轮 1 另加结构性大纲提示行豁免
+   （structural_outline_colon：整行「（…）」/「（…）：」形状的 intro/标签行，
+   行内冒号含行尾引导冒号豁免，限定整行形状防正文冒号逃逸）；
 3. 否定式排比计数（NEGATION_OPENERS）——同头否定小句连用（如「不是A，不是B」）
    全文超过 1 处即 FAIL（红线 ≤1，见 references/shared-gates.md）。
 """
@@ -103,7 +105,9 @@ GONGKAO_JARGON = (
 TEMPLATE_PREFIXES = (
     "考官想听的",   # tip_title 原栏目式前缀
     "适用题型",     # card_point
-    "破题角度",     # fix_summary
+    "破题角度",     # fix_summary / answer break_angle（答题线共用）
+    "切入理由",     # answer break_angle_reason（TR1 答题线）
+    "核心观点",     # answer core_views_title/intro（TR1 答题线）
     "第一步",       # step1
     "第二步",       # step2
     "第三步",       # step3
@@ -369,6 +373,28 @@ def template_prefix_colon(text: str, position: int) -> bool:
     return head in TEMPLATE_PREFIXES
 
 
+def structural_outline_colon(text: str, position: int) -> bool:
+    """structured-daily 叠加（TR1 修复轮 1）：结构性大纲提示行冒号豁免。
+
+    答一道大纲区的 intro/标签行按模板契约是全角括号包裹的结构提示行：
+    整行以「（」开头、以「）」或「）：」收尾（如 baseline 模板段 5 健康原文
+    「（按紧迫度排序，三个递进：先救人 → 再控场控直播 → 最后善后与制度）：」）。
+    此类行内的冒号（含行尾引导冒号）是模板结构契约，不作提示性冒号拦截。
+    限定整行形状（行首「（」＋行尾「）」/「）：」/「）:」）才豁免——只以行首
+    「（」判定会放过「（一句带冒号的正文）：后接正文」这类句子，故必须整行
+    为括号包裹的提示行，防正文句中冒号借机逃逸。
+    """
+    line_start = text.rfind("\n", 0, position) + 1
+    line_end = text.find("\n", position)
+    if line_end == -1:
+        line_end = len(text)
+    line = text[line_start:line_end].strip()
+    line = re.sub(r"^(?:[>*+-]+|\d+[.、])[ \t]*", "", line)  # 剥 markdown/列表标记
+    if not line.startswith("（"):
+        return False
+    return line.endswith(("）", "）：", "）:"))
+
+
 def negation_parallelisms(text: str):
     """structured-daily 叠加：同头否定小句连用（如「不是A，不是B」）计数。"""
 
@@ -567,8 +593,11 @@ def main() -> int:
                 if before.isdigit() and after.isdigit():
                     # 10:30、1:1、3：2 这类时间和比例属于机器字段，不是提示性冒号。
                     continue
-                if template_prefix_colon(prose, match.start()):
-                    # structured-daily 叠加：字段前缀（行首/句界后）冒号豁免。
+                if template_prefix_colon(prose, match.start()) or structural_outline_colon(
+                    prose, match.start()
+                ):
+                    # structured-daily 叠加：字段前缀（行首/句界后）冒号豁免；
+                    # TR1 修复轮 1：结构性大纲提示行（整行「（…）：」形状）冒号豁免。
                     prefix_colons.append(match)
                     continue
                 tail = prose[match.end() : match.end() + 2].lstrip()
