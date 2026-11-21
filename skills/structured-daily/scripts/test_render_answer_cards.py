@@ -345,10 +345,14 @@ def case_layout_constants(check):
     bodies = [t[1] for t in mod.SCRIPT_TIERS]
     check(leads == sorted(leads, reverse=True) and bodies == sorted(bodies, reverse=True),
           "降档表非单调递减: %r" % (mod.SCRIPT_TIERS,))
-    # 各卡设计档（TR4.2）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 大标题 60 档
+    # 各卡设计档（TR4.2/TR4.3）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 大标题 60 档
     check(mod.QUESTION_TIERS[0] == 40, "题干首档 %s ≠ 40" % mod.QUESTION_TIERS[0])
     check(mod.OUTLINE_TIERS[0][4] == 32, "观点正文首档 %s ≠ 32" % mod.OUTLINE_TIERS[0][4])
     check(mod.GOLDEN_TIERS[0] == 52, "金句首档 %s ≠ 52" % mod.GOLDEN_TIERS[0])
+    # TR4.3：对照条/CTA 恢复，×/√ 行维持 TR4.1 数值
+    check(mod.FAKE_SIZE == 36 and mod.REAL_SIZE == 40,
+          "×/√ 行 %s/%s ≠ 36/40" % (mod.FAKE_SIZE, mod.REAL_SIZE))
+    check(mod.CTA_H == 140, "CTA 条高 %s ≠ 140" % mod.CTA_H)
     check(56 <= mod.TITLE_SIZE <= 62, "大标题 %s 不在 72 缩 15-20%% 档（56-62）"
           % mod.TITLE_SIZE)
     # TR4.2 卡 03 边距与逐字稿统一收窄 48（白卡 [48..1032]，内文 896）

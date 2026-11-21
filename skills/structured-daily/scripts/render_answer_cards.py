@@ -39,6 +39,13 @@ TR4.2 二次改版（用户五条原话裁定）:
   4. 逐字稿页签去「·上/·下」，两页统一「答题逐字稿」（分布/对齐/字号不变）；
   5. 卡 06 删 ×/√ 对照条与 CTA 条，只留金句卡（closing 去「答题完毕」，引文保真），
      48→52 档起排，剩余版面垂直居中。
+
+TR4.3 用户两条:
+  1. 卡 05 正文上顶：去垂直居中（取代 TR4.1 打磨 R2），两页统一顶对齐同节奏；
+     字数注记保持底部固定。
+  2. 尾页恢复 TR4.1 版除金句卡外的引流内容：×/√ 对照条（固定示范句 36/40）与
+     枣红 CTA 条（主行 44＋副行品牌 slogan 26）加回；最终=标题（60）＋金句卡（52）
+     ＋对照条＋CTA 条＋页脚，纵向参照 TR4.1 版式；金句卡文字一字不改。
 """
 import argparse
 import datetime
@@ -75,12 +82,14 @@ FONT_FILES = {
 }
 LOGO_PATH = "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png"
 SERIES_INTRO = "把考场真实答法，搬进你的答案"   # 封面页眉眉标（仅封面保留）
-BRAND_SLOGAN = "先答一道，把最影响得分的地方找出来"  # 封面副标题（开口练 hero 原话）
-# 对照条符号（TR4.2 对照条/CTA 已删，符号不再绘制；常量与字形自检保留，防字体回归）：
-# HarmonyOS Sans SC 缺 U+2717/U+2713 字形（textbbox 高 0，渲染为空白），
-# 若日后复用符号必须用有真实字形的 ×/√，渲染前 require_glyph 断言防再犯。
+BRAND_SLOGAN = "先答一道，把最影响得分的地方找出来"  # 封面副标题＝卡6 CTA 副行（开口练 hero 原话）
+FAKE_DEMO = "一方面……另一方面，加强管理"        # 卡6 假大空对照条·固定示范句（不篡改正文）
+REAL_DEMO = "先查人、后修电，三本账对得上"      # 卡6 具体做法对照·固定示范句
+# 对照条符号：HarmonyOS Sans SC 缺 U+2717/U+2713 字形（textbbox 高 0，渲染为空白），
+# 必须用同字体有真实字形的 ×/√；渲染前 require_glyph 断言防再犯。
 MARK_NO = "×"
 MARK_YES = "√"
+CTA_MAIN = "答一道 · 每日一练"                  # 卡6 CTA 主行
 FOOTER_LEFT = "结构化每日一练 · 答一道"         # 页脚左上（统一）
 NOTE_GUIDE = "想要完整逐字稿，评论区打「1」"    # 笔记文案固定引导
 NOTE_TAGS = ["#结构化面试", "#公考面试", "#答题思路", "#每日一练", "#上岸"]
@@ -146,8 +155,10 @@ LABEL_SIZE = 28                   # 页签/开场定调/收尾 小标签（达�
 LABEL_PAD_X, LABEL_PAD_Y = 16, 8
 TAG_PAD_X, TAG_PAD_Y = 18, 8
 
-# ---- 卡6 收尾（TR4.2：删对照条/CTA，只留金句卡，52 起档居中）----
+# ---- 卡6 收尾（TR4.3：金句卡＋对照条＋CTA 条，纵向参照 TR4.1 版式）----
 GOLDEN_TIERS = (52, 48, 44, 40, 36)  # 金句 52 起档（TR4.1 为 48，用户要求放大）
+FAKE_SIZE, REAL_SIZE = 36, 40        # ×行 36 / √行 40（TR4.1 数值）
+CTA_H = 140                          # 枣红 CTA 条高
 
 CARD_FILES = ["01-封面.png", "02-题目.png", "03-答题思路.png",
               "04-逐字稿上.png", "05-逐字稿下.png", "06-收尾引流.png"]
@@ -212,8 +223,8 @@ def ensure_assets():
         raise SystemExit(f"[FAIL] 字体不可读: {FONT_DIR} —— {e} —— STOP，不静默降级")
     finally:
         _cached_font.cache_clear()
-    require_glyph(F_MED(26), MARK_NO)
-    require_glyph(F_BOLD(30), MARK_YES)
+    require_glyph(F_MED(FAKE_SIZE), MARK_NO)
+    require_glyph(F_BOLD(REAL_SIZE), MARK_YES)
     if not Path(LOGO_PATH).is_file():
         raise SystemExit(f"[FAIL] 品牌 logo 缺失: {LOGO_PATH} —— STOP，不静默降级")
 
@@ -613,12 +624,9 @@ def _render_script_page(im, d, p, page_no, groups):
     if chosen is None:
         raise CardOverflow(f"0{4 + page_no}-逐字稿（{page_name}）")
     lf, bf, hs, total = chosen
-    # 打磨 R2（君上裁定）：卡 04 内容近满保持顶对齐；卡 05 内容块（第三步+收尾+金线）
-    # 在其可用区（页眉下界～字数注记上界）内垂直居中——版式原则「内容在剩余版面垂直
-    # 居中」（wushi card-layout / huashu「留白要是构图，不是内容缺席」）；字数注记固定在底。
+    # TR4.3（用户裁定，取代 TR4.1 打磨 R2 的卡 05 垂直居中）：两页统一顶对齐
+    # （同节奏翻页）；卡 05 字数注记仍底部固定（zone_bot=注记上界防侵入）。
     y = content_top
-    if page_no == 1:
-        y += max(0, (zone_bot - content_top - total) // 2)
     for k, (g, h) in enumerate(zip(groups, hs)):
         if k:
             gold_rule(d, y - SCRIPT_GROUP_GAP // 2 - 1)
@@ -636,7 +644,7 @@ def card4_script_a(im, d, p, ctx):
 
 
 def card5_script_b(im, d, p, ctx):
-    """逐字稿（下）：页签「答题逐字稿」+ 第三步 + 「收尾」（垂直居中）
+    """逐字稿（下）：页签「答题逐字稿」+ 第三步 + 「收尾」（顶对齐，TR4.3）
     + 页脚上方字数小字（全文 N 字 · 约 M 秒）。"""
     _render_script_page(im, d, p, 1, _script_groups(p)[1])
     d.text((W // 2, SCRIPT_NOTE_Y), script_badge(p), font=F_MED(24),
@@ -645,29 +653,52 @@ def card5_script_b(im, d, p, ctx):
 
 # ------------------------------------------------------------ 卡6 收尾引流
 def card6_close(im, d, p, ctx):
-    """大标「背下来 · 开口就用」+ 金句卡一张（closing 去「答题完毕」，
-    引文保真一字不改；52 档起排可自动降），在剩余版面垂直居中。
-    TR4.2（用户改法 5）：米杏 ×/√ 对照条与枣红 CTA 条删除——收尾页就是
-    一条可背的金句素材。"""
+    """大标「背下来 · 开口就用」+ 金句卡（closing 去「答题完毕」，引文保真一字不改，
+    52 档起排可自动降）+ 米杏 ×/√ 对照条（固定示范句，36/40）+ 枣红 CTA 条
+    （主行 44 + 副行=品牌 slogan 26），纵向布局参照 TR4.1 版式、整组垂直居中。
+    TR4.3（用户裁定）：恢复 TR4.2 删去的对照条与 CTA 条。"""
     logo_header_inner(im, d)
     inner_title(d, "背下来 · 开口就用")
     zone = ZONE_BOT - ZONE_TOP
     golden = str(p.get("golden_line") or "").strip() or strip_done_mark(p["closing"])
+    f_fake, f_real = F_MED(FAKE_SIZE), F_BOLD(REAL_SIZE)
+    require_glyph(f_fake, MARK_NO)
+    require_glyph(f_real, MARK_YES)
+    nf = n_lines(d, MARK_NO + " " + FAKE_DEMO, f_fake, 840)
+    nr = n_lines(d, MARK_YES + " " + REAL_DEMO, f_real, 840)
+    h_c = 26 + nf * (FAKE_SIZE + 12) + 12 + nr * (REAL_SIZE + 14) + 26
     chosen = None
     for gf in GOLDEN_TIERS:
         f_g = F_BOLD(gf)
         ng = n_lines(d, golden, f_g, TX_W)
-        h_g = ng * (gf + 16) + 96
-        if h_g <= zone:
+        h_g = ng * (gf + 20) + 96  # 行距 20（打磨 R1：1.38 倍，背诵素材）
+        if h_g + h_c + CTA_H + 2 * 20 <= zone:
             chosen = (gf, ng, h_g)
             break
     if chosen is None:
         raise CardOverflow("06-收尾引流")
     gf, ng, h_g = chosen
-    y = ZONE_TOP + (zone - h_g) // 2  # 金句卡在剩余版面垂直居中
+    total = h_g + h_c + CTA_H + 2 * 20
+    # 打磨 R1：三段组以「大标题下剩余区」为居中基准（ZONE 居中会致上重下轻，
+    # 标题→金句卡空 213 vs CTA→页脚 180）；REST_TOP=标题 em 下缘附近
+    rest_top = TITLE_Y + TITLE_SIZE
+    y = rest_top + ((ZONE_BOT - rest_top) - total) // 2
+    # 金句白卡（居中折行；行距 20=1.38 倍，背诵素材留白更稳，打磨 R1）
     shadow_card(im, d, [80, y, 1000, y + h_g], 40)
     draw_wrapped(d, (0, y + 48), golden, F_BOLD(gf), INK, TX_W,
-                 line_gap=16, center_x=W // 2)
+                 line_gap=20, center_x=W // 2)
+    y += h_g + 20
+    # 假大空对照条（固定示范句，米杏底：× 灰 / √ 枣红）
+    rounded(d, [80, y, 1000, y + h_c], 32, fill=BEIGE)
+    yy = draw_wrapped(d, (120, y + 26), MARK_NO + " " + FAKE_DEMO, f_fake, GRAY,
+                      840, line_gap=12)
+    draw_wrapped(d, (120, yy + 12), MARK_YES + " " + REAL_DEMO, f_real, CRIMSON,
+                 840, line_gap=12)
+    y += h_c + 20
+    # 枣红 CTA 条（打磨 R1：主/副行上移 6px，光学居中，上下边距均衡）
+    rounded(d, [80, y, 1000, y + CTA_H], 36, fill=CRIMSON)
+    d.text((W // 2, y + 48), CTA_MAIN, font=F_BOLD(44), fill=CREAM_W, anchor="mm")
+    d.text((W // 2, y + 100), BRAND_SLOGAN, font=F_MED(26), fill=HERO_SUB, anchor="mm")
     footer_note(d, 6)
 
 
