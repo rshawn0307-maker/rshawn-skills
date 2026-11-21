@@ -128,13 +128,13 @@ SCRIPT_TIERS = ((40, 36), (38, 34), (36, 32), (34, 30), (32, 28))  # 超高自�
 SQ_STEP = 40                      # 步骤编号方块（TR5：40px）
 SQ_STEP_NUM = 26                  # 方块内数字
 
-# ---- 卡6 每题金句：金句横排居中（无卡无框）＋枣红方印＋CTA 条 ----
+# ---- 卡6 每题金句：金句横排居中于画布中线附近（无卡无框）＋CTA 条 ----
 GOLDEN_TIERS = (52, 48, 44, 40, 36)  # 金句 52 起档可降
 GOLDEN_LEAD_GAP = 20                 # 金句行距（TR4.3 打磨：背诵素材留白）
 GOLDEN_MAX = 60                      # opening 末句超此字数回退 closing
+GOLDEN_CENTER_Y = 710                # 金句文字块垂直中心（TR5.2：画布水平中线附近）
 CTA_H = 140                          # 枣红 CTA 条高（现行）
 CTA_Y = 1150                         # CTA 贴页面下方页脚上方
-SEAL_SIZE = 110                      # 枣红方印（呼应封面）
 
 CARD_FILES = ["01-封面.png", "02-题目.png", "03-答题思路.png",
               "04-逐字稿上.png", "05-逐字稿下.png", "06-收尾引流.png"]
@@ -669,8 +669,9 @@ def _balanced_lines(d, text, f, max_w):
 
 def card6_close(im, d, p, ctx):
     """标题「每题金句」44 枣红＋金 tabline；金句（opening 末句规则不变）52px 墨色
-    横排居中于版面中部（无卡无框，两行失衡自动均衡）＋右下枣红方印「答一道」
-    呼应封面＋枣红 CTA 条（贴页面下方页脚上方）。"""
+    横排居中，文字块垂直中心置于画布水平中线附近 y≈710（TR5.2，无卡无框，
+    两行失衡自动均衡）＋枣红 CTA 条（贴页面下方页脚上方）。
+    TR5.2：右下枣红方印删除（终局）。"""
     logo_header_inner(im, d)
     inner_title(d, "每题金句")
     golden = opening_golden(p)
@@ -679,26 +680,18 @@ def card6_close(im, d, p, ctx):
         f_g = F_BOLD(gf)
         ng = n_lines(d, golden, f_g, TX_W)
         h_g = ng * (gf + GOLDEN_LEAD_GAP)
-        if h_g + SEAL_SIZE + 56 + CTA_H + 24 <= ZONE_BOT - ZONE_TOP:
+        # 金句块中心 y=GOLDEN_CENTER_Y，底缘不得越过 CTA 上方 24px
+        if GOLDEN_CENTER_Y + h_g // 2 <= CTA_Y - 24:
             chosen = (gf, f_g, h_g)
             break
     if chosen is None:
         raise CardOverflow("06-每题金句")
     gf, f_g, h_g = chosen
-    # 金句横排居中于「标题下～CTA 上」剩余区；方印右对齐随金句下缘
-    rest_bot = CTA_Y - 24
-    gy = ZONE_TOP + ((rest_bot - ZONE_TOP) - h_g) // 2
+    gy = GOLDEN_CENTER_Y - h_g // 2
     yy = gy
     for ln in _balanced_lines(d, golden, f_g, TX_W):
         d.text((W // 2, yy), ln, font=f_g, fill=INK, anchor="ma")
         yy += gf + GOLDEN_LEAD_GAP
-    seal_size = max(110, tw(d, "答一道", F_BOLD(36)) + 28)
-    seal_x = W - MARGIN - seal_size
-    seal_y = gy + h_g + 56
-    d.rectangle([seal_x, seal_y, seal_x + seal_size, seal_y + seal_size],
-                fill=CRIMSON)
-    d.text((seal_x + seal_size // 2, seal_y + seal_size // 2), "答一道",
-           font=F_BOLD(36), fill=CREAM_W, anchor="mm")
     # 枣红 CTA 条（贴页面下方页脚上方；主/副行光学居中）
     rounded(d, [MARGIN, CTA_Y, W - MARGIN, CTA_Y + CTA_H], 36, fill=CRIMSON)
     d.text((W // 2, CTA_Y + 48), CTA_MAIN, font=F_BOLD(44), fill=CREAM_W, anchor="mm")

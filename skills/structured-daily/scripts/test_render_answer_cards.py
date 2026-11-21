@@ -192,8 +192,28 @@ def case_golden(check):
                          if col != C5_BG)
             check(non_bg > 1000,
                   "%s 页脚带非米白像素 %s ≤1000（页脚缺失?）" % (name, non_bg))
+        # TR5.2 卡 06：金句文字块垂直中心 ≈710（画布水平中线附近）；方印已删
+        c6 = Image.open(outdir / CARD_FILES[5]).convert("RGB")
+        ys = []
+        for y in range(300, 1100, 2):
+            strip = c6.crop((150, y, 930, y + 2))
+            cnt = sum(c for c, col in strip.getcolors(maxcolors=1_000_000)
+                      if max(abs(col[0] - 39), abs(col[1] - 30),
+                             abs(col[2] - 27)) < 60)
+            if cnt > 20:
+                ys.append(y)
+        check(ys, "卡 06 金句墨色缺失（标题下～CTA 上无正文墨色）")
+        if ys:
+            center = (ys[0] + ys[-1]) / 2 + 1
+            check(700 <= center <= 726,
+                  "金句垂直中心 %.0f 不在中线附近 700-720" % center)
+        # 原方印区（右中，x≈886–1010 / y≈760–1000）必须纯米白（方印整块移除）
+        seal_zone = c6.crop((900, 756, 1015, 1000))
+        colors = seal_zone.getcolors(maxcolors=1_000_000)
+        check(colors == [(seal_zone.size[0] * seal_zone.size[1], C5_BG)],
+              "卡 06 右中方印区仍有非米白像素（方印未删净?）: %s" % colors[:3])
         # TR5 CTA 保留断言（卡 06 枣红 CTA 条贴页脚上方）
-        cta = Image.open(outdir / CARD_FILES[5]).convert("RGB").crop(CTA_REGION)
+        cta = c6.crop(CTA_REGION)
         crim = sum(c for c, col in cta.getcolors(maxcolors=1_000_000)
                    if max(abs(col[0] - 135), abs(col[1] - 17), abs(col[2] - 15)) < 60)
         check(crim >= (CTA_REGION[2] - CTA_REGION[0]) * (CTA_REGION[3] - CTA_REGION[1]) * 0.5,
@@ -411,6 +431,8 @@ def case_layout_constants(check):
     check(mod.QUESTION_TIERS[0] == 40, "题干首档 %s ≠ 40" % mod.QUESTION_TIERS[0])
     check(mod.OUTLINE_TIERS[0][4] == 32, "观点正文首档 %s ≠ 32" % mod.OUTLINE_TIERS[0][4])
     check(mod.GOLDEN_TIERS[0] == 52, "金句首档 %s ≠ 52" % mod.GOLDEN_TIERS[0])
+    check(mod.GOLDEN_CENTER_Y == 710, "金句垂直中心 %s ≠ 710（TR5.2 中线附近）"
+          % mod.GOLDEN_CENTER_Y)
     check(mod.CTA_H == 140, "CTA 条高 %s ≠ 140" % mod.CTA_H)
     # TR4.4 金句换源：opening 末句（逐字子串），超长/空回退 closing（去「答题完毕」）
     g = mod.opening_golden(SAMPLE)
