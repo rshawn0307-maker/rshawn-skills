@@ -24,12 +24,21 @@
 TR4.1 版式改版（huashu-design 过版，1080 宽正文≥36px/标签≥28px）:
   - 全卡删右上角期数徽章；内页（02-06）页眉压缩：logo 56px + 字标 28px，眉标删除，
     页眉区 ≤110px；封面保留眉标并提到 28px；页脚文字提到 28px；
-  - 封面副标题弃用 cover_hook 务实句，固定品牌 slogan（开口练 hero 原话，与卡6 CTA 副行呼应）；
-  - 02 题干 40px 起档 + 来源徽章缩为白卡上方小胶囊；03 编号方块收缩 26px、观点正文 30px；
+  - 封面副标题弃用 cover_hook 务实句，固定品牌 slogan（开口练 hero 原话）；
+  - 02 题干 40px 起档 + 来源徽章缩为白卡上方小胶囊；03 编号方块收缩 26px；
   - 04/05 逐字稿卡满版直排（无白卡装饰，组间 GOLD 2px 金线分隔）：正文 36px/lead 40px、
     左右边距 48、页签+步骤小胶囊标签+26px 编号方块，卡 05 页脚上方字数小字；
-    分页重排为 上=开场+第一/二步、下=第三步+收尾（36px 下两页体量均衡，原切分下页超区）；
-  - 06 金句 48px 起档、×/√ 行 36/40px，CTA 维持。
+    分页重排为 上=开场+第一/二步、下=第三步+收尾（04 顶对齐、05 垂直居中）；
+  - 06 金句卡居中。
+
+TR4.2 二次改版（用户五条原话裁定）:
+  1. 封面中部删黑色系列名，只留主题大标题（150 起档居中，可超宽缩）；
+  2. 卡 02 题干白卡上移：顶边置于画布中线上方，卡底不越过约 780px；
+  3. 全组大标题 72→60（约 -17%）；卡 03 白卡左右边距 48 用满可用区、观点正文 30→32 起排
+     （降档下限 28，TR4.1 裁定口径不变），文字一字不删；
+  4. 逐字稿页签去「·上/·下」，两页统一「答题逐字稿」（分布/对齐/字号不变）；
+  5. 卡 06 删 ×/√ 对照条与 CTA 条，只留金句卡（closing 去「答题完毕」，引文保真），
+     48→52 档起排，剩余版面垂直居中。
 """
 import argparse
 import datetime
@@ -66,14 +75,12 @@ FONT_FILES = {
 }
 LOGO_PATH = "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png"
 SERIES_INTRO = "把考场真实答法，搬进你的答案"   # 封面页眉眉标（仅封面保留）
-BRAND_SLOGAN = "先答一道，把最影响得分的地方找出来"  # 封面副标题＝卡6 CTA 副行（开口练 hero 原话）
-FAKE_DEMO = "一方面……另一方面，加强管理"        # 卡6 假大空对照条·固定示范句（不篡改正文）
-REAL_DEMO = "先查人、后修电，三本账对得上"      # 卡6 具体做法对照·固定示范句
-# 对照条符号：HarmonyOS Sans SC 缺 U+2717/U+2713 字形（textbbox 高 0，渲染为空白），
-# 改用同字体有真实字形的 ×/√；渲染前有 require_glyph 断言防再犯。
+BRAND_SLOGAN = "先答一道，把最影响得分的地方找出来"  # 封面副标题（开口练 hero 原话）
+# 对照条符号（TR4.2 对照条/CTA 已删，符号不再绘制；常量与字形自检保留，防字体回归）：
+# HarmonyOS Sans SC 缺 U+2717/U+2713 字形（textbbox 高 0，渲染为空白），
+# 若日后复用符号必须用有真实字形的 ×/√，渲染前 require_glyph 断言防再犯。
 MARK_NO = "×"
 MARK_YES = "√"
-CTA_MAIN = "答一道 · 每日一练"                  # 卡6 CTA 主行
 FOOTER_LEFT = "结构化每日一练 · 答一道"         # 页脚左上（统一）
 NOTE_GUIDE = "想要完整逐字稿，评论区打「1」"    # 笔记文案固定引导
 NOTE_TAGS = ["#结构化面试", "#公考面试", "#答题思路", "#每日一练", "#上岸"]
@@ -96,25 +103,29 @@ FOOTER_TEXT_Y = 1388
 LOGO_BOX = (70, 58, 182, 170)          # 封面 logo 像素校验框（与 112px 贴图位一致）
 LOGO_BOX_INNER = (70, 26, 126, 82)     # 内页 logo 像素校验框（与 56px 贴图位一致）
 
-# ---- 内页统一版面：大标 y=200（F_BLACK 72），内容区 300–1330，卡内文字宽 820 ----
-TITLE_Y, TITLE_SIZE = 200, 72
+# ---- 内页统一版面（TR4.2：大标题缩 72→60 约 -17%），内容区 300–1330 ----
+TITLE_Y, TITLE_SIZE = 200, 60
 ZONE_TOP, ZONE_BOT = 300, 1330
-TX_X, TX_W = 130, 820
+TX_X, TX_W = 130, 820            # 白卡类页面（02/06）卡内文字
 CARD_PAD = 44  # 大卡内边距（上下）
 
-# ---- 卡2 题目 ----
+# ---- 卡2 题目（TR4.2：白卡上移，顶边在中线上方、卡底不过约 780）----
 QUESTION_TIERS = (40, 38, 36, 34, 32, 30)  # 题干 40 起档（34→40，huashu 底线上）
-SOURCE_CAPSULE_Y = ZONE_TOP                # 来源徽章小胶囊（保留缩小）y
+SOURCE_CAPSULE_Y = ZONE_TOP                # 来源徽章小胶囊（保留缩小）y 下限
 SOURCE_ZONE_TOP = ZONE_TOP + 64            # 题干白卡居中区的上界
+SOURCE_ZONE_BOT = 780                      # 题干白卡居中区的下界（中线下方 ~60px）
 
-# ---- 卡3 答题思路：编号方块收缩 26px（装饰），观点正文 30px ----
-# 君上裁定（修复轮 1）：观点正文 30px 为长期口径＝清单条目（core_views）按
+# ---- 卡3 答题思路（TR4.2：白卡左右边距 48 用满可用区，观点正文 32 起排）----
+# 君上裁定（TR4.1 修复轮 1，长期口径）：观点正文＝清单条目（core_views）按
 # huashu 标签底线 ≥28px 口径处理（非 36px 正文档）；降档表 vw 各档均 ≥28，
 # 仍放不下即 CardOverflow FAIL（只降其他字段，不下穿 28）。
+OUTLINE_X, OUTLINE_W = 92, 896   # 白卡 [48..1032]（边距 48 与逐字稿一致），内文宽 896
+OUTLINE_BOT = 1306               # 白卡下界：距页脚金线 46px（打磨 R1：勿贴页脚）
 SQ_SIZE = 26
 SQ_NUM_SIZE = 16
-OUTLINE_TIERS = ((36, 29, 34, 28, 30), (34, 27, 32, 26, 28),
-                 (32, 25, 30, 25, 28), (30, 23, 28, 24, 28))
+# 打磨 R1：观点题 34→38 起档——正文升 32 后标题层级差仅 2px 被压平，恢复 ~6px 差
+OUTLINE_TIERS = ((36, 29, 38, 28, 32), (34, 27, 36, 26, 30),
+                 (32, 25, 34, 25, 28), (30, 23, 32, 24, 28))
 #            (破题 Bold, 理由 Med, 观点题 Bold, 导语 Med, 观点正文 Med)
 
 # ---- 卡4/5 逐字稿：满版直排（无白卡，金线分组），左右边距 48 ----
@@ -135,9 +146,8 @@ LABEL_SIZE = 28                   # 页签/开场定调/收尾 小标签（达�
 LABEL_PAD_X, LABEL_PAD_Y = 16, 8
 TAG_PAD_X, TAG_PAD_Y = 18, 8
 
-# ---- 卡6 收尾 ----
-GOLDEN_TIERS = (48, 44, 40, 36, 32)  # 金句 48 起档（44→48）
-FAKE_SIZE, REAL_SIZE = 36, 40        # ×行 36 / √行 40（36→40）
+# ---- 卡6 收尾（TR4.2：删对照条/CTA，只留金句卡，52 起档居中）----
+GOLDEN_TIERS = (52, 48, 44, 40, 36)  # 金句 52 起档（TR4.1 为 48，用户要求放大）
 
 CARD_FILES = ["01-封面.png", "02-题目.png", "03-答题思路.png",
               "04-逐字稿上.png", "05-逐字稿下.png", "06-收尾引流.png"]
@@ -202,8 +212,8 @@ def ensure_assets():
         raise SystemExit(f"[FAIL] 字体不可读: {FONT_DIR} —— {e} —— STOP，不静默降级")
     finally:
         _cached_font.cache_clear()
-    require_glyph(F_MED(FAKE_SIZE), MARK_NO)
-    require_glyph(F_BOLD(REAL_SIZE), MARK_YES)
+    require_glyph(F_MED(26), MARK_NO)
+    require_glyph(F_BOLD(30), MARK_YES)
     if not Path(LOGO_PATH).is_file():
         raise SystemExit(f"[FAIL] 品牌 logo 缺失: {LOGO_PATH} —— STOP，不静默降级")
 
@@ -256,6 +266,7 @@ def shadow_card(im, d, box, r=36, fill=CARD_W):
 
 NO_LINE_START = "、，。：；！？·）》」』%,.;:!?)]"
 NO_LINE_END = "「『（《"
+TAIL_PUNCT = "。，、；：！？"   # 句读尾：孤行借字判定用（打磨 R1，TR4.2）
 
 
 def wrap_text_widths(d, text, f, width_for_line):
@@ -285,7 +296,11 @@ def wrap_text_widths(d, text, f, width_for_line):
             cur += ch
     if cur:
         lines.append(cur)
-    if len(lines) >= 2 and len(lines[-1]) == 1 and len(lines[-2]) > 3:
+    # 末行孤字向上借字：末行仅 1 字，或「单字+句读」两字行（如「置。」）均视为孤行，
+    # 从上一行借一字成 3 字行（打磨 R1，TR4.2；huashu 体检项：末行孤字）
+    if (len(lines) >= 2 and len(lines[-2]) > 3
+            and (len(lines[-1]) == 1
+                 or (len(lines[-1]) == 2 and lines[-1][1] in TAIL_PUNCT))):
         lines[-1] = lines[-2][-1] + lines[-1]
         lines[-2] = lines[-2][:-1]
     return lines
@@ -411,19 +426,15 @@ def strip_done_mark(s):
 
 # ------------------------------------------------------------ 卡1 封面
 def card1_cover(im, d, p, ctx):
-    """logo 头（眉标=SERIES_INTRO 28px，无右上徽章）+ 系列名 96 墨 + 主题大字 132 枣红
-    （超宽缩）+ 金短线 + 固定品牌 slogan Bold 46 枣红 + 页脚。
-    副标题弃用 cover_hook（务实句退役），固定用开口练 slogan，与卡6 CTA 副行首尾呼应。"""
+    """logo 头（眉标=SERIES_INTRO 28px，无右上徽章）+ 主题大标题 150 枣红（居中超宽缩，
+    独占原系列名+主题两行空间，TR4.2 用户改法 1）+ 金短线 + 固定品牌 slogan Bold 46
+    枣红 + 页脚。封面中部不再绘制黑色系列名；cover_hook 弃用（TR4.1）。"""
     logo_header_cover(im, d)
-    t1 = WORDMARK
-    s1 = fit_title(d, t1, 96, 56)
-    y1 = 560
-    d.text((W // 2, y1), t1, font=F_BLACK(s1), fill=INK, anchor="mm")
-    t2 = ctx["topic"]
-    s2 = fit_title(d, t2, 132, 64)
-    y2 = y1 + int(s1 * 0.78) + 40
-    d.text((W // 2, y2), t2, font=F_BLACK(s2), fill=CRIMSON, anchor="mm")
-    y_div = y2 + int(s2 * 0.78) + 46
+    t = ctx["topic"]
+    s = fit_title(d, t, 150, 64)
+    y_t = 620
+    d.text((W // 2, y_t), t, font=F_BLACK(s), fill=CRIMSON, anchor="mm")
+    y_div = y_t + int(s * 0.78) + 46
     d.line([W // 2 - 110, y_div, W // 2 + 110, y_div], fill=GOLD, width=6)
     s_h = fit_bold(d, BRAND_SLOGAN, 46, 28, 900)
     d.text((W // 2, y_div + 112), BRAND_SLOGAN, font=F_BOLD(s_h), fill=CRIMSON, anchor="mm")
@@ -432,11 +443,12 @@ def card1_cover(im, d, p, ctx):
 
 # ------------------------------------------------------------ 卡2 题目
 def card2_question(im, d, p, ctx):
-    """大标「题目」+ 来源徽章缩为金底小胶囊（28px，白卡上方左对齐）
-    + 题干白卡（Medium 40 起档自适应、≤6 行倾向）。"""
+    """大标「题目」+ 来源徽章缩为金底小胶囊（28px，吸附白卡上方）
+    + 题干白卡（Medium 40 起档自适应、≤6 行倾向）。
+    TR4.2：白卡整体上移，顶边置于画布中线上方，卡底不越过约 780px。"""
     logo_header_inner(im, d)
     inner_title(d, "题目")
-    zone = ZONE_BOT - SOURCE_ZONE_TOP
+    zone = SOURCE_ZONE_BOT - SOURCE_ZONE_TOP
     chosen = None
     for allow_long in (True, False):  # 先找 ≤6 行档，找不到再放宽行数
         for qf in QUESTION_TIERS:
@@ -472,18 +484,21 @@ def card2_question(im, d, p, ctx):
 # ------------------------------------------------------------ 卡3 答题思路
 def card3_outline(im, d, p, ctx):
     """大标「答题思路」+ 破题角度（枣红 Bold）+ 切入理由 + 核心观点标题 + 导语
-    + 3 条编号观点（编号方块收缩 26px 装饰块，观点正文 30px）。
-    档位自动降，仍超高 FAIL。"""
+    + 3 条编号观点（编号方块收缩 26px 装饰块，观点正文 32px 起排）。
+    TR4.2：白卡左右边距收窄 48（与逐字稿一致）、高度用满可用区
+    [48, ZONE_TOP, 1032, ZONE_BOT]，内容块卡内垂直居中；文字一字不删。
+    档位自动降（观点正文下限 28，TR4.1 裁定口径），仍超高 FAIL。"""
     logo_header_inner(im, d)
     inner_title(d, "答题思路")
-    zone = ZONE_BOT - ZONE_TOP
+    zone = OUTLINE_BOT - ZONE_TOP
     chosen = None
     for af, rf, vf, inf, vw in OUTLINE_TIERS:
-        la = n_lines(d, p["break_angle"], F_BOLD(af), TX_W)
-        lr = n_lines(d, p["break_angle_reason"], F_MED(rf), TX_W)
-        lv = n_lines(d, p["core_views_title"], F_BOLD(vf), TX_W)
-        li = n_lines(d, p["core_views_intro"], F_MED(inf), TX_W)
-        vs = [n_lines(d, v, F_MED(vw), TX_W - SQ_SIZE - 22) for v in p["core_views"]]
+        la = n_lines(d, p["break_angle"], F_BOLD(af), OUTLINE_W)
+        lr = n_lines(d, p["break_angle_reason"], F_MED(rf), OUTLINE_W)
+        lv = n_lines(d, p["core_views_title"], F_BOLD(vf), OUTLINE_W)
+        li = n_lines(d, p["core_views_intro"], F_MED(inf), OUTLINE_W)
+        vs = [n_lines(d, v, F_MED(vw), OUTLINE_W - SQ_SIZE - 22)
+              for v in p["core_views"]]
         h = (la * (af + 12) + 8 + lr * (rf + 9) + 34
              + lv * (vf + 14) + 8 + li * (inf + 8) + 14
              + sum(max(SQ_SIZE, n * (vw + 8)) + 20 for n in vs))
@@ -493,24 +508,23 @@ def card3_outline(im, d, p, ctx):
     if chosen is None:
         raise CardOverflow("03-答题思路")
     af, rf, vf, inf, vw, la, lr, lv, li, vs, h = chosen
-    y0 = ZONE_TOP + (zone - h - 2 * CARD_PAD) // 2
-    shadow_card(im, d, [80, y0, 1000, y0 + h + 2 * CARD_PAD], 40)
-    y = y0 + CARD_PAD
-    y = draw_wrapped(d, (TX_X, y), p["break_angle"], F_BOLD(af), CRIMSON,
-                     TX_W, line_gap=12) + 8
-    y = draw_wrapped(d, (TX_X, y), p["break_angle_reason"], F_MED(rf), GRAY,
-                     TX_W, line_gap=9) + 34
-    y = draw_wrapped(d, (TX_X, y), p["core_views_title"], F_BOLD(vf), INK,
-                     TX_W, line_gap=14) + 8
-    y = draw_wrapped(d, (TX_X, y), p["core_views_intro"], F_MED(inf), GRAY,
-                     TX_W, line_gap=8) + 14
+    shadow_card(im, d, [48, ZONE_TOP, 1032, OUTLINE_BOT], 40)
+    y = ZONE_TOP + (zone - h) // 2  # 内容块在满高白卡内垂直居中
+    y = draw_wrapped(d, (OUTLINE_X, y), p["break_angle"], F_BOLD(af), CRIMSON,
+                     OUTLINE_W, line_gap=12) + 8
+    y = draw_wrapped(d, (OUTLINE_X, y), p["break_angle_reason"], F_MED(rf), GRAY,
+                     OUTLINE_W, line_gap=9) + 34
+    y = draw_wrapped(d, (OUTLINE_X, y), p["core_views_title"], F_BOLD(vf), INK,
+                     OUTLINE_W, line_gap=14) + 8
+    y = draw_wrapped(d, (OUTLINE_X, y), p["core_views_intro"], F_MED(inf), GRAY,
+                     OUTLINE_W, line_gap=8) + 14
     f_v = F_MED(vw)
     for i, (v, n) in enumerate(zip(p["core_views"], vs), start=1):
-        rounded(d, [TX_X, y, TX_X + SQ_SIZE, y + SQ_SIZE], 8, fill=CRIMSON)
-        d.text((TX_X + SQ_SIZE // 2, y + SQ_SIZE // 2), str(i),
+        rounded(d, [OUTLINE_X, y, OUTLINE_X + SQ_SIZE, y + SQ_SIZE], 8, fill=CRIMSON)
+        d.text((OUTLINE_X + SQ_SIZE // 2, y + SQ_SIZE // 2), str(i),
                font=F_BOLD(SQ_NUM_SIZE), fill=CREAM_W, anchor="mm")
-        draw_wrapped(d, (TX_X + SQ_SIZE + 22, y + 1), v, f_v, INK,
-                     TX_W - SQ_SIZE - 22, line_gap=8)
+        draw_wrapped(d, (OUTLINE_X + SQ_SIZE + 22, y + 1), v, f_v, INK,
+                     OUTLINE_W - SQ_SIZE - 22, line_gap=8)
         y += max(SQ_SIZE, n * (vw + 8)) + 20
     footer_note(d, 3)
 
@@ -583,7 +597,9 @@ def _render_script_page(im, d, p, page_no, groups):
     logo_header_inner(im, d)
     page_name = "上" if page_no == 0 else "下"
     zone_bot = SCRIPT_ZONE_BOT if page_no == 0 else SCRIPT_NOTE_Y - 34
-    tag = f"答题逐字稿 · {page_name}"
+    # TR4.2（用户改法 4）：页签去「·上/·下」后缀，两页统一「答题逐字稿」；
+    # 内容分布与对齐维持 TR4.1 裁定（04 顶对齐、05 垂直居中），字号 40/36 不变。
+    tag = "答题逐字稿"
     tag_h = capsule(d, SCRIPT_X, SCRIPT_ZONE_TOP, tag,
                     bg=GOLD_BG, fg=CRIMSON, pad_x=TAG_PAD_X, pad_y=TAG_PAD_Y)
     content_top = SCRIPT_ZONE_TOP + tag_h + SCRIPT_TAG_GAP
@@ -615,12 +631,13 @@ def _render_script_page(im, d, p, page_no, groups):
 
 
 def card4_script_a(im, d, p, ctx):
-    """逐字稿上：页签 + 「开场定调」+ 第一/二步（满版直排，金线分隔）。"""
+    """逐字稿（上）：页签「答题逐字稿」+ 「开场定调」+ 第一/二步（满版直排，金线分隔）。"""
     _render_script_page(im, d, p, 0, _script_groups(p)[0])
 
 
 def card5_script_b(im, d, p, ctx):
-    """逐字稿下：页签 + 第三步 + 「收尾」+ 页脚上方字数小字（全文 N 字 · 约 M 秒）。"""
+    """逐字稿（下）：页签「答题逐字稿」+ 第三步 + 「收尾」（垂直居中）
+    + 页脚上方字数小字（全文 N 字 · 约 M 秒）。"""
     _render_script_page(im, d, p, 1, _script_groups(p)[1])
     d.text((W // 2, SCRIPT_NOTE_Y), script_badge(p), font=F_MED(24),
            fill=GRAY, anchor="mm")
@@ -628,48 +645,29 @@ def card5_script_b(im, d, p, ctx):
 
 # ------------------------------------------------------------ 卡6 收尾引流
 def card6_close(im, d, p, ctx):
-    """大标「背下来 · 开口就用」+ 金句卡（48 起档）
-    + 米杏假大空对照条（×36/√40，固定示范句）+ 枣红 CTA 条（副行=品牌 slogan）。"""
+    """大标「背下来 · 开口就用」+ 金句卡一张（closing 去「答题完毕」，
+    引文保真一字不改；52 档起排可自动降），在剩余版面垂直居中。
+    TR4.2（用户改法 5）：米杏 ×/√ 对照条与枣红 CTA 条删除——收尾页就是
+    一条可背的金句素材。"""
     logo_header_inner(im, d)
     inner_title(d, "背下来 · 开口就用")
     zone = ZONE_BOT - ZONE_TOP
     golden = str(p.get("golden_line") or "").strip() or strip_done_mark(p["closing"])
-    f_fake, f_real = F_MED(FAKE_SIZE), F_BOLD(REAL_SIZE)
-    require_glyph(f_fake, MARK_NO)
-    require_glyph(f_real, MARK_YES)
-    nf = n_lines(d, MARK_NO + " " + FAKE_DEMO, f_fake, 840)
-    nr = n_lines(d, MARK_YES + " " + REAL_DEMO, f_real, 840)
-    h_c = 26 + nf * (FAKE_SIZE + 12) + 12 + nr * (REAL_SIZE + 14) + 26
-    cta_h = 140
     chosen = None
     for gf in GOLDEN_TIERS:
         f_g = F_BOLD(gf)
         ng = n_lines(d, golden, f_g, TX_W)
         h_g = ng * (gf + 16) + 96
-        if h_g + h_c + cta_h + 2 * 20 <= zone:
+        if h_g <= zone:
             chosen = (gf, ng, h_g)
             break
     if chosen is None:
         raise CardOverflow("06-收尾引流")
     gf, ng, h_g = chosen
-    total = h_g + h_c + cta_h + 2 * 20
-    y = ZONE_TOP + (zone - total) // 2
-    # 金句白卡（居中折行）
+    y = ZONE_TOP + (zone - h_g) // 2  # 金句卡在剩余版面垂直居中
     shadow_card(im, d, [80, y, 1000, y + h_g], 40)
     draw_wrapped(d, (0, y + 48), golden, F_BOLD(gf), INK, TX_W,
                  line_gap=16, center_x=W // 2)
-    y += h_g + 20
-    # 假大空对照条（固定示范句，米杏底：× 灰 / √ 枣红）
-    rounded(d, [80, y, 1000, y + h_c], 32, fill=BEIGE)
-    yy = draw_wrapped(d, (120, y + 26), MARK_NO + " " + FAKE_DEMO, f_fake, GRAY,
-                      840, line_gap=12)
-    draw_wrapped(d, (120, yy + 12), MARK_YES + " " + REAL_DEMO, f_real, CRIMSON,
-                 840, line_gap=12)
-    y += h_c + 20
-    # 枣红 CTA 条
-    rounded(d, [80, y, 1000, y + cta_h], 36, fill=CRIMSON)
-    d.text((W // 2, y + 54), CTA_MAIN, font=F_BOLD(44), fill=CREAM_W, anchor="mm")
-    d.text((W // 2, y + 106), BRAND_SLOGAN, font=F_MED(26), fill=HERO_SUB, anchor="mm")
     footer_note(d, 6)
 
 

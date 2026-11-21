@@ -9,7 +9,7 @@
 - 覆盖 10 用例：黄金路径全契约（exit0 / 6 PNG 1080×1440 / 目录命名 / 笔记文案含标签 /
   progress done 追加 / TR4.1 右上角期数徽章已删（旧徽章区域纯米底）/ 页脚全卡存在
   （页脚带非米底像素>阈值，修复轮 1 C1 回归）/ 逐字稿 40/36 设计档 /
-  删徽章后 --check 通过）/ 期号递增（已有 1 条 done → 第002期）/ 超长题干自动降档仍可渲染 /
+  删徽章后 --check 通过）/ 期号递增（已有 1 条 done → 第002期）/ 题干 80 字硬上限内仍可渲染 /
   超高 FAIL exit 非0 指出卡片且不写进度 / 缺字体 monkeypatch STOP / 缺 logo monkeypatch
   STOP / --check 通过与失败两路径 / wrap_text 只折行不截断+避头标点 / outdir 越界拒绝 /
   TR4.1 版式常量断言（逐字稿正文≥36、标签≥28、编号方块≤26、档位表自洽）。
@@ -177,13 +177,15 @@ def case_issue_increment(check):
         check(data.get("done") == ["demo-009", "yj-01"], "done=%r" % data.get("done"))
 
 
-@case("超长题干自动降档仍可渲染（不截断）")
+@case("题干 80 字硬上限内仍可渲染（TR4.2 卡上移后不截断）")
 def case_long_question(check):
     with tempfile.TemporaryDirectory(prefix="render_answer_test_") as tmpdir:
         final = dict(SAMPLE)
-        base = SAMPLE["question"].rstrip("？")
-        final["question"] = base * 8 + "？"
-        check(len(final["question"]) >= 300, "样本题干长度不足: %s" % len(final["question"]))
+        # SKILL.md 题干硬上限 80 字；TR4.2 卡 02 白卡下界收到 ~780，超长题干
+        # 在中线上方放不下（引擎按只折行不截断契约 FAIL，见下一用例）
+        final["question"] = (SAMPLE["question"].rstrip("？")
+                             + "现场群众情绪激动，有人拍摄发帖，话题开始发酵，你怎么办？")
+        check(len(final["question"]) <= 80, "题干超 80 字上限: %s" % len(final["question"]))
         root, final_path = make_sandbox(tmpdir, final=final)
         rc, out = run_render(root, final_path)
         check(rc == 0, "exit=%s out=%s" % (rc, out[-300:]))
@@ -343,11 +345,17 @@ def case_layout_constants(check):
     bodies = [t[1] for t in mod.SCRIPT_TIERS]
     check(leads == sorted(leads, reverse=True) and bodies == sorted(bodies, reverse=True),
           "降档表非单调递减: %r" % (mod.SCRIPT_TIERS,))
-    # 各卡设计档：题干 40 / 金句 48 / ×36 / √40（TR4.1 数值）
+    # 各卡设计档（TR4.2）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 大标题 60 档
     check(mod.QUESTION_TIERS[0] == 40, "题干首档 %s ≠ 40" % mod.QUESTION_TIERS[0])
-    check(mod.GOLDEN_TIERS[0] == 48, "金句首档 %s ≠ 48" % mod.GOLDEN_TIERS[0])
-    check(mod.FAKE_SIZE == 36 and mod.REAL_SIZE == 40,
-          "×/√ 行 %s/%s ≠ 36/40" % (mod.FAKE_SIZE, mod.REAL_SIZE))
+    check(mod.OUTLINE_TIERS[0][4] == 32, "观点正文首档 %s ≠ 32" % mod.OUTLINE_TIERS[0][4])
+    check(mod.GOLDEN_TIERS[0] == 52, "金句首档 %s ≠ 52" % mod.GOLDEN_TIERS[0])
+    check(56 <= mod.TITLE_SIZE <= 62, "大标题 %s 不在 72 缩 15-20%% 档（56-62）"
+          % mod.TITLE_SIZE)
+    # TR4.2 卡 03 边距与逐字稿统一收窄 48（白卡 [48..1032]，内文 896）
+    check(mod.OUTLINE_X == 48 + 44 and mod.OUTLINE_W == 1032 - 48 - 2 * 44,
+          "卡 03 边距口径不符: %s/%s" % (mod.OUTLINE_X, mod.OUTLINE_W))
+    # TR4.2 卡 02 白卡上移：卡底不越过中线下约 780
+    check(mod.SOURCE_ZONE_BOT == 780, "卡 02 下界 %s ≠ 780" % mod.SOURCE_ZONE_BOT)
 
 
 def main() -> int:
