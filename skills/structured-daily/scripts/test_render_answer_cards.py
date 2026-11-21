@@ -275,7 +275,7 @@ def case_check_paths(check):
         check("缺文件" in out, "未报缺文件")
 
 
-@case("wrap_text 只折行不截断 + 避头标点 + 符号字形断言")
+@case("wrap_text 只折行不截断 + 避头标点 + require_glyph 机制")
 def case_wrap_text(check):
     from PIL import ImageDraw
     mod = load_mod()
@@ -291,15 +291,13 @@ def case_wrap_text(check):
         check(w <= max_w, "行宽超限 %s > %s: %r" % (w, max_w, ln[:20]))
         check(not (ln and ln[0] in mod.NO_LINE_START), "行首避头标点违规: %r" % ln[:6])
         check(not (ln and ln[-1] in mod.NO_LINE_END), "行尾悬挂开引号: %r" % ln[-6:])
-    # 符号字形断言（I-1 回归）：对照条符号必须用同字体有真实字形的 ×/√，
-    # 缺字形符号（如 ✗/✓，bbox 高 0）渲染即空白，require_glyph 必须拦截。
-    check(mod.glyph_height(mod.MARK_NO, mod.F_MED(26)) > 0, "MARK_NO %r 无真实字形" % mod.MARK_NO)
-    check(mod.glyph_height(mod.MARK_YES, mod.F_BOLD(30)) > 0, "MARK_YES %r 无真实字形" % mod.MARK_YES)
+    # require_glyph 机制回归（TR4.4 删对照条断言后保留工具层自检）：
+    # 缺字形符号（bbox 高 0，如 ✗/✓ 或任何字体缺字字符）渲染即空白，必须拦截。
     real_gh = mod.glyph_height
     mod.glyph_height = lambda s, f: 0  # monkeypatch 模拟缺字形
     try:
         try:
-            mod.require_glyph(mod.F_MED(26), mod.MARK_NO)
+            mod.require_glyph(mod.F_MED(26), "字")
             raised = False
         except SystemExit:
             raised = True
@@ -345,14 +343,35 @@ def case_layout_constants(check):
     bodies = [t[1] for t in mod.SCRIPT_TIERS]
     check(leads == sorted(leads, reverse=True) and bodies == sorted(bodies, reverse=True),
           "降档表非单调递减: %r" % (mod.SCRIPT_TIERS,))
-    # 各卡设计档（TR4.2/TR4.3）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 大标题 60 档
+    # 各卡设计档（TR4.2-TR4.4）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 大标题 60 档
     check(mod.QUESTION_TIERS[0] == 40, "题干首档 %s ≠ 40" % mod.QUESTION_TIERS[0])
     check(mod.OUTLINE_TIERS[0][4] == 32, "观点正文首档 %s ≠ 32" % mod.OUTLINE_TIERS[0][4])
     check(mod.GOLDEN_TIERS[0] == 52, "金句首档 %s ≠ 52" % mod.GOLDEN_TIERS[0])
-    # TR4.3：对照条/CTA 恢复，×/√ 行维持 TR4.1 数值
-    check(mod.FAKE_SIZE == 36 and mod.REAL_SIZE == 40,
-          "×/√ 行 %s/%s ≠ 36/40" % (mod.FAKE_SIZE, mod.REAL_SIZE))
     check(mod.CTA_H == 140, "CTA 条高 %s ≠ 140" % mod.CTA_H)
+    # TR4.4 金句换源：opening 末句（逐字子串），超长/空回退 closing（去「答题完毕」）
+    g = mod.opening_golden(SAMPLE)
+    check(g == "业务停半天能补，人出了事补不回来。", "金句源不符: %r" % g)
+    check(g in SAMPLE["opening"], "金句非 opening 逐字子串")
+    check(mod.opening_golden({"opening": "", "closing": "答案落地。答题完毕。"})
+          == "答案落地。", "空 opening 未回退 closing/未去口播标记")
+    long_open = "首句铺垫。" + "超" * 60 + "。"
+    check(mod.opening_golden({"opening": long_open, "closing": "回退句。"})
+          == "回退句。", "超 60 字末句未回退 closing")
+    check(mod.opening_golden({"opening": "只有一句完整的话。", "closing": "回退句。"})
+          == "只有一句完整的话。", "单句 opening 末句取错: %r"
+          % mod.opening_golden({"opening": "只有一句完整的话。", "closing": "回退句。"}))
+    # 打磨 R1：金句卡两行均衡重排——只重排不增删字、行宽不超限
+    from PIL import ImageDraw
+    d2 = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+    q = "业务停半天能补，人出了事补不回来。"
+    bl = mod._balanced_lines(d2, q, mod.F_BOLD(52), 820)
+    check("".join(bl) == q, "均衡重排丢字: %r" % (bl,))
+    check(len(bl) == 2 and abs(len(bl[0]) - len(bl[1])) <= 2,
+          "两行未均衡: %r" % (bl,))
+    check(all(mod.tw(d2, ln, mod.F_BOLD(52)) <= 820 for ln in bl),
+          "均衡行超宽: %r" % (bl,))
+    check(mod._balanced_lines(d2, "一句话。", mod.F_BOLD(52), 820)
+          == ["一句话。"], "单行金句被重排")
     check(56 <= mod.TITLE_SIZE <= 62, "大标题 %s 不在 72 缩 15-20%% 档（56-62）"
           % mod.TITLE_SIZE)
     # TR4.2 卡 03 边距与逐字稿统一收窄 48（白卡 [48..1032]，内文 896）
