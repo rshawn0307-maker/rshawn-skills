@@ -30,13 +30,17 @@ RENDER = os.path.join(HERE, "render_answer_cards.py")
 
 MIN_CASES = 10
 
-# TR4.1 右上角期数徽章旧绘制区域（最长态起点约 x≈664，至 W-56，y 84–144）：
-# 删徽章后该区域在全部 6 卡上必须为纯画布米底，一个杂色像素都不许有。
+C5_BG = (255, 248, 236)   # TR5 米白底 #fff8ec
+# 内页右上角无徽章区（TR4.1 删徽章；TR5 封面右上为指定「第 N 期 · 题型」灰标签，豁免）：
+# 卡 02-06 该区域必须为纯米白，一个杂色像素都不许有。
 BADGE_REGION = (640, 84, 1024, 144)
-# 页脚存在性断言区（修复轮 1 C1）：页脚带 (60,1340)-(1020,1420) 必须含
-# GOLD 细线＋系列名＋页码（非米底像素 >1000；仅金线即约 1880px，6 卡统一覆盖）。
-FOOTER_REGION = (60, 1340, 1020, 1420)
-FOOTER_BG = (251, 246, 237)
+# TR5 封面竖排主题：列区 x 826–930（右缘 930、字宽 104），y 170 起 6 字 × 步进 126
+VT_REGION = (826, 170, 930, 926)
+VT_STEP = 126
+# TR5 卡 06 枣红 CTA 条（贴页脚上方）：CTA_Y=1150、高 140、宽 84–996
+CTA_REGION = (84, 1150, 996, 1290)
+# 页脚存在性断言区（C1 回归）：页脚带必须含发丝线＋系列名＋页码（非米白像素 >1000）。
+FOOTER_REGION = (60, 1300, 1020, 1420)
 
 # TR2 首期 final（draft_yj-01_final.json）内嵌只读副本；16 键内容不动
 SAMPLE = {
@@ -130,23 +134,50 @@ def case_golden(check):
         check("档位 lead/body = 40/36" in out, "逐字稿未落在 40/36 设计档: %s" % out[-300:])
         outdir = issue_dir(root, "001")
         check(outdir.is_dir(), "期目录未生成: %s" % outdir)
-        for name in CARD_FILES:
+        for idx, name in enumerate(CARD_FILES):
             p = outdir / name
             check(p.is_file(), "缺图: %s" % name)
-            if p.is_file():
-                im = Image.open(p)
-                check(im.size == (1080, 1440), "%s 尺寸=%s" % (name, im.size))
-                # TR4.1 硬性要求①：全卡删右上角期数徽章——旧徽章区域须纯米底
-                region = im.convert("RGB").crop(BADGE_REGION)
+            if not p.is_file():
+                continue
+            im = Image.open(p).convert("RGB")
+            check(im.size == (1080, 1440), "%s 尺寸=%s" % (name, im.size))
+            # TR5 米白底：四角必须为米白
+            corners = [im.getpixel(xy) for xy in
+                       ((12, 12), (1067, 12), (12, 1427), (1067, 1427))]
+            check(all(c == C5_BG for c in corners),
+                  "%s 四角非米白: %s" % (name, corners))
+            if idx == 0:
+                # TR5 封面右上「第 N 期 · 题型」28px 灰标签须存在
+                region = im.crop(BADGE_REGION)
+                non = sum(c for c, col in region.getcolors(maxcolors=1_000_000)
+                          if col != C5_BG)
+                check(non > 150, "封面右上期数标签缺失: 非米白像素 %s" % non)
+                # TR5 竖排主题逐字：列区 6 段 y 带均须有墨色像素（逐字不缺）
+                col = im.crop(VT_REGION)
+                for k in range(6):
+                    band = col.crop((0, k * VT_STEP, 104, (k + 1) * VT_STEP))
+                    ink = sum(c for c, col2 in band.getcolors(maxcolors=1_000_000)
+                              if max(abs(col2[0] - 39), abs(col2[1] - 30),
+                                     abs(col2[2] - 27)) < 60)
+                    check(ink > 300, "封面竖排第 %d 字缺失（墨色像素 %s）" % (k + 1, ink))
+            else:
+                # TR4.1 删徽章（内页沿用）：右上角区域纯米白
+                region = im.crop(BADGE_REGION)
                 colors = region.getcolors(maxcolors=1_000_000)
-                check(colors == [(region.size[0] * region.size[1], (251, 246, 237))],
-                      "%s 右上角仍有非米底像素（徽章未删净?）: %s" % (name, colors[:3]))
-                # 修复轮 1 C1 回归：页脚（金线+系列名+页码）全卡必须存在
-                band = im.convert("RGB").crop(FOOTER_REGION)
-                non_bg = sum(c for c, col in band.getcolors(maxcolors=1_000_000)
-                             if col != FOOTER_BG)
-                check(non_bg > 1000,
-                      "%s 页脚带非米底像素 %s ≤1000（页脚缺失?）" % (name, non_bg))
+                check(colors == [(region.size[0] * region.size[1], C5_BG)],
+                      "%s 右上角仍有非米白像素: %s" % (name, colors[:3]))
+            # C1 回归：页脚带（发丝线+系列名+页码）全卡必须存在
+            band = im.crop(FOOTER_REGION)
+            non_bg = sum(c for c, col in band.getcolors(maxcolors=1_000_000)
+                         if col != C5_BG)
+            check(non_bg > 1000,
+                  "%s 页脚带非米白像素 %s ≤1000（页脚缺失?）" % (name, non_bg))
+        # TR5 CTA 保留断言（卡 06 枣红 CTA 条贴页脚上方）
+        cta = Image.open(outdir / CARD_FILES[5]).convert("RGB").crop(CTA_REGION)
+        crim = sum(c for c, col in cta.getcolors(maxcolors=1_000_000)
+                   if max(abs(col[0] - 135), abs(col[1] - 17), abs(col[2] - 15)) < 60)
+        check(crim >= (CTA_REGION[2] - CTA_REGION[0]) * (CTA_REGION[3] - CTA_REGION[1]) * 0.5,
+              "卡 06 CTA 条枣红像素不足: %s" % crim)
         note = outdir / "笔记文案.md"
         check(note.is_file(), "缺 笔记文案.md")
         if note.is_file():
@@ -324,13 +355,12 @@ def case_layout_constants(check):
     check(mod.SCRIPT_BODY_SIZE >= 36, "SCRIPT_BODY_SIZE=%s < 36" % mod.SCRIPT_BODY_SIZE)
     check(mod.SCRIPT_LEAD_SIZE >= mod.SCRIPT_BODY_SIZE,
           "lead %s < body %s" % (mod.SCRIPT_LEAD_SIZE, mod.SCRIPT_BODY_SIZE))
-    # 标签底线 28px：页眉字标（内页）/封面眉标/页脚/小胶囊标签
+    # 标签底线 28px：页眉字标（内页）/页脚/来源描边胶囊（TR5：封面眉标已随 C 范式退役）
     check(mod.HEADER_WORDMARK_SIZE >= 28, "内页字标 %s < 28" % mod.HEADER_WORDMARK_SIZE)
-    check(mod.EYEBROW_SIZE >= 28, "封面眉标 %s < 28" % mod.EYEBROW_SIZE)
     check(mod.FOOTER_SIZE >= 28, "页脚 %s < 28" % mod.FOOTER_SIZE)
-    check(mod.LABEL_SIZE >= 28, "小胶囊标签 %s < 28" % mod.LABEL_SIZE)
-    # 装饰收缩：编号方块 ≤26px（TR4.1 36→26）
-    check(mod.SQ_SIZE <= 26, "编号方块 %s > 26" % mod.SQ_SIZE)
+    check(mod.CAPSULE_TEXT_SIZE >= 28, "来源胶囊 %s < 28" % mod.CAPSULE_TEXT_SIZE)
+    # 观点编号方块 26px（清单同构，TR4.1 起）
+    check(mod.SQ_SIZE == 26, "观点编号方块 %s ≠ 26" % mod.SQ_SIZE)
     # 君上裁定（修复轮 1）：卡 03 观点正文 30px 长期口径＝清单条目按标签底线 ≥28px，
     # 降档表各档 vw 均不得下穿 28
     check(min(t[4] for t in mod.OUTLINE_TIERS) >= 28,
@@ -343,7 +373,7 @@ def case_layout_constants(check):
     bodies = [t[1] for t in mod.SCRIPT_TIERS]
     check(leads == sorted(leads, reverse=True) and bodies == sorted(bodies, reverse=True),
           "降档表非单调递减: %r" % (mod.SCRIPT_TIERS,))
-    # 各卡设计档（TR4.2-TR4.4）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 大标题 60 档
+    # 各卡设计档（TR5）：题干 40 / 观点正文 32 起排 / 金句 52 起排 / 内页标题 44 枣红
     check(mod.QUESTION_TIERS[0] == 40, "题干首档 %s ≠ 40" % mod.QUESTION_TIERS[0])
     check(mod.OUTLINE_TIERS[0][4] == 32, "观点正文首档 %s ≠ 32" % mod.OUTLINE_TIERS[0][4])
     check(mod.GOLDEN_TIERS[0] == 52, "金句首档 %s ≠ 52" % mod.GOLDEN_TIERS[0])
@@ -360,7 +390,8 @@ def case_layout_constants(check):
     check(mod.opening_golden({"opening": "只有一句完整的话。", "closing": "回退句。"})
           == "只有一句完整的话。", "单句 opening 末句取错: %r"
           % mod.opening_golden({"opening": "只有一句完整的话。", "closing": "回退句。"}))
-    # 打磨 R1：金句卡两行均衡重排——只重排不增删字、行宽不超限
+    # 打磨：金句两行均衡重排——只重排不增删字、行宽不超限
+    #（TR5 边距 84 后本句 52px 在 912 宽下单行放得下，两行路径以 820 宽验证）
     from PIL import ImageDraw
     d2 = ImageDraw.Draw(Image.new("RGB", (10, 10)))
     q = "业务停半天能补，人出了事补不回来。"
@@ -370,15 +401,15 @@ def case_layout_constants(check):
           "两行未均衡: %r" % (bl,))
     check(all(mod.tw(d2, ln, mod.F_BOLD(52)) <= 820 for ln in bl),
           "均衡行超宽: %r" % (bl,))
-    check(mod._balanced_lines(d2, "一句话。", mod.F_BOLD(52), 820)
+    check(mod._balanced_lines(d2, "一句话。", mod.F_BOLD(52), mod.TX_W)
           == ["一句话。"], "单行金句被重排")
-    check(56 <= mod.TITLE_SIZE <= 62, "大标题 %s 不在 72 缩 15-20%% 档（56-62）"
-          % mod.TITLE_SIZE)
-    # TR4.2 卡 03 边距与逐字稿统一收窄 48（白卡 [48..1032]，内文 896）
-    check(mod.OUTLINE_X == 48 + 44 and mod.OUTLINE_W == 1032 - 48 - 2 * 44,
-          "卡 03 边距口径不符: %s/%s" % (mod.OUTLINE_X, mod.OUTLINE_W))
-    # TR4.2 卡 02 白卡上移：卡底不越过中线下约 780
-    check(mod.SOURCE_ZONE_BOT == 780, "卡 02 下界 %s ≠ 780" % mod.SOURCE_ZONE_BOT)
+    # TR5 C 留白版面：边距 84 全卡统一；内页标题 44 枣红；步骤方块 40px；米白底
+    check(mod.TITLE_SIZE == 44, "内页标题 %s ≠ 44" % mod.TITLE_SIZE)
+    check(mod.MARGIN == 84 and mod.TX_X == 84 and mod.TX_W == 912,
+          "边距口径不符: %s/%s/%s" % (mod.MARGIN, mod.TX_X, mod.TX_W))
+    check(mod.SQ_STEP == 40, "步骤编号方块 %s ≠ 40" % mod.SQ_STEP)
+    check(mod.SQ_SIZE == 26, "观点编号方块 %s ≠ 26" % mod.SQ_SIZE)
+    check(mod.BG == (255, 248, 236), "底色 %s ≠ 米白 #fff8ec" % (mod.BG,))
 
 
 def main() -> int:
