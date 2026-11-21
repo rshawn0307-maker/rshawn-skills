@@ -3,15 +3,16 @@
 """test_render_answer_cards —— render_answer_cards.py（答一道 6 卡图片产线）回归测试（沙箱）。
 
 运行：python3 scripts/test_render_answer_cards.py
-- 全 10 用例全过 exit 0；任一失败或用例数 <10 → exit 1（不允许假绿，筛选不中即失败）。
+- 全 11 用例全过 exit 0；任一失败或用例数 <11 → exit 1（不允许假绿，筛选不中即失败）。
 - 沙箱纪律：全程只写系统临时目录；final 样本为 TR2 draft_yj-01_final.json 的内嵌只读副本；
   不触碰真实 vault（图片输出/progress 仅在首期实跑时由人工执行，不入本测试）。
-- 覆盖 10 用例：黄金路径全契约（exit0 / 6 PNG 1080×1440 / 目录命名 / 笔记文案含标签 /
+- 覆盖 11 用例：黄金路径全契约（exit0 / 6 PNG 1080×1440 / 目录命名 / 笔记文案含标签 /
   progress done 追加 / TR4.1 右上角期数徽章已删（旧徽章区域纯米底）/ 页脚全卡存在
-  （页脚带非米底像素>阈值，修复轮 1 C1 回归）/ 逐字稿 40/36 设计档 /
+  （页脚带非米白像素>阈值，修复轮 1 C1 回归）/ 逐字稿 40/36 设计档 /
   删徽章后 --check 通过）/ 期号递增（已有 1 条 done → 第002期）/ 题干 80 字硬上限内仍可渲染 /
   超高 FAIL exit 非0 指出卡片且不写进度 / 缺字体 monkeypatch STOP / 缺 logo monkeypatch
   STOP / --check 通过与失败两路径 / wrap_text 只折行不截断+避头标点 / outdir 越界拒绝 /
+  封面主题超长显式 FAIL（TR5.1 君上裁决）/
   TR4.1 版式常量断言（逐字稿正文≥36、标签≥28、编号方块≤26、档位表自洽）。
 """
 
@@ -28,15 +29,17 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 RENDER = os.path.join(HERE, "render_answer_cards.py")
 
-MIN_CASES = 10
+MIN_CASES = 11
 
 C5_BG = (255, 248, 236)   # TR5 米白底 #fff8ec
 # 内页右上角无徽章区（TR4.1 删徽章；TR5 封面右上为指定「第 N 期 · 题型」灰标签，豁免）：
 # 卡 02-06 该区域必须为纯米白，一个杂色像素都不许有。
 BADGE_REGION = (640, 84, 1024, 144)
-# TR5 封面竖排主题：列区 x 826–930（右缘 930、字宽 104），y 170 起 6 字 × 步进 126
-VT_REGION = (826, 170, 930, 926)
-VT_STEP = 126
+# TR5.1 封面 C2 居中大字版三带：主题（h1_y=544 起 100px）、金短线（line_y=714，120×6）、
+# slogan（784 起 30px）——坐标由 card1_cover 布局推导
+H1_REGION = (100, 540, 980, 660)
+GOLDLINE_REGION = (470, 705, 610, 730)
+SLOGAN_REGION = (150, 775, 930, 830)
 # TR5 卡 06 枣红 CTA 条（贴页脚上方）：CTA_Y=1150、高 140、宽 84–996
 CTA_REGION = (84, 1150, 996, 1290)
 # 页脚存在性断言区（C1 回归）：页脚带必须含发丝线＋系列名＋页码（非米白像素 >1000）。
@@ -152,14 +155,31 @@ def case_golden(check):
                 non = sum(c for c, col in region.getcolors(maxcolors=1_000_000)
                           if col != C5_BG)
                 check(non > 150, "封面右上期数标签缺失: 非米白像素 %s" % non)
-                # TR5 竖排主题逐字：列区 6 段 y 带均须有墨色像素（逐字不缺）
-                col = im.crop(VT_REGION)
-                for k in range(6):
-                    band = col.crop((0, k * VT_STEP, 104, (k + 1) * VT_STEP))
-                    ink = sum(c for c, col2 in band.getcolors(maxcolors=1_000_000)
-                              if max(abs(col2[0] - 39), abs(col2[1] - 30),
-                                     abs(col2[2] - 27)) < 60)
-                    check(ink > 300, "封面竖排第 %d 字缺失（墨色像素 %s）" % (k + 1, ink))
+                # TR5.1 居中大字版三带断言：主题墨色/金短线/slogan 灰
+                h1 = im.crop(H1_REGION)
+                ink = sum(c for c, col in h1.getcolors(maxcolors=1_000_000)
+                          if max(abs(col[0] - 39), abs(col[1] - 30),
+                                 abs(col[2] - 27)) < 60)
+                check(ink > 5000, "封面居中主标题缺失（墨色像素 %s）" % ink)
+                gl = im.crop(GOLDLINE_REGION)
+                gold = sum(c for c, col in gl.getcolors(maxcolors=1_000_000)
+                           if max(abs(col[0] - 227), abs(col[1] - 199),
+                                  abs(col[2] - 159)) < 30)
+                check(gold > 400, "封面金短线缺失（金色像素 %s）" % gold)
+                sl = im.crop(SLOGAN_REGION)
+                graypx = sum(c for c, col in sl.getcolors(maxcolors=1_000_000)
+                             if max(abs(col[0] - 117), abs(col[1] - 103),
+                                    abs(col[2] - 95)) < 60)
+                check(graypx > 500, "封面 slogan 缺失（灰像素 %s）" % graypx)
+                # 主标题居中：墨色最左/最右像素近似对称于版心中线
+                xs = [x for x in range(H1_REGION[0], H1_REGION[2])
+                      for y in (590, 610)
+                      if max(abs(im.getpixel((x, y))[0] - 39),
+                             abs(im.getpixel((x, y))[1] - 30),
+                             abs(im.getpixel((x, y))[2] - 27)) < 60]
+                if xs:
+                    mid = (min(xs) + max(xs)) / 2
+                    check(abs(mid - 540) <= 40, "主标题未居中（墨色中心 %.0f ≠ 540）" % mid)
             else:
                 # TR4.1 删徽章（内页沿用）：右上角区域纯米白
                 region = im.crop(BADGE_REGION)
@@ -346,6 +366,20 @@ def case_outdir_escape(check):
         check(rc != 0, "越界 outdir 未拒绝 exit=%s" % rc)
         check("不在" in out, "未报越界: %s" % out[-200:])
         check(not outside.exists(), "越界目录被创建")
+
+
+@case("封面主题超长 → 显式 FAIL 不出图（TR5.1 君上裁决）")
+def case_cover_topic_overflow(check):
+    with tempfile.TemporaryDirectory(prefix="render_answer_test_") as tmpdir:
+        root, final_path = make_sandbox(tmpdir)
+        long_topic = "政务" * 9  # 18 字：60px 下限档（18×68=1224）远超可用宽 912
+        rc, out = run_render(root, final_path, extra=["--topic", long_topic])
+        check(rc != 0, "超长主题未 FAIL exit=%s" % rc)
+        check("封面主题超长" in out, "未报主题超长: %s" % out[-300:])
+        check(str(len(long_topic)) in out, "报错未指明主题字数: %s" % out[-300:])
+        check(not issue_dir(root, "001").exists(), "失败却留了期目录")
+        prog = Path(root) / "图片输出" / "progress_answer.json"
+        check(not prog.is_file(), "失败却写了进度")
 
 
 @case("TR4.1 版式常量断言（逐字稿正文≥36/标签≥28/方块≤26/档位自洽）")

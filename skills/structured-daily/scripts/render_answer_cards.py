@@ -25,8 +25,9 @@ TR5 C 留白范式（用户选定方向，全部 6 卡）:
   - 底＝米白 #fff8ec；文字＝墨 #271e1b；点缀＝枣红 #87110f（标题/编号方块/印章）＋
     金 #e3c79f（tabline/细线）；无白色投影卡——文字直接排米白底，发丝线分隔；
   - 边距统一 84px；内页标题系统＝44px 枣红 Black＋金 tabline（72×5）；
-  - 01 封面：logo 印章 96px＋竖排主题（104px 起档逐字竖排，超长自动降）＋左中竖排
-    slogan＋右下枣红方印「答一道」＋右上「第 N 期 · 题型」28px 灰；
+  - 01 封面（TR5.1 起＝C2 居中大字版）：logo 印章 96px＋右上「第 N 期 · 题型」28px 灰
+    ＋居中块「每日一练 · 答一道」30 枣红→主题 100 Black→金短线 120×6→slogan 30 灰
+    （C1 竖排主题/竖排 slogan/封面方印退役；卡 06 方印保留）；
   - 02 题目：题干 40px 行距 1.7 居于上 1/3 区，来源枣红描边胶囊吸题干顶；
   - 03 思路：破题 38 枣红/理由 34 墨/核心观点 34 bold/导语 32 灰/观点 32 起排
     （降档下限 28，TR4.1 裁定口径），编号方块 26px；
@@ -381,20 +382,15 @@ def footer_note(d, idx):
            fill=GRAY, anchor="rm")
 
 
-def draw_vertical(d, x, y, text, f, fill, step):
-    """竖排逐字绘制（text-orientation upright 对应实现）：x 固定，y 步进 step。"""
-    for ch in str(text):
+def draw_centered_spaced(d, cx, y, text, f, fill, spacing):
+    """居中加字距逐字绘制（letter-spacing 对应实现）：整串按 字宽+spacing 累计后
+    以 cx 居中，逐字左起排布；只重排不增删字。"""
+    text = str(text)
+    widths = [tw(d, ch, f) + spacing for ch in text]
+    x = cx - (sum(widths) - spacing) / 2
+    for ch, w in zip(text, widths):
         d.text((x, y), ch, font=f, fill=fill, anchor="la")
-        y += step
-
-
-def draw_seal(d, cx, cy):
-    """枣红方印「答一道」（直角印章，白字 36px 居中；方印尺寸随实测字宽自适应，
-    下限 110px——PIL 字宽比浏览器宽，固定 110px 会溢出，打磨 R1）。"""
-    size = max(110, tw(d, "答一道", F_BOLD(36)) + 28)
-    d.rectangle([cx - size // 2, cy - size // 2, cx + size // 2, cy + size // 2],
-                fill=CRIMSON)
-    d.text((cx, cy), "答一道", font=F_BOLD(36), fill=CREAM_W, anchor="mm")
+        x += w
 
 
 def script_badge(p):
@@ -433,22 +429,34 @@ def opening_golden(p):
 
 # ------------------------------------------------------------ 卡1 封面
 def card1_cover(im, d, p, ctx):
-    """C 留白封面（照 c1.html）：logo 印章 96px 左上＋右上「第 N 期 · 题型」28px 灰
-    ＋竖排主题 104px 起档（逐字竖排，超高自动降档/列容 760px）＋左中竖排 slogan 30px 灰
-    ＋右下枣红方印「答一道」＋发丝线页脚。无字标/眉标/横排大字。"""
+    """C2 居中大字封面（照 c2.html，TR5.1）：logo 印章 96px 左上＋右上
+    「第 N 期 · 题型」28px 灰＋居中块（「每日一练 · 答一道」30 枣红→主题
+    100px Black 墨→金短线 120×6→slogan 30 灰，均加宽字距居中）＋发丝线页脚。
+    C1 竖排主题/竖排 slogan/方印退役（仅封面；卡 06 方印保留）。"""
     logo_header_cover(im, d)
     d.text((W - MARGIN, 96), f"第 {ctx['issue']} 期 · {ctx['type']}",
            font=F_MED(28), fill=GRAY, anchor="ra")
-    # 竖排主题：列高 760（y 170–930），单列容 ~6 字；超长逐档降字号（每档 -4px）
+    # 居中块（c2.html .center top=460）：tag→主题→金短线→slogan
+    tag_y = 464
+    draw_centered_spaced(d, W // 2, tag_y, "每日一练 · 答一道",
+                         F_MED(30), CRIMSON, 6)
     topic = str(ctx["topic"])
-    size = 104
-    while len(topic) * (size + 22) > 760 and size > 60:
-        size -= 4
-    draw_vertical(d, 930 - size, 170, topic, F_BLACK(size), INK, size + 22)
-    # 左中竖排 slogan：30px 灰，字距 8
-    draw_vertical(d, 110, 210, BRAND_SLOGAN, F_MED(30), GRAY, 38)
-    # 右下枣红方印「答一道」（直角印章，白字居中）
-    draw_seal(d, 855, 1215)
+    size = 100
+    while len(topic) * (size + 8) > W - 2 * MARGIN and size > 60:
+        size -= 2  # 超宽主题逐档降（每档 -2px），只缩不截
+    if len(topic) * (size + 8) > W - 2 * MARGIN:
+        # 君上裁决 TR5.1：60px 下限档仍超宽（约 ≥14 字）→ 显式 FAIL，不静默裁字，
+        # 与全产线「只折行永不截断、超高显式 FAIL」纪律一致
+        raise SystemExit(
+            f"[FAIL] 封面主题超长：{len(topic)} 字在 60px 下限档仍超可用宽 "
+            f"{W - 2 * MARGIN}px（需字号 ≤{W // len(topic) - 8}px），"
+            "不许截断——请精简主题")
+    h1_y = tag_y + 36 + 44
+    draw_centered_spaced(d, W // 2, h1_y, topic, F_BLACK(size), INK, 8)
+    line_y = h1_y + size + 70
+    d.rectangle([W // 2 - 60, line_y, W // 2 + 60, line_y + 6], fill=GOLD)
+    draw_centered_spaced(d, W // 2, line_y + 6 + 64, BRAND_SLOGAN,
+                         F_MED(30), GRAY, 3)
     footer_note(d, 1)
 
 
