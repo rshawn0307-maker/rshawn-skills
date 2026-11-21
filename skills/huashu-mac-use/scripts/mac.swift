@@ -23,7 +23,7 @@ let USAGE = """
   mac hover <x> <y> [holdms]
   mac scroll <x> <y> <dy> [dx] [steps]    真实滚轮（画布类应用）
   mac type <pid> <文本> [global]          投递 Unicode（中文可用）
-  mac key <pid> <keycode> [cmd]           36=回车 53=Esc 51=删除 9=v（走全局流）
+  mac key <pid> <keycode> [cmd|ctrl|shift|opt]  可用+组合；36=回车 53=Esc 51=删除 9=v（走全局流）
   mac ax <pid>                            AX 探测（内部查两次取最大）
   mac axset <pid> <文本>                  给第一个可编辑控件设值并读回
   mac op <windowid> <x> <y> <文本> [@图] [send <sx> <sy>] [shot <路径>] [--bg|--fast] [--force] [--dry]
@@ -48,6 +48,16 @@ struct Win {
     let id: Int, pid: pid_t, owner: String, x: Double, y: Double, w: Double, h: Double
     let title: String, layer: Int, onscreen: Bool?
     var bounds: CGRect { CGRect(x: x, y: y, width: w, height: h) }
+}
+// 遮挡闸报错时分辨「残留浮层」和「用户真在用的窗口」（issue #2）：无标题且铺满整屏或几乎没有面积的上层窗口，
+// 多半是别的自动化工具（如 computer use 的 Cua Driver）、显示器 OSD 留下的透明罩子，不是用户在用的 app
+func overlayHint(_ top: Win) -> String {
+    let screens = NSScreen.screens.map { $0.frame.size }
+    let fullScreen = screens.contains { top.w >= $0.width * 0.9 && top.h >= $0.height * 0.9 }   // 罩住九成以上屏幕
+    guard top.title.isEmpty, fullScreen || top.w * top.h < 4 else { return "" }
+    return "\n提示：上层窗口无标题、\(fullScreen ? "铺满整屏" : "几乎没有面积")，可能是别的工具或系统浮层留下的透明窗口，不是用户在用的 app。"
+        + "\n  确认：mac windows --all | grep \"\(top.owner)\"   ps -o pid,comm= -p \(top.pid)"
+        + "\n  确是残留（比如已退出的自动化工具）再请用户结束 pid \(top.pid)；拿不准就别动，按上面的路线绕开"
 }
 // 必须用 .optionAll：.optionOnScreenOnly 会让被遮挡的窗口整个消失
 func allWindows() -> [Win] {
@@ -144,7 +154,8 @@ func downsample(_ src: String, to dst: String, width: Int) -> (Int, Int)? {
     ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
     guard let out = ctx.makeImage(),
           let png = NSBitmapImageRep(cgImage: out).representation(using: .png, properties: [:]) else { return nil }
-    try? png.write(to: URL(fileURLWithPath: dst))
+    do { try png.write(to: URL(fileURLWithPath: dst)) }
+    catch { die("截图写不进 \(dst)：\(error.localizedDescription)", 1) }
     return (w, h)
 }
 
@@ -182,14 +193,23 @@ func diffReport(_ before: String, _ after: String, hitX: Double, hitY: Double) -
 
 // MARK: - 截图（自诊断）
 
+// screencapture 写不了文件（父目录不存在/目录只读）时退出码仍是 0，stderr 被吞，
+// 写失败会被下游 looksBlank 谎报成「后台不渲染」。落盘前先建目录，返回前验证文件真的在
+func ensureDir(for path: String) {
+    let dir = URL(fileURLWithPath: path).deletingLastPathComponent().path
+    guard !FileManager.default.fileExists(atPath: dir) else { return }
+    do { try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true) }
+    catch { die("目标目录建不出来 \(dir)：\(error.localizedDescription)", 1) }
+}
 @discardableResult
 func capture(_ id: Int, _ path: String) -> Bool {
+    ensureDir(for: path)
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
     p.arguments = ["-x", "-o", "-l\(id)", path]   // -l 取窗口自己的合成缓冲区，不受遮挡
     let pipe = Pipe(); p.standardError = pipe; p.standardOutput = pipe
     try? p.run(); p.waitUntilExit()
-    return p.terminationStatus == 0
+    return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: path)
 }
 // 同一 app 家族里同位置同尺寸的另一个窗口：多进程 app（内嵌 Chromium 的壳 + 渲染子进程）常有一对
 func siblings(of w: Win) -> [Win] {
@@ -205,8 +225,10 @@ func chromiumFamily(pid: pid_t) -> Bool {
     let p = Process(); p.executableURL = URL(fileURLWithPath: "/bin/ps")
     p.arguments = ["-eo", "ppid=,comm="]
     let pipe = Pipe(); p.standardOutput = pipe; p.standardError = FileHandle.nullDevice
-    try? p.run(); p.waitUntilExit()
+    try? p.run()
+    // 先读后等：ps 全表输出超过 64KB 管道缓冲时，先 waitUntilExit 会和子进程互相等死
     let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    p.waitUntilExit()
     for line in out.split(separator: "\n") {
         let parts = line.split(separator: " ", maxSplits: 1)
         guard parts.count == 2, Int(parts[0].trimmingCharacters(in: .whitespaces)) == Int(pid) else { continue }
@@ -221,8 +243,9 @@ func liveCdpPort(pid: pid_t) -> String? {
     func sh(_ cmd: [String]) -> String {
         let p = Process(); p.executableURL = URL(fileURLWithPath: cmd[0]); p.arguments = Array(cmd.dropFirst())
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = FileHandle.nullDevice
-        try? p.run(); p.waitUntilExit()
-        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        try? p.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()   // 先读后等，防管道写满死锁
+        return String(data: data, encoding: .utf8) ?? ""
     }
     let pids = sh(["/usr/bin/pgrep", "-P", "\(pid)"]).split(separator: "\n").map(String.init) + ["\(pid)"]
     let allPids = (pids + sh(["/usr/bin/pgrep", "-P", pids.joined(separator: ",")]).split(separator: "\n").map(String.init))
@@ -647,7 +670,9 @@ case "see":
         else { die("没有 owner 含「\(rest[0])」的窗口 → mac windows 看看") }
         target = w
     }
-    let outPath = out ?? NSTemporaryDirectory() + "see-\(target.id).png"
+    var outPath = out ?? NSTemporaryDirectory() + "see-\(target.id).png"
+    if !outPath.lowercased().hasSuffix(".png") { outPath += ".png" }  // 不补扩展名的话下游 Read/sips 认不出这是图
+    ensureDir(for: outPath)
     let raw = NSTemporaryDirectory() + "see-raw-\(target.id).png"
     let (w, note) = shotSmart(target.id, raw)
     guard let (iw, ih) = downsample(raw, to: outPath, width: 1400) else { die("降采样失败") }
@@ -697,10 +722,12 @@ case "see":
     }
 
 case "clickin", "hoverin":
-    guard rest.count >= 3, let id = Int(rest[0]) else { die("用法: mac \(args[1]) <windowid> <x> <y> [@图] [--dry]") }
+    // eN@see.json 形式只带一个坐标参数，别再要求凑满 x y
+    let refForm = rest.count >= 2 && rest[1].hasPrefix("e") && rest[1].contains("@")
+    guard rest.count >= (refForm ? 2 : 3), let id = Int(rest[0]) else { die("用法: mac \(args[1]) <windowid> <x> <y> [@图] | mac \(args[1]) <windowid> eN@see.json  [--dry]") }
     let ref = extractRef(&rest)
     guard let w = winInfo(id) else { die("窗口 \(id) 不存在（可能已关闭或 id 过期）") }
-    let c = resolve(rest[1], rest[2], ww: w.w, wh: w.h, ref: ref)
+    let c = resolve(rest[1], rest.count > 2 ? rest[2] : "0", ww: w.w, wh: w.h, ref: ref)
     var edge = ""
     if c.pt.x < 8 && c.pt.y < 8 { edge = "  ⚠️ 落点贴着窗口左上角，大概率坐标算错" }
     if dry {
@@ -723,7 +750,7 @@ case "clickin", "hoverin":
     guardOnScreen(p, "多半是 activate 后窗口仍在动画。等 1 秒重跑")
     // 遮挡闸：这一下打给「落点最上层那个窗口」。目标被压住时会静默戳在用户正在用的窗口上
     if !force, let top = topWindowAt(p), top.id != id {
-        die("refused: occluded 落点 (\(Int(p.x)),\(Int(p.y))) 上层是「\(top.owner)」的窗口 \(top.id)，点下去会戳到它而不是目标 \(w.owner)。\n用 mac op（会激活目标）、CDP，或请用户把目标窗口移到最前；确认要点加 --force", 2)
+        die("refused: occluded 落点 (\(Int(p.x)),\(Int(p.y))) 上层是「\(top.owner)」的窗口 \(top.id)，点下去会戳到它而不是目标 \(w.owner)。\n用 mac op（会激活目标）、CDP，或请用户把目标窗口移到最前；确认要点加 --force" + overlayHint(top), 2)
     }
     // 在场闸：clickin 不激活，但走全局事件流，跟用户共用同一个鼠标指针
     gateUserPresence("clickin 走全局事件流，跟他共用同一个鼠标指针。", alt: "改走 CDP 或 mac op --bg")
@@ -761,7 +788,7 @@ case "click", "hover":
         exit(0)
     }
     if isClick, !bg, !force, let top = topWindowAt(c.pt), top.pid != pid {
-        die("refused: occluded 落点 (\(Int(c.pt.x)),\(Int(c.pt.y))) 上层是「\(top.owner)」(pid \(top.pid))，不是目标 pid \(pid)。点下去会戳到它。\n改 mac clickin（按窗口定位）或 CDP；确认要点加 --force", 2)
+        die("refused: occluded 落点 (\(Int(c.pt.x)),\(Int(c.pt.y))) 上层是「\(top.owner)」(pid \(top.pid))，不是目标 pid \(pid)。点下去会戳到它。\n改 mac clickin（按窗口定位）或 CDP；确认要点加 --force" + overlayHint(top), 2)
     }
     if !bg { gateUserPresence("全局坐标点击/悬停跟用户共用同一个鼠标指针。", alt: "改 mac clickin（按窗口定位）或 CDP") }
     if isClick {
@@ -809,8 +836,19 @@ case "type":
     print("typed \(rest[1].count) chars -> pid \(pid) \(global ? "global" : "postToPid")（返回值不代表生效，必须回读）")
 
 case "key":
-    guard rest.count >= 2, let pid = pid_t(rest[0]), let code = UInt16(rest[1]) else { die("用法: mac key <pid> <keycode> [cmd]") }
-    let flags: CGEventFlags = rest.count > 2 && rest[2] == "cmd" ? .maskCommand : []
+    guard rest.count >= 2, let pid = pid_t(rest[0]), let code = UInt16(rest[1]) else { die("用法: mac key <pid> <keycode> [cmd|ctrl|shift|opt，可用+组合如 cmd+shift]") }
+    // 修饰键：认不出的词直接报错。以前只认 cmd，写 ctrl 会被静默丢掉、发出裸键（issue #2）
+    let modMap: [String: (CGEventFlags, String)] = ["cmd": (.maskCommand, "cmd"), "command": (.maskCommand, "cmd"),
+        "ctrl": (.maskControl, "ctrl"), "control": (.maskControl, "ctrl"), "shift": (.maskShift, "shift"),
+        "opt": (.maskAlternate, "opt"), "option": (.maskAlternate, "opt"), "alt": (.maskAlternate, "opt")]
+    var flags: CGEventFlags = [], modNames: [String] = []
+    if rest.count > 2 {
+        for tok in rest[2].lowercased().split(separator: "+").map(String.init) {
+            guard let (f, name) = modMap[tok] else { die("不认识的修饰键「\(tok)」：只支持 cmd / ctrl / shift / opt，组合写成 cmd+shift", 1) }
+            if !flags.contains(f) { flags.insert(f); modNames.append(name) }
+        }
+    }
+    let modSuffix = modNames.map { "+" + $0 }.joined()
     // 这一下走全局流，落在「当前前台 app」身上（pid 参数只用于回显），所以闸看的是前台是谁
     let frontApp = NSWorkspace.shared.frontmostApplication
     let frontName = frontApp?.localizedName ?? "?"
@@ -818,7 +856,7 @@ case "key":
     // 前台随时会被用户切走，不查这一下就会按到他正在用的窗口上——实测踩过。
     if dry {
         let fp = frontApp?.processIdentifier ?? -1
-        print("dry: key \(code)\(flags.contains(.maskCommand) ? "+cmd" : "") 会落在前台「\(frontName)」(pid \(fp))")
+        print("dry: key \(code)\(modSuffix) 会落在前台「\(frontName)」(pid \(fp))")
         print("  闸预检: frontmost=" + (fp == pid ? "pass(前台就是目标)" : "BLOCK(目标 pid \(pid) 不在前台)")
               + "  回车=" + (code == 36 && shellOwners.contains(frontName) ? "BLOCK(\(frontName) 是终端/IDE 类)" : "pass")
               + "  " + presencePreview())
@@ -837,7 +875,7 @@ case "key":
         guard let e = CGEvent(keyboardEventSource: src, virtualKey: code, keyDown: down) else { continue }
         e.flags = flags; e.post(tap: .cghidEventTap); markSynthetic(); usleep(30_000)
     }
-    print("key \(code)\(flags.contains(.maskCommand) ? "+cmd" : "") -> 前台 app（pid \(pid) 仅回显）")
+    print("key \(code)\(modSuffix) -> 前台 app（pid \(pid) 仅回显）")
 
 case "ax":
     guard rest.count >= 1, let pid = pid_t(rest[0]) else { die("用法: mac ax <pid>") }
@@ -870,18 +908,20 @@ case "axset":
     print("setValue err=\(r.rawValue) 读回=\"\(rb.prefix(40))\"\n→ err 和读回都不是判据。截图看发送键有没有由灰变亮；没变就是 app 不认这次输入，改 mac op 或 CDP")
 
 case "op":
-    guard rest.count >= 4, let wid = Int(rest[0]) else { die("用法: mac op <windowid> <x> <y> <文本> [@图] [send <sx> <sy>] [shot <路径>] [--bg|--fast] [--force] [--dry]") }
+    // 同 clickin：eN@see.json 形式少一个坐标参数，文本和后续选项整体前移一位
+    let opRefForm = rest.count >= 2 && rest[1].hasPrefix("e") && rest[1].contains("@")
+    guard rest.count >= (opRefForm ? 3 : 4), let wid = Int(rest[0]) else { die("用法: mac op <windowid> <x> <y> <文本> [@图] | mac op <windowid> eN@see.json <文本>  [send <sx> <sy>] [shot <路径>] [--bg|--fast] [--force] [--dry]") }
     let ref = extractRef(&rest)
-    let text = rest[3]
+    let text = opRefForm ? rest[2] : rest[3]
     var sendXY: (String, String)?, shotPath: String?
-    var i = 4
+    var i = opRefForm ? 3 : 4
     while i < rest.count {
         if rest[i] == "send", i + 2 < rest.count { sendXY = (rest[i + 1], rest[i + 2]); i += 3 }
         else if rest[i] == "shot", i + 1 < rest.count { shotPath = rest[i + 1]; i += 2 }
         else { i += 1 }
     }
     guard let w = winInfo(wid) else { die("窗口 \(wid) 不存在。先 mac windows 重取 id") }
-    let c = resolve(rest[1], rest[2], ww: w.w, wh: w.h, ref: ref)
+    let c = resolve(rest[1], rest.count > 2 ? rest[2] : "0", ww: w.w, wh: w.h, ref: ref)
     let sc = sendXY.map { resolve($0.0, $0.1, ww: w.w, wh: w.h, ref: ref) }
     let plan = fastMode ? "--fast 直接借焦点" : (bgOnly ? "--bg 只走后台档，不升级" : "默认阶梯：先后台档，未生效才升级借焦点")
     if dry {
@@ -1043,8 +1083,9 @@ case "open":
     func sh(_ cmd: [String]) -> String {
         let p = Process(); p.executableURL = URL(fileURLWithPath: cmd[0]); p.arguments = Array(cmd.dropFirst())
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = FileHandle.nullDevice
-        try? p.run(); p.waitUntilExit()
-        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        try? p.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()   // 先读后等，防管道写满死锁
+        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
     var path = ""
     let fm = FileManager.default
