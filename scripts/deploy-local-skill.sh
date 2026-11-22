@@ -24,27 +24,57 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # 各端 agent 工具的 skill 根目录。不存在的会跳过（未安装该工具）。
 # 只列实际在用的四端。若以后也用 Claude Code / .agents，取消下面注释即可纳入。
+# 注意 Trae：CN 版的数据目录是 ~/.trae-cn（进程 cn.trae.app），国际版才是 ~/.trae。
+# 本机装的是 Trae CN，且 ~/.trae 是 2026-10 起不再写入的废弃目录（内含旧 mcp.json
+# 与一份 skills/，极易误判）。用 verify-agent-roots 可自动探测哪个是活的。
 AGENT_ROOTS=(
   "$HOME/.codex/skills"
-  "$HOME/.trae/skills"
+  "$HOME/.trae-cn/skills"
   "$HOME/.zcode/skills"
   "$HOME/.workbuddy/skills"
   # "$HOME/.claude/skills"
   # "$HOME/.agents/skills"
 )
 
-NAME=""; SRC=""; APPLY=0; PUSH=0; NO_AGENTS=0
+NAME=""; SRC=""; APPLY=0; PUSH=0; NO_AGENTS=0; VERIFY_ROOTS=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --src)      SRC="${2:?--src 需要参数}"; shift 2 ;;
     --apply)    APPLY=1; shift ;;
     --push)     APPLY=1; PUSH=1; shift ;;
     --no-agents) NO_AGENTS=1; shift ;;
+    --verify-roots) VERIFY_ROOTS=1; shift ;;
     -h|--help)  sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*)         echo "未知选项: $1" >&2; exit 2 ;;
     *)          NAME="$1"; shift ;;
   esac
 done
+
+# ---- --verify-roots：探测各 agent 根目录哪个真的在用（防同名废弃目录）----
+if [ "${VERIFY_ROOTS:-0}" -eq 1 ]; then
+  echo "==> 探测 agent skill 根目录"
+  for R in "${AGENT_ROOTS[@]}"; do
+    if [ -d "$R" ]; then
+      # 该根目录下最近一次被写入的时间（跳过本脚本自己刚同步的副本）
+      # 只看根目录下各项（skill 目录/清单文件）的 mtime；探测模式下 NAME 为空，
+      # 此时不排除任何项，取整体最新写入即可
+      EXCL=()
+      [ -n "$NAME" ] && EXCL=(-not -name "*$NAME*")
+      LAST="$(find "$R" -mindepth 1 -maxdepth 1 "${EXCL[@]+"${EXCL[@]}"}" \
+              -exec stat -f '%m' {} \; 2>/dev/null | sort -n | tail -1)"
+      LAST_S="$( [ -n "$LAST" ] && date -r "$LAST" '+%Y-%m-%d %H:%M' || echo '空目录')"
+      N="$(find "$R" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
+      printf "  [在用] %-42s %3s 个 skill，最近写入 %s\n" "${R/#$HOME/~}" "$N" "$LAST_S"
+    else
+      printf "  [跳过] %-42s 不存在\n" "${R/#$HOME/~}"
+    fi
+  done
+  echo
+  echo "提示：若某目录的「最近写入」停在几个月前，多半是同名的废弃目录（典型：Trae 的"
+  echo "      ~/.trae 是国际版、~/.trae-cn 才是 CN 版）。用 ps aux | grep -i trae 可看"
+  echo "      进程实际用的是哪个路径，那才是该同步的目标。"
+  exit 0
+fi
 
 [ -n "$NAME" ] || { echo "用法: bash scripts/deploy-local-skill.sh <skill 名> [--apply] [--push]" >&2; exit 2; }
 [ -n "$SRC" ] || SRC="$HOME/.dsh/skills/$NAME"

@@ -79,7 +79,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 - Claude Code：`~/.claude/skills/<skill 名>/`
 - Codex：`~/.codex/skills/<skill 名>/`
 - Cursor：`.cursor/skills/<skill 名>/`
-- Trae：`~/.trae-cn/skills/<skill 名>/`（CN 版实测为 `~/.trae/skills/<skill 名>/`）
+- Trae：**CN 版是 `~/.trae-cn/skills/<skill 名>/`**，国际版才是 `~/.trae/skills/<skill 名>/`。两者可同时存在：本机 `~/.trae` 自 2026-10 起已停止写入（残留旧 `mcp.json` 与一份 `skills/`），实际运行的是 `~/.trae-cn`（进程 `cn.trae.app`）。判不准时用 `bash scripts/deploy-local-skill.sh --verify-roots` 看哪个目录仍在被写入。
 - ZCode：`~/.zcode/skills/<skill 名>/`
 - WorkBuddy：`~/.workbuddy/skills/<skill 名>/`
 - 其他 runtime：参考对应工具的 skills 目录约定
@@ -89,6 +89,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 自研 skill 的权威源只有一处（默认 DSH 的 `~/.dsh/skills/<skill 名>/`），但各端 agent 工具各持一份独立副本。手工 rsync 容易漏端，且旧副本里的 `__pycache__` 不会因 `--exclude` 被删掉。用脚本同步：
 
 ```bash
+bash scripts/deploy-local-skill.sh --verify-roots             # 先探测各端目录哪个在用
 bash scripts/deploy-local-skill.sh structured-daily          # 预演，只列差异
 bash scripts/deploy-local-skill.sh structured-daily --apply  # 真正写入五处
 bash scripts/deploy-local-skill.sh structured-daily --push   # 写入并 commit + push
