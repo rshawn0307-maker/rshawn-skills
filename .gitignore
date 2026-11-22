@@ -5,3 +5,6 @@ __pycache__/
 
 # SDD ledger（本地记账，不推远程）
 .chuigong/
+
+# 本机同步/清理操作的备份（含密钥，绝不入库）
+.local-backups/
