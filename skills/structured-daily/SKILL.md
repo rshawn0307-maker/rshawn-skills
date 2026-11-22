@@ -1,7 +1,7 @@
 ---
 name: structured-daily
-description: 自动化生成「结构化每日一练」答题帖并直接出图（6 张 1080×1440 PNG + 笔记文案.md，答一道 VI 简洁风）：出题（热点自出 / 真题库 / 模拟题库三选一）＋审题五维＋思路大纲＋定调版逐字稿（opening+三观点 lead/body+closing，正文 700–800 汉字不含标点，硬边界 680–820），电车站诊断/改写、check_prose 门禁、独立审稿、盲测验收、render_answer_cards.py 渲染出图一气呵成。用户说「答一道 / 出题 / 出一道题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子」等出题作答类表述时触发。本技能接替 structured-post（触发词全盘接替，防双触发由 TR3 归档旧技能保证）；原双线（技巧线/答题线）已收敛为本答一道单线；docx 产线（fill_answer_post.py + 模板）已归档保留，不再执行。
-version: 3.2.0（定稿版）
+description: 自动化生成「结构化每日一练」答题帖并直接出图（7 张 1080×1440 PNG + 笔记文案.md，答一道 VI 简洁风）：出题（热点自出 / 真题库 / 模拟题库三选一）＋审题五维＋思路大纲＋定调版逐字稿（opening+三观点 lead/body+closing，正文 700–800 汉字不含标点，硬边界 680–820），电车站诊断/改写、check_prose 门禁、独立审稿、盲测验收、render_answer_cards.py 渲染出图一气呵成。视觉契约见 references/DESIGN.md（OpenDesign 九段式）。用户说「答一道 / 出题 / 出一道题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子」等出题作答类表述时触发。本技能接替 structured-post（触发词全盘接替，防双触发由 TR3 归档旧技能保证）；原双线（技巧线/答题线）已收敛为本答一道单线；docx 产线（fill_answer_post.py + 模板）已归档保留，不再执行。
+version: 3.3.0（v3 七卡版式，2026-11-22 opendesign 审查后重设计）
 author: Shawn × AI（2026-11 重构；TR1 答一道单线转型；2026-11-20 TR4 产线切换直接出图）
 metadata:
   triggers:
@@ -12,10 +12,10 @@ metadata:
     - 结构化面试练习
     - 做一篇结构化帖子
   outputs:
-    - vault 图片输出/第N期-{题型}-{主题}/（6 张 1080×1440 PNG + 笔记文案.md）
+    - vault 图片输出/第N期-{题型}-{主题}/（7 张 1080×1440 PNG + 笔记文案.md）
     - vault 图片输出/progress_answer.json（期号进度 done 数组，渲染成功后追加）
   prerequisites:
-    - python3 + Pillow（PIL，6 卡渲染产线必需）
+    - python3 + Pillow（PIL，7 卡渲染产线必需）
     - 字体 HarmonyOS_Sans_SC_{Black,Bold,Medium,Regular}.ttf @ /Users/shawn/Library/Fonts ＋ 品牌 logo（公考橙皮书 assets/logo-zfz.png），任一缺失渲染即 STOP
     - python3 + python-docx 1.2.0（仅归档 docx 引擎及其回归测试用，产线不再执行）
     - 电车站 tramstop-skill（去 AI 味诊断）
@@ -33,7 +33,7 @@ metadata:
 
 | 步 | 动作 | 依据 |
 |---|---|---|
-| 1 | 出题 + 读源 + 审题 + 草稿：题目三选一（热点自出 / 真题库 / 模拟题库，题干 ≤80 字硬上限，写完 `len()` 自检）→ 题干确认弹窗（CHECKPOINT 第一处，用户选"换一道"回本步）→ 四源读源（讲义定源一本通对应章节）+ 审题五维 + 读源四要素 → 大纲区 7 字段 + 逐字稿 8 字段草稿（定调版口径）→ draft_meta 落盘（answer 扩展字段必填） | 本文件「出题规则」「封面前缀铁律」、`references/shared-sourcing.md`（四源/审题五维/draft_meta schema）、`references/shared-calibration.md`（定调版口径） |
+| 1 | 出题 + 读源 + 审题 + 草稿：题目三选一（热点自出 / 真题库 / 模拟题库，题干 ≤80 字硬上限，写完 `len()` 自检）→ 题干确认弹窗（CHECKPOINT 第一处，用户选"换一道"回本步）→ 四源读源（讲义定源一本通对应章节）+ 审题五维 + 读源四要素 → 大纲区 7 字段 + 逐字稿 8 字段草稿（定调版口径）→ draft_meta 落盘（answer 扩展字段必填） | 本文件「出题规则」「来源微标铁律」、`references/shared-sourcing.md`（四源/审题五维/draft_meta schema）、`references/shared-calibration.md`（定调版口径） |
 | 2 | 电车站诊断 agent（tramstop 模式一，读 checklist 四层扫描）：扫大纲与解说段；逐字稿引自题库定调版时为教学事实源保真区，不扫措辞不改一字 | `references/shared-gates.md` 步 2 与「电车站诊断 agent 契约」 |
 | 3 | human-writing 改写 agent（另起会话，白熊隔离）：只动大纲/解说措辞（新写逐字稿含措辞），逐字稿引文保真；保留字段前缀 | `references/shared-gates.md` 步 3 与「human-writing 改写 agent 契约」 |
 | 4 | check_prose.py 程序红线清零：检查文本=改写后大纲/解说＋新写逐字稿 8 字段（引文保真区不进检查文本）；FAIL 项清零才过，不可用即 STOP 无降级 | `references/shared-gates.md` 步 4 |
@@ -42,7 +42,7 @@ metadata:
 | 7 | 盲测试答出厂验收：学生 persona 只读帖子全文（题目+思路大纲+逐字稿），独立产出新题完整定调版答题；判据四项全过 `blind_test_result=="通过"`，未过回炉（回步 3） | `references/blind-test-protocol.md`、`references/shared-gates.md` 步 7 |
 | 8 | content_rules 出厂程序门禁：`python3 scripts/content_rules.py --line answer --pending <pending_answer> --meta <draft_meta>`，R0/R14 exit 0 才进 CHECKPOINT | `scripts/content_rules.py`、`references/shared-gates.md` 步 8 |
 | 9 | CHECKPOINT 复核：两处弹窗记录齐备（①步 1 题干确认 ②步 4 后成稿前后对比 3-5 处），缺一不进渲染 | `references/shared-gates.md` 步 9 与「CHECKPOINT 用户弹窗」 |
-| 10 | 出稿（图片产线）：draft 写入 16 键 final JSON → `python3 scripts/render_answer_cards.py --project-root <项目根> --final <final JSON> --type <题型> --topic <主题>` 直接渲染 6 张 1080×1440 PNG + 笔记文案.md（exit 0，logo 像素校验通过后才追加 progress done）→ 目检 + `--check` 复核 → 向用户报告。docx 引擎 `fill_answer_post.py` 与模板已退出产线（归档保留，不再执行） | `scripts/render_answer_cards.py`、`references/shared-engine-safety.md` |
+| 10 | 出稿（图片产线）：draft 写入 16 键 final JSON → `python3 scripts/render_answer_cards.py --project-root <项目根> --final <final JSON> --type <题型> --topic <主题>` 直接渲染 7 张 1080×1440 PNG + 笔记文案.md（exit 0，logo 像素校验通过后才追加 progress done）→ 目检 7 图 + `--check` 复核 → 向用户报告。docx 引擎 `fill_answer_post.py` 与模板已退出产线（归档保留，不再执行） | `scripts/render_answer_cards.py`、`references/DESIGN.md`、`references/shared-engine-safety.md` |
 | 后置 | 发布后第 7 天数据回填：阅读/收藏/反馈关键词写入 vault `scripts/daily_metrics.json`；收藏率=收藏÷第 7 天阅读；不阻塞出厂 | vault `scripts/daily_metrics.json` |
 
 IMA 上传是可选附加步（仅用户明确要求时执行）：node + ima-skill。
@@ -79,7 +79,7 @@ python3 -c "import docx; print(docx.__version__)"   # 期望 1.2.0
 
 ### ③ 引擎唯一入口（2026-11-20 起为图片渲染产线）
 
-唯一执行引擎是 **skill 内 `scripts/render_answer_cards.py`**（PIL 直出 6 张 1080×1440 PNG + 笔记文案.md；只折行不截断、超高自动降档、字体/logo 缺失 STOP，exit 0/1）。docx 引擎 `fill_answer_post.py` 与 docx 模板**退出产线：归档保留，不再执行**（`assets/answer-template-baseline.docx` 与 `test_fill_answer_post.py` 随之归档，仅作历史回溯参考）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已从本技能删除（技巧线退役；vault `scripts/` 下遗留的 8 月旧版副本废弃勿用，勿当作入口）。安全机制与失败回退见 `references/shared-engine-safety.md`。
+唯一执行引擎是 **skill 内 `scripts/render_answer_cards.py`**（v3：PIL 直出 7 张 1080×1440 PNG + 笔记文案.md；只折行不截断、数字/英文串不腰斩、超高自动降档、字体/logo 缺失 STOP，exit 0/1）。**版式契约（字号梯/色板/锚点/反模式）以 `references/DESIGN.md` 为唯一事实源**，引擎常量与它必须同表。docx 引擎 `fill_answer_post.py` 与 docx 模板**退出产线：归档保留，不再执行**（`assets/answer-template-baseline.docx` 与 `test_fill_answer_post.py` 随之归档，仅作历史回溯参考）。项目根 `scripts/` 下遗留的 `fill_structured_post.py`（旧 post 引擎）**已废弃勿用**；旧 `fill_tips_post.py` 已从本技能删除（技巧线退役；vault `scripts/` 下遗留的 8 月旧版副本废弃勿用，勿当作入口）。安全机制与失败回退见 `references/shared-engine-safety.md`。
 
 ### ④ 视觉资产（PIL / 字体 / logo，缺一即 STOP）
 
@@ -99,10 +99,11 @@ ls "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz
 | skill | `references/shared-calibration.md` | 定调版口径唯一事实源（字数/8 字段/三禁/收尾两型） |
 | skill | `references/shared-sourcing.md` | 四源读源（讲义定源一本通）+ 审题五维 + draft_meta 统一 schema |
 | skill | `references/shared-gates.md` | 门禁栈 10 步流水线 + 诊断/改写契约 + 独立审稿 8 查项 |
+| skill | `references/DESIGN.md` | **视觉契约唯一事实源**：OpenDesign 九段式（主题/色彩/字体/间距/布局/组件/动效/语域/反模式），token 与引擎常量同表 |
 | skill | `references/shared-engine-safety.md` | 引擎安全机制、失败回退与沙箱回归纪律 |
 | skill | `references/blind-test-protocol.md` | 盲测试答出厂验收协议（学生 persona / 判据四项 / 白盒禁令） |
-| skill | `scripts/render_answer_cards.py` | **现行产线**：答一道 6 卡图片渲染引擎（PIL 1080×1440 ×6 + 笔记文案.md；期号读 progress_answer.json、logo 像素校验、只折行不截断、超高降档/FAIL，exit 0/1） |
-| skill | `scripts/test_render_answer_cards.py` | 渲染引擎回归测试（9 用例，沙箱 tempfile 输出） |
+| skill | `scripts/render_answer_cards.py` | **现行产线**：答一道 7 卡图片渲染引擎（v3；PIL 1080×1440 ×7 + 笔记文案.md；期号读 progress_answer.json、logo 像素校验、只折行不截断、数字串不腰斩、超高降档/FAIL、重渲染清残留，exit 0/1） |
+| skill | `scripts/test_render_answer_cards.py` | 渲染引擎回归测试（**16 用例**，沙箱 tempfile 输出；含字号梯、两道闸门、残留清理、期号幂等；`MIN_CASES=16` 硬下限防假绿） |
 | skill | `scripts/fill_answer_post.py` | 答一道 docx 引擎（19 段 5 图 / 写入前段数预检 / 快照 / 写入后验证，exit 0/1）——**归档保留，退出产线不再执行** |
 | skill | `scripts/test_fill_answer_post.py` | docx 引擎回归测试（沙箱临时副本；真实模板 sha256 前后断言）——**归档** |
 | skill | `scripts/content_rules.py` | 出厂规则门禁（R0 读源记录 / R14 审稿记录，`--line answer`） |
@@ -115,7 +116,7 @@ ls "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz
 | vault | `scripts/pending_answer.json` | docx 产线中间文件（随引擎归档，不再生成） |
 | vault | `scripts/_snapshots/` | docx 引擎自动快照（随引擎归档，不再新增） |
 | vault | `scripts/_draft_answer/` | final JSON 草稿目录（图片产线渲染输入，16 键只读） |
-| vault | `图片输出/第XXX期-题型-主题/` | 图片产线期目录（6 PNG + 笔记文案.md，**唯一 vault 写授权**，另加 progress_answer.json） |
+| vault | `图片输出/第XXX期-题型-主题/` | 图片产线期目录（7 PNG + 笔记文案.md，**唯一 vault 写授权**，另加 progress_answer.json） |
 | vault | `图片输出/progress_answer.json` | 期号进度（`done` 数组；期号 = done 数+1 三位补零，渲染成功后才追加） |
 | vault | `scripts/daily_metrics.json` | 发布后指标回填（第 7 天，轻量效果回收） |
 
@@ -123,7 +124,7 @@ ls "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz
 
 ## 模板铁律（19 段 5 图契约，本表为准）
 
-> **产线已切换为图片（2026-11-20）：docx 为归档资产，不再作为发布载体；思路区/逐字稿区颜色分区保留在归档模板中。** 本节以下内容为归档模板契约，仅供回溯；现行发布载体为 `图片输出/` 下 6 卡 PNG + 笔记文案.md（`render_answer_cards.py`）。
+> **产线已切换为图片（2026-11-20）：docx 为归档资产，不再作为发布载体；思路区/逐字稿区颜色分区保留在归档模板中。** 本节以下内容为归档模板契约，仅供回溯；现行发布载体为 `图片输出/` 下 7 卡 PNG + 笔记文案.md（`render_answer_cards.py`，版式见 `references/DESIGN.md`）。
 
 - 模板契约：**19 段 / w:drawing 5 图 / 16 必填字段**；引擎 `scripts/fill_answer_post.py` 按下表段位写入（表自引擎 `REPLACE_MAP` 提取）。
 - **图数口径：`w:drawing == 5`**（引擎 validate 按此口径，现行健康）；封面文本框双镜像 `txbxContent == 2`（drawing 镜像 + VML fallback）。
@@ -158,29 +159,40 @@ ls "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz
 - 固定不动段：1（标题）、17（引流段）、18（末图）；写入只找"第一个纯文本 run"，图片 run 完全不动。
 - 5 图分布含封面文本框形状（引擎按 w:drawing 总数 5 校验，与模板 1 实测一致）。
 
-### 封面前缀铁律（随来源切换）
+### 来源微标铁律（随来源切换，v3 图卡口径）
 
-封面文本框前缀由 `title_prefix` 控制，引擎写入段[0] 两个镜像并按该值校验：
+> docx 时代这条叫「封面前缀铁律」，靠封面文本框前缀落地；v3 图卡没有封面文本框，
+> 改为**卡 02 顶部的来源微标**（`source_badge`）+ 引擎 `validate_final` 程序校验。
+> 语义不变，仍是「真题库来源不许静默标成每日一练」。
 
-| 题目来源 | `source` | `title_prefix` |
-|---------|----------|----------------|
-| 热点自出题 | 可省略或 `自出题` | `"结构化每日一练："`（可省略，默认值） |
-| **真题库选题** | **`"真题库"`** | **必须** `"结构化历年考题："` |
-| 模拟题库选题 | `"模拟题库"` | `"结构化每日一练："`（可省略，默认值） |
+来源微标由 `title_prefix` 决定：含「历年考题」→ 卡 02 微标「历年考题」，否则「每日一练」。
 
-真题库来源时**必须同时**写 `source` 与 `title_prefix`；`source` 含「真题」却漏传或传错前缀时引擎直接报错退出，防止静默用错封面。报告里写明本次来源类型和封面前缀。
+| 题目来源 | `source` | `title_prefix` | 卡 02 微标 |
+|---------|----------|----------------|-----------|
+| 热点自出题 | 可省略或 `自出题` | `"结构化每日一练："`（可省略，默认值） | 每日一练 |
+| **真题库选题** | **`"真题库"`** | **必须** `"结构化历年考题："` | 历年考题 |
+| 模拟题库选题 | `"模拟题库"` | `"结构化每日一练："`（可省略，默认值） | 每日一练 |
 
-### pending_answer.json schema（16 必填 + 2 可选，与引擎 REPLACE_MAP 同表）
+真题库来源时**必须同时**写 `source` 与 `title_prefix`；`source` 含「真题」却没带上「历年考题」前缀时，
+`render_answer_cards.py` 的 `validate_final` 直接 `[FAIL]` 退出，防止静默用错微标（I-4 教训：
+v3 首版只算微标不校验，这条铁律一度没有程序保障）。反向情况（前缀写历年考题但 source 非真题库）
+打 `[WARN]` 不拦。报告里写明本次来源类型和来源微标。
 
-必填（缺任一引擎即拒）：`question` ＋ 大纲区 7 字段（`break_angle` / `break_angle_reason` / `core_views_title` / `core_views_intro` / `core_views`[恰 3 元素]）＋ 逐字稿 8 字段（`opening` / `point1_lead` / `point1_body` / `point2_lead` / `point2_body` / `point3_lead` / `point3_body` / `closing`）。可选：`source`、`title_prefix`（语义见封面前缀铁律）。开场/收尾类型、诊断结论只进 draft_meta，不进 pending（引擎不消费）。JSON 字符串内部用中文双引号或转义 `\"`，推荐 Python `json.dump` 生成。
+### final JSON schema（13 必填 + core_views 单独校验 + 2 可选，与引擎 `REQUIRED_FIELDS` 同表）
+
+必填（缺任一引擎即拒）：`question` ＋ 大纲区 5 字段（`break_angle` / `break_angle_reason` / `core_views_title` / `core_views_intro`）＋ 逐字稿 8 字段（`opening` / `point1_lead` / `point1_body` / `point2_lead` / `point2_body` / `point3_lead` / `point3_body` / `closing`）；另 `core_views` 单独校验必须恰 3 条非空字符串（共 16 个语义字段）。可选：`source`、`title_prefix`（语义见来源微标铁律）。开场/收尾类型、诊断结论只进 draft_meta，不进 final（引擎不消费）。JSON 字符串内部用中文双引号或转义 `\"`，推荐 Python `json.dump` 生成。
 
 ## 失败处理 / 回归测试
 
-- 失败回退：引擎任何失败先看 `scripts/_snapshots/` 最新快照；写入失败时 `[KEEP] pending_answer.json 保留`，按报错逐项修后重跑。快照机制与沙箱回归纪律统一见 `references/shared-engine-safety.md`。
-- 四套自测（改引擎/规则/检查器/渲染器后必跑，全过才算交付）：
+- 失败回退：图片产线无待写文件，失败一律「不落盘、不建期目录、不写 progress」，按报错逐项修后重跑。
+  归档 docx 产线的快照回退机制（`scripts/_snapshots/`、`[KEEP] pending_answer.json 保留`）见
+  `references/shared-engine-safety.md`，仅回溯用。
+- 四套自测（改引擎/规则/检查器/渲染器后必跑，共 **48** 用例，全过才算交付）：
   ```bash
-  python3 scripts/test_render_answer_cards.py  # 6 卡图片渲染 9 用例（现行产线）
-  python3 scripts/test_fill_answer_post.py   # docx 引擎沙箱 11 用例（归档，改动时才跑）
-  python3 scripts/test_content_rules.py      # R0/R14 answer 用例
-  python3 scripts/test_check_prose.py        # check_prose 10 用例
+  python3 scripts/test_render_answer_cards.py  # 16 用例：7 卡图渲染全套（字号梯/闸门/残留/期号幂等）
+  python3 scripts/test_content_rules.py        # 11 用例：R0/R14 answer 门禁
+  python3 scripts/test_check_prose.py          # 10 用例：check_prose
+  python3 scripts/test_fill_answer_post.py     # 11 用例：docx 引擎沙箱（归档，改动时才跑）
   ```
+  改版三条硬红线对应用例：卡 02 超高 → `case_overflow_card2`；真题库漏标「历年考题」→
+  `case_real_exam_prefix`；数字串腰斩/避头尾 → `case_wrap_text`。任一条变红即视为不可交付。

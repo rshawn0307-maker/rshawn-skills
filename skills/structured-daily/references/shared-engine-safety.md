@@ -1,6 +1,19 @@
 # 引擎安全机制（shared-engine-safety）
 
-> **产线切换注（2026-11-20）：引擎归档。** 本文件所述 docx 引擎 `fill_answer_post.py` 已随产线切换归档保留、不再执行；**现行产线为 skill 内 `scripts/render_answer_cards.py`**（PIL 直出 6 张 1080×1440 PNG + 笔记文案.md；期号读 `图片输出/progress_answer.json`，字体/logo 缺失 STOP，只折行不截断、超高降档仍超高 FAIL，渲染 + logo 校验全过才追加 done）。以下内容保留作归档参考与回溯。
+> **产线切换注（2026-11-20，2026-11-22 升 v3 七卡）：引擎归档。** 本文件所述 docx 引擎 `fill_answer_post.py` 已随产线切换归档保留、不再执行；**现行产线为 skill 内 `scripts/render_answer_cards.py`**（v3：PIL 直出 **7 张** 1080×1440 PNG + 笔记文案.md；期号读 `图片输出/progress_answer.json`，字体/logo 缺失 STOP，只折行不截断、**数字/英文串不腰斩**、超高降档仍超高 FAIL，渲染 + logo 校验全过才追加 done）。**视觉契约（字号梯/色板/锚点/反模式）以 `references/DESIGN.md` 为唯一事实源**，引擎常量与它必须同表。以下内容保留作归档参考与回溯。
+
+## 现行图片产线安全机制（render_answer_cards.py v3）
+
+1. **资产闸门**：四档 HarmonyOS Sans SC 字体缺任一 → `[FAIL] 字体缺失… STOP，不静默降级`；logo 缺失 → `[FAIL] 品牌 logo 缺失… STOP`；缺字形 → `[FAIL] 字体缺字形… STOP`（历史教训 I-1：HarmonyOS 缺 U+2717/U+2713）。
+2. **只折行不截断**：`wrap_text_widths` 像素折行 + 行首避头标点 + 行尾不悬挂开引号 + **ASCII 数字/英文串不内部断开**（I-2 教训：`马上打119和120` 曾被折成「马上打11 / 9和120」）+ 末行孤字借字。
+3. **超高降档 / 闸门**：逐字稿正文 44 → 42（`SCRIPT_BODY_TIERS`），仍超高 → `CardOverflow` → `[FAIL] 卡N 内容超高：最低档仍放不下，不许截断——请人工精简` exit 非 0。**每张卡都必须有闸门**：卡 02（题干/破题句/理由是固定字号，无降档档位）直接 `if total > ZONE_BOT - SCRIPT_ZONE_TOP: raise CardOverflow(2)`。I-3 教训：卡 02 曾用 `max(0, …)` 把超高静默钳住，超长题干 rc=0 出一张内容压到画外的图——闸门缺失比文字难看严重，它让「不许截断」失去程序保障。
+4. **全或无**：`render_all` 先把 7 图全部渲染到内存，任一张失败即退出，**不留半套图、不建期目录、不写 progress**。
+5. **残留清理**：落盘前删除期目录内不属于 `CARD_FILES` 的旧版 PNG 并打印 `[NOTE] 清理旧版残留: xxx.png`，保证一期内聚。
+6. **期号幂等**：`--outdir` 目录名匹配 `第(\d{3})期` 时沿用该期号重渲染，**不推进 progress**；不带 `--outdir` 才按 done 数+1 递增。
+7. **写入边界**：输出必须在 `<project-root>/图片输出/` 内，`safe_path` 拒目录穿越，越界即 `[FAIL] outdir 不在 … 内`。
+8. **logo 像素校验**：7 图齐备 + 尺寸 1080×1440 + logo 区枣红占比 ≥50%（框 `LOGO_BOX=(84,72,180,168)` / `LOGO_BOX_INNER=(84,28,140,84)`），全过才 `append_done`。
+
+## 归档：docx 引擎（fill_answer_post.py）安全机制
 
 答一道 docx 引擎 skill 内 `scripts/fill_answer_post.py`（TR1 自 structured-post 引擎 v2 原样移植；旧技巧线引擎 fill_tips_post.py 已随技巧线退役删除，其 v3.0 安全模式记载随 git 历史可找回）。
 
@@ -13,7 +26,7 @@
 5. **版式锁定**：段[9] 正文首段强制 pageBreakBefore，大纲区（段 2-8）分页符清除。
 6. **写入后自动验证**：段数 19 / w:drawing 5 / 引流段样式（居中+加粗+#85120F）/ 封面双镜像前缀 / 分页符版式，任一不符 exit 1 且 `[KEEP] pending_answer.json 保留` 便于排查。
 7. **退出码契约**：0=成功（pending 清理）；1=环境或验证失败（pending 缺失 / 模板缺失 / 段数预检失败 / 缺 question / 真题前缀违规 / 写入后验证不过）。缺大纲字段按源版本语义抛 KeyError 退出 1（原样保留，不另设码）。
-8. **真题封面前缀铁律**：source 含真题类标记而 title_prefix 非「结构化历年考题：」直接 exit 1，防静默用错封面。
+8. **真题来源微标铁律**：source 含真题类标记（真题/历年考题/real_exam/zhenti）而 title_prefix 不含「历年考题」→ `validate_final` 直接 exit 1，防静默把卡 02 微标标成「每日一练」（I-4 教训：v3 首版只算微标不校验，铁律无程序保障）；反向（前缀标历年考题但 source 非真题库）打 `[WARN]` 不拦。
 9. **引擎归属统一**：引擎收 skill 内 `scripts/`；项目根只留数据/模板/pending/快照；项目根遗留 `fill_structured_post.py` 已废弃勿用。
 10. **失败回退**：验证失败不回滚字节（源版本口径：快照已留存写入前版本），从 `_snapshots/` 复制最新快照覆盖回模板路径即回退；pending 保留排查。
 

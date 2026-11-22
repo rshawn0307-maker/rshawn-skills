@@ -18,9 +18,9 @@
 | 5 | 回核读源 | 改写稿对四源回核：术语/条件/方法含义不丢，审题五维的限制条件不被丢/改/加；教学事实源严禁改写 |
 | 6 | 独立审稿（语义，换视角/评审代理） | 8 查项见「独立审稿查项（答一道 8 项）」节；review_conclusion 写"通过"才进盲测；任一查项不过回步 3 |
 | 7 | 盲测试答出厂验收 | 按 `references/blind-test-protocol.md`：学生 persona 只读帖子全文（题目+思路大纲+逐字稿），独立产出新题完整定调版答题，判据四项全过 blind_test_result 写"通过"；未过回炉（回步 3 改写） |
-| 8 | content_rules.py 出厂门禁 | `python3 scripts/content_rules.py --line answer --pending <pending_answer.json> --meta <draft_meta>`，**R0/R14 exit 0** 才进 CHECKPOINT；answer pending 校验与引擎 `fill_answer_post.py` 消费契约同表防漂移 |
+| 8 | content_rules.py 出厂门禁 | `python3 scripts/content_rules.py --line answer --pending <pending_answer.json> --meta <draft_meta>`，**R0/R14 exit 0** 才进 CHECKPOINT；answer pending 校验与引擎 `render_answer_cards.py` 的 `REQUIRED_FIELDS` / `core_views` 恰 3 条消费契约同表防漂移（docx 引擎已归档，不再作为对表对象） |
 | 9 | CHECKPOINT 用户弹窗（复核两处齐备） | 两处弹窗：①题干确认弹窗（步 1 执行，用户可"换一道"）②成稿前后对比 3-5 处弹窗（步 4 去 AI 味后执行）；本步复核两处弹窗记录齐备，**缺一不进渲染** |
-| 10 | 引擎出稿 + 渲染近似检查 | draft 写入 vault `scripts/pending_answer.json` → `fill_answer_post.py --project-root <项目根>`（19 段 5 图契约、写入前段数预检、快照、写入后验证，exit 0/1，机制见 `shared-engine-safety.md`）；渲染近似检查见「渲染近似检查」节；结论如实标注，**发布端复核才闭环** |
+| 10 | 引擎出稿 + 渲染近似检查 | draft 写入 16 键 final JSON → `python3 scripts/render_answer_cards.py --project-root <项目根> --final <final JSON> --type <题型> --topic <主题>`（v3 七卡：PIL 直出 7 张 1080×1440 PNG + 笔记文案.md；只折行不截断、数字/英文串不腰斩、超高降档仍超高 FAIL、字体/logo 缺失 STOP、7 图 logo 像素校验全 PASS 才追加 progress done，exit 0/1，机制见 `shared-engine-safety.md`，版式见 `references/DESIGN.md`）；渲染近似检查见「渲染近似检查」节；结论如实标注，**发布端复核才闭环** |
 
 ## 电车站诊断 agent 契约
 
@@ -63,7 +63,7 @@
 
 换视角/评审代理执行，语义判。8 项（⑧ 为 +1 通用查项）：
 
-1. **标题/封面前缀兑现**：封面前缀与来源匹配（真题库=`结构化历年考题：`，自出/模拟题库=`结构化每日一练：`），题干原文完整写入封面文本框双镜像；题干设问/争点在正文逐项有回应。
+1. **来源微标兑现**（v3 图卡口径）：`source` 与 `title_prefix` 匹配（真题库=`结构化历年考题：`，自出/模拟题库=`结构化每日一练：`），卡 02 微标随之显示「历年考题」/「每日一练」，引擎 `validate_final` 已强制校验；题干原文完整上卡（卡 02）；题干设问/争点在正文逐项有回应。
 2. **审题五维齐且限制条件不丢改加**：draft_meta 审题五维记录五项（设问/身份/对象/限制条件/主要争点）齐全；逐字稿对题干给定事实与前提不丢、不改、不加；每个主要争点有对应段。
 3. **大纲三观点定调版口径**：三观点呈现分析关系（递进/并列/时间轴按题型），不为凑三点灌水；观点与正文三个 point 块一一对应，改稿两边一致。
 4. **逐字稿口径合规**：唯一口径 opening 至 closing 汉字数（不含标点）700–800、硬边界 680–820；8 字段结构完整；开场破题定调+开篇三禁（不编题干外事件/不场景故事开头/不先讲经历）；收尾落在判据式/总结式且与 draft_meta closing_type 一致（口径见 `shared-calibration.md`）。
@@ -112,7 +112,14 @@ review_conclusion 写"通过"才进盲测；任一查项不过回步 3 改写。
 
 ## 渲染近似检查
 
-375px 手机宽度，textutil+无头 Chrome 近似渲染（对象=引擎生成的 docx）。结论如实标注两级："近似通过"（本机近似）/ "发布端通过"（小红书发布端实况）。**发布端复核才闭环**，近似通过不算终态。
+**v3 图片产线（现行）**：产物是 7 张 1080×1440 PNG，不再是 docx，所以不再需要 `textutil` + 无头 Chrome 的 docx 近似渲染。现行检查分两级：
+
+1. **程序级**（必过，exit 0 才算过）：`render_answer_cards.py` 自带 7 图 logo 像素校验（尺寸 + 枣红占比 ≥50%）＋ `--check` 复核（文件齐备 + logo 区）。全 PASS 才追加 progress done。
+2. **目检级**（必做，人眼/读图）：逐张看 7 图，按 `references/DESIGN.md` §9 反向清单核：字号梯未漂移、唯一强调色、页脚无横线、断行无孤字/无数字腰斩、三类页型（封面/内页/收尾）在缩略图尺寸下可区分。
+
+结论如实标注两级："程序通过"（引擎自检 + `--check`）/ "发布端通过"（小红书发布端实况）。**发布端复核才闭环**，程序通过不算终态。
+
+> 归档参考（docx 时代，已不执行）：375px 手机宽度 textutil + 无头 Chrome 近似渲染 docx 产物。
 
 ## 经验注入适配教学帖
 

@@ -15,7 +15,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | [PE-lecture](#PE-lecture) | 教师编笔试"举一反三"讲稿生成与反例沉淀 | [查看](#PE-lecture) |
 | [PE-trial](#PE-trial) | 体育试讲稿教学产物全流程生成（考试规则可配置 + 独立验真） | [查看](#PE-trial) |
 | [PE-trial-daily](#PE-trial-daily) | 体育试讲设计每日一练：拆解教学环节 + 图例 + 试讲逐字稿 docx 自动生成 | [查看](#PE-trial-daily) |
-| [structured-daily](#structured-daily) | "结构化每日一练"答一道帖：题目+思路框架+定调版逐字稿＋直接出图（structured-post 已归档合并；structured-tips-daily 技巧线已删除，2026-11-21） | [查看](#structured-daily) |
+| [structured-daily](#structured-daily) | "结构化每日一练"答一道帖：题目+思路框架+定调版逐字稿＋PIL 直出 7 卡（OpenDesign 九段式视觉契约；structured-post 已归档合并；structured-tips-daily 技巧线已删除，2026-11-21） | [查看](#structured-daily) |
 | [PE-bishi-daily](#pe-bishi-daily) | "每天一个体育笔试知识点"帖子 docx 自动生成（可同步 ima 知识库） | [查看](#pe-bishi-daily) |
 | [PE-bishi-jd-daily](#pe-bishi-jd-daily) | 体育笔试简答题每日一练：简答题 + 参考答案 + 要点解析表，保留原版模板与生成门槛 | [查看](#pe-bishi-jd-daily) |
 | [wushi-daily](#wushi-daily) | "公务员务实·岗位业务"小红书图文自动生成（PIL 6 卡 + 双脚本事实门禁） | [查看](#wushi-daily) |
@@ -134,7 +134,11 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 
 #### structured-daily
 
-「结构化每日一练」答一道帖自动生成：出题（热点自出 / 真题库 / 模拟题库）+ 审题五维 + 思路大纲 + 定调版逐字稿（opening+三观点 lead/body+closing，700–800 汉字不含标点，硬边界 680–820，210 秒，破题定调三禁）。流水线＝读源四源（方法论/一本通/题库/教师注）→电车站诊断→human-writing 改写（逐字稿引文保真）→check_prose 红线→回核读源→独立审稿→盲测出厂验收→pending_answer 套版式出稿；引擎为 skill 内 `scripts/fill_answer_post.py`（19 段 5 图契约，写入前段数预检 + 写入前快照 + 写入后验证，exit 0/1）。structured-post（答一道直系前身）已合并并归档至 `skills/_archive/`（git 历史可查）；structured-tips-daily（技巧线）已于 2026-11-21 删除（vault 侧资产归档 `结构化/_archive/20261121-技巧线退役/`）。
+「结构化每日一练」答一道帖自动生成：出题（热点自出 / 真题库 / 模拟题库）+ 审题五维 + 思路大纲 + 定调版逐字稿（opening+三观点 lead/body+closing，700–800 汉字不含标点，硬边界 680–820，210 秒，破题定调三禁）。流水线＝读源四源（方法论/一本通/题库/教师注）→电车站诊断→human-writing 改写（逐字稿引文保真）→check_prose 红线→回核读源→独立审稿→盲测出厂验收→出图。引擎为 skill 内 `scripts/render_answer_cards.py`（PIL 直出 **7 张 1080×1440 PNG** + 笔记文案.md：封面／题目／答题思路／逐字稿 ×3／收尾；全或无写入、残留清理、期号幂等、7 图 logo 像素校验）。
+
+**v3 版式（2026-11-22 经 OpenDesign 审查后重设计）**：6 卡 → 7 卡（逐字稿按观点拆 3 页，正文 36px→44px 达到竖版正文 ≥42px 的可用性底线）；退役黄铜金饰系，只留枣红一个强调色；封面从满宽色块改左对齐贴字宽块（面积 14%→11.2%）；页脚去装饰横线。视觉契约见 `references/DESIGN.md`（OpenDesign 九段式，**版式唯一事实源**，引擎常量须与它同表）。回归 4 套共 48 用例全绿（渲染 16 ／规则 11 ／prose 10 ／归档 docx 11）。docx 产线（`scripts/fill_answer_post.py` + 模板）已归档保留，不再执行。
+
+structured-post（答一道直系前身）已合并并归档至 `skills/_archive/`（git 历史可查）；structured-tips-daily（技巧线）已于 2026-11-21 删除（vault 侧资产归档 `结构化/_archive/20261121-技巧线退役/`）。
 
 触发词：答一道、出题、出一道题、每日一练、结构化面试练习、做一篇结构化帖子。
 
