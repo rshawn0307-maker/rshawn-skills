@@ -93,6 +93,29 @@ for entry in "${SOURCES[@]}"; do
   sync_skill "$name" "$repo" "$sub" "$origin_url" "$origin_label"
 done
 
+# ---- 本地补丁重打：huashu-skill-updater ----
+# 上游把「本地无版本标记」并进了 outdated 文案；本副本保留独立的 unknown 状态
+# （纯资产/无 version 字段的仓库不该被报成 outdated）。上游无此分支，同步后需重打。
+python3 - "$REPO_ROOT/skills/huashu-skill-updater/scripts/check_updates.py" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+if not p.exists():
+    sys.exit(0)
+t = p.read_text(encoding="utf-8")
+block = ('    if local is None:\n'
+         '        # 本地补丁：无 SKILL.md 版本标记（如纯资产仓库）时无法按版本标签判断新旧，单列 unknown\n'
+         '        return ("unknown", "无 SKILL.md 版本标记，无法按版本标签自动判断", None)\n')
+if "本地补丁：无 SKILL.md 版本标记" in t:
+    pass
+elif "    local = local_version(path)\n" in t:
+    t = t.replace("    local = local_version(path)\n",
+                  "    local = local_version(path)\n" + block, 1)
+    p.write_text(t, encoding="utf-8")
+    print("  补丁已重打: check_updates.py")
+else:
+    print("  ⚠️ check_updates.py: 结构变化，补丁未打，请人工核对")
+PY
+
 echo
 echo "==> 变更摘要："
 git -C "$REPO_ROOT" status --short -- skills/darwin-skill skills/huashu-design skills/huashu-report skills/huashu-art-motion skills/huashu-md-html skills/tramstop-skill skills/huashu-md-to-pdf skills/huashu-article-edit skills/huashu-topic-gen skills/huashu-script-polish skills/huashu-speech-coach skills/huashu-skill-updater

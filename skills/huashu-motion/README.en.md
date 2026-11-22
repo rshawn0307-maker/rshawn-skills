@@ -276,18 +276,45 @@ After the export, `om share` makes a share kit: a GIF under 10 MB (the opening p
 - **Director rules, not templates.** Measured from 21 real launch films (cuts, beats, loudness, energy curves) and 142 high-engagement launch and motion films, organised into 20 motion languages. Every film starts with a rhythm sheet: a hook within 3 s, a burst in the middle, a beat of silence before the biggest hit.
 - **Sound is half of it.** Composer mode (the agent writes the score, sampled instruments play it), 12 product types × 3 fallback music directions, 23 sound effects placed on the line where the motion lands, narration from a system voice or your own recording.
 - **Its own render engine.** Several Chrome instances at once (by CPU count, up to 8 by default), picture and audio encoded in parallel, unchanged music reused. A 30-second film renders in about 12–15 s on my 14-core Mac; with motion blur, about 1–1.5 min.
-- **Checked before delivery.** `om check` (scripts, files, motion rules, cut-off or covered text), `om qa` (single-frame pops, dead time, motion curve), and the skill asks the agent to watch the frames and, when it can, have another agent review cold.
+- **Checked before delivery.** `om check` (scripts, files, motion rules, cut-off or covered text), `om qa` (single-frame pops, dead time, motion curve; `--sheet` tiles the whole film into contact sheets), and the skill asks the agent to watch the frames and, when it can, have another agent review cold.
 
 | Command | What it does |
 |---|---|
 | `om grab` | The product's real material into the project: page screenshots, logo, images, its colours and type, or the screenshots, icons and recordings in its own project folder |
 | `om new` · `om templates` | Start a project, from one of 12 templates |
-| `om studio` | Live preview, scene strip, direct edits, frame comments |
+| `om studio` | Live preview, scene strip, direct edits, frame comments. UI in 中文 / English / Español: follows the browser, or `--lang es` / `OM_LANG=es` |
 | `om inbox --wait` · `om look` · `om done` | Agent side: take the next comment, see the spot, report back |
-| `om sound` · `om voice` · `om samples` | Music and effects, narration, the instrument pack |
+| `om sound` · `om music` · `om voice` · `om samples` | Music and effects, the track library (arranges a real track to the film), narration, the instrument pack |
 | `om check` · `om qa` · `om still` | Before and after rendering |
 | `om render` · `om share` · `om export html` · `om fork` | Export, share kit (GIF + post), share page, new frame size |
 | `om learn` · `om undo` · `om doctor` | Experience, undo, environment check |
+
+## Score it with a real track
+
+Bring a track you may use, or take one from the default library, and the film is cut to it instead of the other way round.
+
+```bash
+om music                      # the library: default tracks (om music build downloads them once) and yours
+om music add song.mp3 --mood warm,calm --name "My track"
+om music use <id> my-film     # copies it into the project and declares OM.music({ src })
+om sound my-film              # the plan: bars, lifts, joins, the ending, loudness checked on the rendered audio
+```
+
+`om sound` reads the track's real beat grid, bar lines, lifts and ending, and arranges it to the film's length: the track's own opening, a middle that drops or repeats whole bars, and the track's own ending. Joins sit on bar lines or beats inside stable stretches, never across a lift; a candidate with a loudness jump of more than 6 dB is refused. Say where the music should lift with `OM.music({ burst, peak, landing })`: a real lift of the track is brought onto the burst or the peak when it can be, and the table says what to move in the film when it cannot. Nothing after the end of the music (a platform's spoken label) ever plays. The default library has 11 instrumental tracks, **all AI-generated** by the author, released apart from the software (release `music-v1`) under a CC0-style dedication: see `music/LICENSE.md`.
+
+| id | mood | bpm | ending |
+|---|---|---|---|
+| `warm-luminance` | warm, lyrical, heartfelt | 121 | cadence |
+| `forward-motion` | driving, confident, launch | 120 | fade |
+| `forward-drive` | driving, energetic, fast-cut | 120 | hard stop |
+| `calm-tech` | calm, precise, tech | 100 | cadence |
+| `bright-step` | bright, upbeat, friendly | 118 | ring-out |
+| `grand-reveal` | epic, orchestral, launch | 128 | ring-out |
+| `gentle-story` | gentle, story, piano | 84 | ring-out |
+| `city-groove` | groove, urban, funky | 110 | hard stop |
+| `focus-minimal` | minimal, focus, explainer | 97 | hard stop |
+| `playful-spark` | playful, quirky, light | 125 | hard stop |
+| `wide-horizon` | wide, hopeful, vision | 93 | cadence |
 
 ## What's inside
 

@@ -91,7 +91,7 @@ def check_git_install(path, mark_checked=False):
     if local and version_tuple(local) >= version_tuple(remote):
         return ("ok", f"最新（v{local}）", None)
     if local is None:
-        # 无 SKILL.md 版本标记（如纯资产仓库），按版本标签无法判断新旧；内容是否同步需人工核对
+        # 本地补丁：无 SKILL.md 版本标记（如纯资产仓库）时无法按版本标签判断新旧，单列 unknown
         return ("unknown", "无 SKILL.md 版本标记，无法按版本标签自动判断", None)
     return ("outdated", f"本地 v{local} → 远端 v{remote}",
             f"git -C {path} pull --ff-only")

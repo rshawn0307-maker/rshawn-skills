@@ -6,6 +6,10 @@ piano, synbass, an 808 and a pop kit) at 120 BPM in a minor key: each time the c
 example score and kept its header. Every film sounded alike. `om sound` now prints each score's soundprint
 (tempo, key, band) and warns when it is an example's band or the band of a recent film on this machine.
 
+> A real track is re-cut to the film's shape by bars ([sound.md](sound.md) § Fitting a fixed track to this film); this file's worlds still help choose the track and write the brief.
+>
+> **Use this file only for the fallback.** A film's music is a real track ([music-sources.md](music-sources.md), [sound.md](sound.md) § A real track). The worlds below describe what to ask a music tool for, what to look for in the library, and how to write a score when nothing else is available (say so at delivery). Choosing a world is still useful for the brief: tempo, band, reference.
+
 ## Choose the world before the notes
 
 1. **You choose, the user doesn't.** Music is not on the direction cards: most people can't pick a music
@@ -185,7 +189,7 @@ C,,3 C,, z4 | C,,2 z C,, z2 C,,2 |
 V:CL inst=drums kit=808 gain=0.8
 z4 D,,4 | z4 D,,4 |
 V:HT inst=drums kit=808 gain=0.6
-^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ | ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ (3^F,,/^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ (3^F,,/^F,,/^F,,/ ^F,,/^F,,/ |
+^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ | ^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ (3^F,,/^F,,/^F,,/ ^F,,/^F,,/ ^F,,/^F,,/ (3^F,,/^F,,/^F,,/ ^F,,/^F,,/ |
 V:SB inst=sub808 gain=0.9
 G,,4 z2 B,,2 | E,,4 z2 D,,2 |
 V:BL inst=bell gain=0.5
@@ -255,7 +259,7 @@ F,2 [Ac]2 [Ac]2 | C,2 [EG]2 [EG]2 | G,2 [=Bd]2 [=Bd]2 | F,2 [Ac]2 [Ac]2 |
 V:STR inst=strings gain=0.5
 [FA]6 | [EG]6 | [=B,D]6 | [CF]6 |
 V:HP inst=harp gain=0.5
-F,/A,/C/F/ A/c/ z2 z2 | C,/E,/G,/C/ E/G/ z2 z2 | G,/=B,/D/G/ =B/d/ z2 z2 | F,/A,/C/F/ A/c/ z2 z2 |
+F,/A,/C/F/ A/c/ z z2 | C,/E,/G,/C/ E/G/ z z2 | G,/=B,/D/G/ =B/d/ z z2 | F,/A,/C/F/ A/c/ z z2 |
 V:FL inst=flute gain=0.4
 z6 | z6 | d'2 =b2 g2 | a6 |
 ```

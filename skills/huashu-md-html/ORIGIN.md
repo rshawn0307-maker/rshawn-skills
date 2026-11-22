@@ -6,6 +6,8 @@
 
 - 上游目录快照：skills.json updated 2026-10-26；2026-10-30 首次收录
 
+- 2026-11-22 同步至上游 v1.0.1（新增 --embed-css/--no-embed-css：CSS 内联成单文件；微信模板支持 header-includes）
+
 上游更新后，在 rshawn-skills 仓库根目录运行一条命令即可同步：
 
 ```bash

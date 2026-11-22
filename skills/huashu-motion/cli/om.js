@@ -18,7 +18,7 @@ const HELP = `huashu-motion ${VERSION} — motion graphics made by your coding a
   om new <dir> [--template t]   start a project (om templates lists them)
   om templates                  starter projects and what each is good for
   om demo [dir]                 copy the showcase film and open it in the studio
-  om studio [dir]               live preview, direct edits, comments for the agent
+  om studio [dir] [--lang zh|en|es]   live preview, direct edits, comments for the agent (UI language; also OM_LANG)
   om inbox [dir] [--wait]       list comments; --wait blocks, claims the next one and prints it
   om look <id|--at sec> [dir]   save the frame (and a close-up of the clicked spot) as PNGs to look at
   om done <id> [dir] --note …   mark a comment handled (the studio shows the note)
@@ -33,10 +33,17 @@ const HELP = `huashu-motion ${VERSION} — motion graphics made by your coding a
   om render [dir] [--workers n] [--video extract|seek] [--frames jpg|png]   browsers at once (default: up to 8), how footage is read, the footage cache
   om check [dir] [--samples n] [--source] [--json]   before rendering: structure, scripts, files, motion rules, then sampled frames (cut-off, covered or low-contrast text, blank ends, history-dependent frames)
   om qa [dir|video] [--loop]     check a render: single-frame pops, dead time, hard cuts, motion curve, loop seam
+  om qa [dir|video] --sheet [fps]   also tile the render into contact sheets (default 4 frames a second) to read the film at a glance
   om render [dir] --transparent  overlay for 剪映/Premiere: ProRes 4444 with alpha (or --format webm), no sound
   om fork <dir> <newdir> --size 1080x1920   copy into a new frame size; the re-layout lands in the inbox
   om voice <dir> --text <file|"文本"> | --audio <file> [--voice say:Tingting|zf_xiaobei] [--fit]   narration, word cues, .srt
   om sound [dir] [--list] [--off]   music + sound effects from the scenes, OM.sfx hits and an om-score (om render refreshes it)
+  om sound [dir] --music <file> [--start sec] [--bpm n] [--arrange off|auto] [--stretch bpm]   a real track as the music: copied into assets/music/, declared as OM.music({ src }), its beats read for OM.beat / OM.downbeat / OM.drop
+  om music [--list]             the tracks on this machine (default library + your own): mood, bpm, length
+  om music build [ids…]         download the default library to ~/.cache/huashu-motion/music (sha256 checked; OM_MUSIC overrides)
+  om music use <id> <dir>       copy a track into a project and declare it (then om sound)
+  om music add <file> --mood warm,calm --name "…"   register a track of your own (beats analysed once)
+  om beats <file|dir> [--plot [out.png]] [--at sec] [--bars]   bpm, confidence, bar lines, the section map (energy, can-end bars) of a track; --plot draws them; --bars lists every bar
   om still <page.html|dir> [--at 0,2.5] [--out file]   a PNG of any page (direction key frames, treatment stills)
   om swatch [directions.md] [--out file]   the Palette: lines of the direction cards as one PNG, with contrast and house-look checks
   om learn [topics…]            before a film: this user's preferences + past experience on those topics
@@ -273,15 +280,20 @@ async function main() {
 
     case 'qa': {
       // om qa [dir|video] [--loop]: checks the newest render of a project, or a given video file.
-      const { qa, report } = await import('./lib/qa.js');
-      let file = pos[0] || '.';
+      const { qa, report, sheet, sheetReport } = await import('./lib/qa.js');
+      let file = pos[0] || '.', sheetDir = null;
       if (!/\.(mp4|mov|webm)$/i.test(file)) {
         const project = openProject(file), dir = join(project.root, 'out');
+        sheetDir = join(project.root, '.om', 'sheets');
         const vids = existsSync(dir) ? readdirSync(dir).filter((n) => /\.(mp4|webm|mov)$/i.test(n)).map((n) => join(dir, n)) : [];
         if (!vids.length) throw new OmError('nothing rendered yet — run `om render` first, or pass a video file');
         file = vids.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
       }
       const r = qa(resolve(file), { loop: !!flags.loop });
+      if (flags.sheet) {
+        const s = sheet(resolve(file), sheetDir || join(dirname(resolve(file)), 'sheets'), { fps: Number(flags.sheet) > 0 && flags.sheet !== true ? Number(flags.sheet) : 4 });
+        return out(flags.json ? { ...r, sheets: s.sheets } : `${report(r)}\n${sheetReport(s)}`);
+      }
       return out(flags.json ? r : report(r));
     }
 
@@ -295,6 +307,15 @@ async function main() {
     case 'sound': {
       const { sound } = await import('./lib/sound.js');
       return out(await sound(flags.list ? null : openProject(pos[0] || '.'), flags, (l) => process.stderr.write(l + '\n')));
+    }
+    case 'beats': {
+      if (!pos[0]) throw new OmError('usage: om beats <file|dir> [--plot [out.png]] [--at sec] [--json]');
+      const { beats } = await import('./lib/beats-report.js');
+      return out(await beats(pos[0], flags));
+    }
+    case 'music': {
+      const { music } = await import('./lib/music.js');
+      return out(await music(pos, flags, (l) => process.stderr.write(l + '\n')));
     }
     case 'still': {
       const { still } = await import('./lib/still.js');
@@ -363,7 +384,7 @@ async function studio(dir, flags) {
   const port = Number(flags.port || 4848);
   let started;
   for (let p = port; p < port + 20 && !started; p++) {
-    try { started = await startStudio(project, { port: p }); }
+    try { started = await startStudio(project, { port: p, lang: flags.lang }); }
     catch (e) { if (e.code !== 'EADDRINUSE') throw e; }
   }
   if (!started) throw new OmError(`no free port from ${port}`);
