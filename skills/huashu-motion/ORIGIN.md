@@ -3,7 +3,8 @@
 本 skill 收录自 [alchaincyf/huashu-motion](https://github.com/alchaincyf/huashu-motion)（作者：花叔 alchaincyf），MIT 许可，保留原作者内容，感谢原作者。
 
 - 2026-10-18 首次收录（0.1.0）；2026-10-24 同步至 0.3.1；2026-11-22 同步至 0.6.0
-- 上游默认分支：`main`
+- - 2026-11-24 同步至 0.6.1（`om check --source` 正则修正：`om-` → `^om-`，避免 zoom-in/bottom-bar/custom-chart 等真实素材被误判为未使用素材）
+上游默认分支：`main`
 
 ## 本副本的打包方式
 
