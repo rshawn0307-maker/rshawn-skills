@@ -94,7 +94,7 @@ design_system:
 
 1. 封面
 2. 总述页：红 H1「面试中「X」万能展开法（分 N 档，直接套用）」＋左侧竖线引用块（闭环口径）
-3. 分档页：每档「序号. 档名（维度/场景）」→ 可选导语 → 编号点（lead 粗体＋body 常规，悬挂缩进 62px）；档与档自然续排，可跨页
+3. 分档页：每档「序号. 档名（维度/场景）」→ 可选导语 → 编号点（lead 粗体＋body 常规，悬挂缩进 62px）。档标题不得落页尾孤行（引擎 keep_with_next 预留一行正文）；档内正文可跨页续排，续页不重复档名
 4. 避坑（可选）／练习（可选）：红标题＋正文
 5. 品牌页
 
@@ -173,11 +173,12 @@ design_system:
 
 ```bash
 python3 scripts/test_render_cards.py
-python3 scripts/render_cards.py --mode <tips|answer> --final <json> --check
+python3 scripts/render_cards.py --mode <tips|answer> --final <json> --outdir <临时目录> --check
 ```
 
 1. 双模式各出一套图，尺寸 1080×1440，品牌页为末页。
-2. 缺字段/档位不足/真题前缀不符 → exit 1。
-3. 思维导图超页 → exit 1 并提示精简。
-4. 折行无避头尾违规、数字串不腰斩。
-5. 目检 §10 全部条目。
+2. 内容页墨迹全部落在 96/96 版心内、不压页脚间隙（引擎 `verify_layout` 自动执行，FAIL 即退出）。
+3. 缺字段/档位不足/真题前缀不符 → exit 1。
+4. 思维导图超页 → exit 1 并提示精简。
+5. 折行无避头尾违规、数字串不腰斩。
+6. 目检 §10 全部条目。

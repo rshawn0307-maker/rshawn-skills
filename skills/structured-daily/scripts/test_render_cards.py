@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import render_cards as rc  # noqa: E402
 from PIL import Image  # noqa: E402
 
-MIN_CASES = 8
+MIN_CASES = 14
 
 ANSWER = {
     "question": "科技产品展销会因下雨人少、商家不满，怎么做。",
@@ -118,6 +118,13 @@ class TestWrap(unittest.TestCase):
 
 
 class TestRender(unittest.TestCase):
+    def test_tips_without_cover_line2(self):
+        """cover_line2 是可选字段；缺省时封面只画主标题。"""
+        with tempfile.TemporaryDirectory() as d:
+            data = {k: v for k, v in TIPS.items() if k != "cover_line2"}
+            self.assertEqual(render("tips", data, d), 0)
+            self.assertTrue(list(Path(d).glob("01-封面.png")))
+
     def test_tips_render(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(render("tips", TIPS, d), 0)
@@ -145,9 +152,9 @@ class TestRender(unittest.TestCase):
 
     def test_overflow_paginates(self):
         with tempfile.TemporaryDirectory() as d:
-            long = dict(ANSWER, opening=ANSWER["opening"] * 30)
+            long = dict(ANSWER, opening=ANSWER["opening"] * 90)
             self.assertEqual(render("answer", long, d), 0)
-            self.assertGreaterEqual(len(list(Path(d).glob("*.png"))), 6)
+            self.assertGreaterEqual(len(list(Path(d).glob("*.png"))), 7)
 
     def test_check_only_does_not_write(self):
         with tempfile.TemporaryDirectory() as d:
@@ -160,6 +167,21 @@ class TestRender(unittest.TestCase):
             for i in range(6)]}
         with self.assertRaises(ValueError):
             render("answer", dict(ANSWER, mindmap=huge), tempfile.mkdtemp())
+
+    def test_content_right_margin(self):
+        """内容页墨迹不得越过版心右界 984（封面/品牌页满幅属设计例外）。"""
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(render("answer", dict(ANSWER, mindmap=MINDMAP), d), 0)
+            for p in sorted(Path(d).glob("*.png")):
+                if p.name in ("01-封面.png") or "品牌页" in p.name:
+                    continue
+                with Image.open(p) as im:
+                    gray = im.convert("L")
+                    px = gray.load()
+                    w, h = gray.size
+                    right = max((x for y in range(200, 1300, 4)
+                                 for x in range(w) if px[x, y] < 220), default=0)
+                self.assertLessEqual(right, 984, f"{p.name} 右缘 {right} 越界")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 ---
 name: structured-daily
-description: 一条技能两种出图模式（旧版「总分总」纸感 VI，1080×1440 PNG 直出，不再走 Word）。说「考官视角 / 展开说说 / 万能展开法 / 这题怎么展开」→ 出技巧线：封面＋分档展开法（AIR/Pro/Pro Max）＋避坑＋品牌页；说「答一道 / 出题 / 每日一练 / 结构化面试练习」→ 出答题线：封面＋思维导图＋逐字稿（自动分页）＋收尾引流＋品牌页。两线共享出题/审题/逐字稿门禁、电车站诊断、check_prose 红线、独立审稿与盲测验收；渲染引擎 scripts/render_cards.py（PIL 直出，字体 Songti SC ＋ 品牌 logo）。视觉契约见 references/DESIGN.md（v4 旧版复刻）。
-version: 4.0.0（v4 双模式 + 旧版纸感 VI 复刻，2026-11-25）
+description: 一条技能两种出图模式（旧版「总分总」纸感 VI，1080×1440 PNG 直出，不走 Word）。说「考官视角 / 展开说说 / 万能展开法 / 这题怎么展开 / 讲点技巧」→ 技巧线：封面＋分档展开法（AIR/Pro/Pro Max）＋避坑＋品牌页，过禁用词与独立审稿；说「答一道 / 出题 / 每日一练 / 结构化面试练习」→ 答题线：封面＋思维导图＋逐字稿（自动分页）＋收尾引流＋品牌页，走完整 10 步门禁（电车站/human-writing/check_prose/盲测/CHECKPOINT）。渲染引擎 scripts/render_cards.py（PIL 直出，Songti SC＋品牌 logo），视觉契约见 references/DESIGN.md（v4 纸感 VI）。
+version: 4.0.1（v4 双模式 + 达尔文 E1/E2 修复，2026-11-26）
 author: Shawn × AI（2026-11 重构：答一道单线 → 双模式合并；旧 Word 模板效果改为 PNG 直出）
 metadata:
   triggers:
@@ -9,6 +9,7 @@ metadata:
     - 展开说说
     - 万能展开法
     - 这题怎么展开
+    - 讲点技巧
     - 答一道
     - 出题
     - 出一道题
@@ -21,8 +22,8 @@ metadata:
     - "答一道进度：vault 图片输出/progress_answer.json（渲染成功后才追加 done）"
   prerequisites:
     - python3 + Pillow（本机实测 12.x）
-    - 字体 Songti SC（/System/Library/Fonts/Supplemental/Songti.ttc）＋ SourceHanSansSC-Bold（/Users/shawn/Library/Fonts）
-    - 品牌 logo：/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png
+    - 字体 Songti SC（/System/Library/Fonts/Supplemental/Songti.ttc）＋ SourceHanSansSC-Bold（~/Library/Fonts）
+    - 品牌 logo：~/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png
     - 电车站 tramstop-skill（去 AI 味诊断）；human-writing（改写；check_prose 为 skill 内副本）
     - node + ima-skill（仅 IMA 上传，可选）
 ---
@@ -45,7 +46,7 @@ metadata:
 参考已跑出高流量的同类帖子结构，**一题一份、一档一层次**：
 
 1. **封面**：`cover_title` 用带引号的题干核心短语（如「畅通群众监督渠道」），`cover_line2` 用追问句（如「具体怎么畅通？」）。
-2. **总述页**：`overview_title` 用「面试中「X」万能展开法（分 N 档，直接套用）」；`overview_intro` 讲清闭环（怎么提、谁来接、何时回、有保障），并声明每点约 12 句话、可落地。
+2. **总述页**：`overview_title` 用「面试中「X」万能展开法（分 N 档，直接套用）」；`overview_intro` 讲清闭环（怎么提、谁来接、何时回、有保障），并按档位说明每点句数（AIR 1–2 句、Pro 2–4 句），不要写「每点 12 句」这类与实际不符的话。
 3. **分档递进**（`tiers`，至少 2 档，默认 3 档）：
    - `AIR 版`：3 个维度，时间紧张/追问时用，每点 1–2 句；
    - `Pro 版`：4 个维度（渠道/受理/反馈/保障 之类），逻辑最完整，推荐首选，每点 2–4 句；
@@ -71,6 +72,8 @@ metadata:
 
 ### 模式 B（答一道，10 步，一步不跳）
 
+> **唯一豁免路径**：用户直接给出已达标的 final JSON（或承上轮已走完步 1–9 的定稿）时，可只执行步 10，并在报告里写明「沿用已定稿数据，步 1–9 未重跑」。除此以外不许跳步。
+
 | 步 | 动作 | 依据 |
 |---|---|---|
 | 1 | 出题（三选一，题干 ≤80 字，`len()` 自检）→ 题干确认弹窗 → 四源读源＋审题五维 → 大纲 7 字段＋逐字稿 8 字段＋**思维导图树** → `draft_meta` 落盘 | `references/shared-sourcing.md`、`references/shared-calibration.md` |
@@ -81,17 +84,19 @@ metadata:
 | 6 | 独立审稿（8 查项，`review_conclusion=="通过"`） | 同上 |
 | 7 | 盲测试答（四项判据，`blind_test_result=="通过"`） | `references/blind-test-protocol.md` |
 | 8 | `content_rules.py --line answer` 出厂门禁（R0/R14 exit 0） | `scripts/content_rules.py` |
-| 9 | CHECKPOINT 复核（两处弹窗记录齐备） | `references/shared-gates.md` |
-| 10 | 出图：写 16 键 final JSON（含 `mindmap`）→ `python3 scripts/render_cards.py --mode answer --final <json> --project-root <项目根> --outdir <期目录> --period-id <draft-id>` → 目检全部 PNG → 报告 | `scripts/render_cards.py`、`references/DESIGN.md` |
+| 9 | CHECKPOINT 复核（两处弹窗记录齐备，**缺一不进渲染**） | `references/shared-gates.md` |
+| 10 | 出图：写 final JSON（含 `mindmap`）→ `python3 scripts/render_cards.py --mode answer --final <json> --project-root <项目根> --outdir <期目录> --period-id <draft-id> --note <笔记文案.md>` → 引擎先跑版面自检（`verify_layout`），再目检全部 PNG → 报告张数/来源/是否写了 progress | `scripts/render_cards.py`、`references/DESIGN.md` |
+
+**outdir 在 vault 之外**（演练、评测、临时目录）：省略 `--project-root` 与 `--period-id`，不写 progress、不追加期号，报告注明「未写期号进度」。不传 `--note` 时引擎不生成 `笔记文案.md`，交付清单里不要声称有。
 
 ### 模式 A（考官视角，6 步）
 
 1. 定题：热点/政策/社会现象里选有张力的一问；封面标题 ≤14 字，追问句 ≤10 字。
-2. 写总述＋分档 `points`（每档 2–4 点，lead＋body），禁用词自查（`check_prose.py` 同口径：体现/彰显/凸显/高度重视/加强管理…）。
-3. 独立审稿：三查「是否每点都能落地」「数字是否有出处」「档位之间是否真递进」。
+2. 写总述＋分档 `points`（每档 2–4 点，lead＋body）。红线自查：把每档「lead＋body」用「。」连接成检查文本（不要用「：」连接，中文冒号会误报），写入临时文件后跑 `python3 scripts/check_prose.py <临时文件>`；体现/彰显/凸显/高度重视/加强管理 等必须清零。
+3. 独立审稿：三查「是否每点都能落地」「数字是否有出处」「档位之间是否真递进」。审稿必须换视角：另起会话或派子 agent；无法另起时在报告标「自审，未独立」，不得声称已过独立审稿。
 4. 写 final JSON（`mode=tips`）。
-5. 出图：`python3 scripts/render_cards.py --mode tips --final <json> --outdir <目录>`。
-6. 目检：封面、分档页是否溢版、避坑/练习是否落在末页；报告张数与每页要点。
+5. 出图：`python3 scripts/render_cards.py --mode tips --final <json> --outdir <目录>`；引擎先跑 `verify_layout`（内容页不得越 96/96 版心、不得压页脚）。
+6. 目检：封面层级、分档标题不得落页尾孤行、避坑/练习是否落在末页；报告张数与每页要点。
 
 模式 A 不做盲测（不是答题训练），但必须过禁用词与审稿两关。
 
@@ -104,7 +109,7 @@ metadata:
 可选：
 - `source`（`真题库` 时 `title_prefix` 必须为「结构化历年考题：」，否则引擎 FAIL）；
 - `title_prefix`（默认「结构化每日一练：」）；
-- `cover_meta`（封面题目信息行，如「2024年6月5日 · 咸阳 · 综合管理A」）；
+- `cover_meta`（封面题目信息行，如「2024年6月5日 · 咸阳 · 综合管理A」，引擎画在封面题面下方）；
 - `cta`（默认沿用固定引流句）；
 - `mindmap`：`{"root":"核心观点","branches":[{"label":"一、…","children":[{"label":"…"},{"label":"…","children":[…]}]}]}`；分支 3–4 条、叶子合计 ≤18 个，超出会报「思维导图超出单页」需精简。
 
@@ -123,7 +128,7 @@ metadata:
   "overview_title": "面试中“畅通群众监督渠道”万能展开法（分 3 档，直接套用）",
   "overview_intro": "不讲“拓宽渠道”空话，讲清“怎么提、谁来接、何时回、有保障”的闭环。",
   "tiers": [
-    {"title": "1.  AIR 版（3 个维度，时间紧张/追问时用）", "intro": "我会重点做好三件事：",
+    {"title": "1.  AIR 版（3 个维度，时间紧张/追问时用）", "intro": "我会重点做好三件事。",
      "points": [{"lead": "多元渠道覆盖", "body": "线上新媒体＋线下传统渠道，让不同群体都有便捷反映途径；"}]},
     {"title": "2.  Pro 版（4 个维度，逻辑最完整，推荐首选）", "points": [{"lead": "全域渠道无死角", "body": "…"}]},
     {"title": "3.  Pro Max 版（加 1 个差异化动作，拉开差距）", "points": [{"lead": "群众监督员队伍", "body": "…"}]}
@@ -137,14 +142,14 @@ metadata:
 
 ```bash
 python3 -c "import PIL; print(PIL.__version__)"
-ls /System/Library/Fonts/Supplemental/Songti.ttc /Users/shawn/Library/Fonts/SourceHanSansSC-Bold.otf
-ls "/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png"
-python3 scripts/render_cards.py --mode answer --final <json> --check   # 只校验数据
+ls /System/Library/Fonts/Supplemental/Songti.ttc ~/Library/Fonts/SourceHanSansSC-Bold.otf
+ls ~/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png
+python3 scripts/render_cards.py --mode answer --final <json> --outdir <临时目录> --check   # 只校验数据，不写图
 ```
 
 字体或 logo 缺失：引擎不静默降级——logo 缺失时页眉画红圆替代（不阻断）；字体缺失直接报错退出。
 
-**项目根**：`/Users/shawn/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化`（`--outdir` 仍在 `图片输出/`，唯一 vault 写授权）。
+**项目根**：`~/Desktop/AI工作区/01-Projects/自媒体内容库-持续项目/结构化`（`--outdir` 仍在 `图片输出/`，唯一 vault 写授权）。
 
 ## 文件清单
 
@@ -153,7 +158,9 @@ python3 scripts/render_cards.py --mode answer --final <json> --check   # 只校�
 | skill | `scripts/render_cards.py` | **现行唯一引擎**：双模式 PIL 渲染（旧版 VI，1080×1440，封面/导图/内页/品牌页） |
 | skill | `scripts/test_render_cards.py` | 引擎回归测试（双模式渲染、校验规则、导图溢出、折行避头尾） |
 | skill | `references/DESIGN.md` | 视觉契约唯一事实源（v4：色板/字号梯/组件/两套页型/反模式） |
-| skill | `references/shared-{calibration,sourcing,gates,engine-safety}.md` | 答题线方法论与门禁（不变） |
+| skill | `references/shared-{calibration,sourcing,gates}.md` | 答题线方法论与门禁（不变） |
+| skill | `references/shared-engine-safety.md` | 引擎安全机制与失败回退（v4 口径） |
+| skill | `test-prompts.json` / `scripts/testdata/` | 达尔文测试集与固定输入夹具（dev/holdout 四条）；**测试资产**，评测快照会剔除 `test-prompts.json`，不得把夹具内容当正式选题 |
 | skill | `references/blind-test-protocol.md` | 答题线盲测协议（不变） |
 | skill | `scripts/check_prose.py` / `content_rules.py` | 红线检查 / 出厂门禁（不变） |
 | skill | `scripts/render_answer_cards.py` | v3「简洁风」旧引擎与测试 —— **归档保留，不再执行**（供回滚） |
@@ -175,4 +182,12 @@ python3 scripts/test_content_rules.py     # R0/R14（不变）
 
 - 校验失败（缺字段/档位不足/真题前缀不符/导图过大）：`--check` 即暴露，不建目录、不落盘。
 - 渲染失败：不写 progress、不留半套图；修数据后重跑。
-- 目检发现溢版：先减字数（模式 A 每点 body ≤120 字；模式 B 按 680–820 硬边界），不要改引擎常量绕开。
+- `verify_layout` FAIL：先看报告的页码与右缘数值。缩进/折行导致的越界属引擎缺陷，修引擎并补回归，不许靠减字掩盖；确认是文本确实过长时才删字（模式 A 每点 body ≤120 字；模式 B 按 680–820 硬边界）。
+
+## 硬禁令（真实踩过的坑）
+
+1. **不许新建第二渲染入口**。有人会另写 `render_tips_paged.py` 之类脚本重排——成品一旦出自第二入口，就绕过了 `verify_layout`、回归测试与契约。版面问题改 `render_cards.py` 并补测试，不许旁路。
+2. **不许把 `scripts/testdata/` 的内容当正式选题发布**。夹具里的导图/题面可能互不对应，只用于引擎回归；正式出稿必须自拟且导图与题干对齐。
+3. **不许自审冒充独立审稿**。另起会话/子 agent 才叫独立；做不到就在报告标「自审，未独立」。
+4. **不许注水凑页**。张数由内容与分页决定，禁止为凑 6–8 张加空段或重复观点；张数超出范围先查内容长度，不是加页。
+5. **不许用中文冒号连接检查文本**。`check_prose` 会把「lead：body」判成红线；用「。」连接后再检。

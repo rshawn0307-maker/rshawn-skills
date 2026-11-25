@@ -42,7 +42,7 @@ BRANCH_COLORS = [
     (122, 90, 166),   # 紫
 ]
 
-FONT_DIR = Path("/Users/shawn/Library/Fonts")
+FONT_DIR = Path.home() / "Library/Fonts"
 SONGTI_TTC = "/System/Library/Fonts/Supplemental/Songti.ttc"
 SONG_INDEX = {"black": 0, "bold": 1, "regular": 6, "light": 3}
 SANS_FILES = {
@@ -51,7 +51,7 @@ SANS_FILES = {
     "regular": FONT_DIR / "SourceHanSansSC-Regular.otf",
 }
 LOGO_CANDIDATES = [
-    Path("/Users/shawn/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png"),
+    Path.home() / "Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png",
 ]
 
 _font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
@@ -282,8 +282,8 @@ def mindmap_page(tree: dict) -> Image:
     if not branches:
         raise ValueError("mindmap.branches 为空")
 
-    X = [292, 592, 820]
-    TW = [230, 280, 180]
+    X = [292, 592, 800]
+    TW = [230, 280, 160]
     GAP_V, GAP_B = 6, 16
     sizes_h = {1: (24, 30), 2: (20, 24), 3: (20, 24)}  # depth → (字号, 行高)
 
@@ -373,25 +373,34 @@ class Flow:
     def paragraph(self, segments, sizes=None, line_h=BODY_LINE, color=INK,
                   space_before=0, indent=True, align="left"):
         sizes = sizes or {"regular": BODY_SIZE}
-        lines = wrap_text(segments, sizes, W - MARGIN_L - MARGIN_R)
-        h = len(lines) * line_h
+        wrap_w = W - MARGIN_L - MARGIN_R - (FIRST_INDENT if indent else 0)
+        lines = wrap_text(segments, sizes, wrap_w)
         if space_before:
             self.y += space_before
-        if self.y + h > CONTENT_BOTTOM:
-            self.new_page()
-        self.y = draw_lines(self.page.d, (MARGIN_L, self.y), lines, sizes, line_h,
-                            color, FIRST_INDENT if indent else 0)
-        return h
+        i = 0
+        while i < len(lines):
+            fit = int((CONTENT_BOTTOM - self.y) // line_h)
+            if fit <= 0:
+                self.new_page()
+                continue
+            chunk = lines[i:i + fit]
+            self.y = draw_lines(self.page.d, (MARGIN_L, self.y), chunk, sizes, line_h,
+                                color, FIRST_INDENT if (indent and i == 0) else 0)
+            i += fit
+            if i < len(lines):
+                self.new_page()
+        return len(lines) * line_h
 
     def heading(self, text: str, size=44, color=RED, kind="black", space_before=0,
-                space_after=16, line_h=None):
+                space_after=16, line_h=None, keep_with_next=False):
         line_h = line_h or int(size * 1.45)
         sizes = {kind: size}
         lines = wrap_text([(text, kind)], sizes, W - MARGIN_L - MARGIN_R)
         h = len(lines) * line_h
         if space_before:
             self.y += space_before
-        if self.y + h + space_after > CONTENT_BOTTOM:
+        reserve = h + space_after + (BODY_LINE if keep_with_next else 0)
+        if self.y + reserve > CONTENT_BOTTOM:
             self.new_page()
         draw_lines(self.page.d, (MARGIN_L, self.y), lines, sizes, line_h, color)
         self.y += h + space_after
@@ -401,20 +410,25 @@ class Flow:
         body_seg = [("：", "regular"), (body, "regular")] if body else []
         segments = lead_seg + body_seg
         sizes = {"bold": BODY_SIZE, "regular": BODY_SIZE}
-        lines = wrap_text(segments, sizes, W - MARGIN_L - MARGIN_R)
-        h = len(lines) * BODY_LINE
+        lines = wrap_text(segments, sizes, W - MARGIN_L - MARGIN_R - 62)
         self.y += space_before
-        if self.y + h > CONTENT_BOTTOM:
-            self.new_page()
-        # 悬挂缩进：续行与 lead 文本对齐（lead 起始 x = MARGIN_L + 60）
-        x = MARGIN_L
-        for i, line in enumerate(lines):
-            xx = x if i == 0 else x + 62
-            for text, kind in line:
-                self.page.d.text((xx, self.y), text, font=font(kind, BODY_SIZE), fill=INK, anchor="la")
-                xx += font(kind, BODY_SIZE).getlength(text)
-            self.y += BODY_LINE
-        return h
+        i = 0
+        while i < len(lines):
+            fit = int((CONTENT_BOTTOM - self.y) // BODY_LINE)
+            if fit <= 0:
+                self.new_page()
+                continue
+            for line in lines[i:i + fit]:
+                xx = MARGIN_L if i == 0 else MARGIN_L + 62
+                for text, kind in line:
+                    self.page.d.text((xx, self.y), text, font=font(kind, BODY_SIZE),
+                                     fill=INK, anchor="la")
+                    xx += font(kind, BODY_SIZE).getlength(text)
+                self.y += BODY_LINE
+                i += 1
+            if i < len(lines):
+                self.new_page()
+        return len(lines) * BODY_LINE
 
     def rule(self, space_before=34, space_after=26):
         self.y += space_before
@@ -444,7 +458,7 @@ def quote_block(flow: Flow, text: str, size=30):
 ANSWER_REQUIRED = ["question", "break_angle", "break_angle_reason", "core_views_title",
                    "core_views_intro", "opening", "point1_lead", "point1_body",
                    "point2_lead", "point2_body", "point3_lead", "point3_body", "closing"]
-TIPS_REQUIRED = ["cover_title", "cover_line2", "overview_title", "overview_intro", "tiers"]
+TIPS_REQUIRED = ["cover_title", "overview_title", "overview_intro", "tiers"]
 
 
 def validate(data: dict, mode: str) -> list[str]:
@@ -486,10 +500,10 @@ def render_tips(data: dict) -> list[Image.Image]:
     imgs.append(cover([data["cover_title"], data.get("cover_line2", "")],
                       kicker=data.get("kicker"), title_size=84, start_y=360, line_h=118))
     flow = Flow()
-    flow.heading(data["overview_title"], size=42, color=RED, kind="black", space_before=0)
+    flow.heading(data["overview_title"], size=42, color=RED, kind="black", space_before=0, keep_with_next=True)
     quote_block(flow, data["overview_intro"], size=30)
     for tier in data["tiers"]:
-        flow.heading(tier["title"], size=38, color=(23, 72, 92), kind="bold", space_before=22, space_after=12)
+        flow.heading(tier["title"], size=38, color=(23, 72, 92), kind="bold", space_before=22, space_after=12, keep_with_next=True)
         if tier.get("intro"):
             flow.paragraph([(tier["intro"], "regular")], space_before=6, indent=False)
             flow.y += 6
@@ -497,10 +511,10 @@ def render_tips(data: dict) -> list[Image.Image]:
             flow.numbered_point(i, pt["lead"], pt.get("body", ""), space_before=20)
     if data.get("takeaway"):
         tk = data["takeaway"]
-        flow.heading(tk.get("title", "避坑提醒"), size=36, color=RED, kind="bold", space_before=30)
+        flow.heading(tk.get("title", "避坑提醒"), size=36, color=RED, kind="bold", space_before=30, keep_with_next=True)
         flow.paragraph([(tk.get("body", ""), "regular")], space_before=4)
     if data.get("practice"):
-        flow.heading(data.get("practice_title", "练习"), size=36, color=RED, kind="bold", space_before=30)
+        flow.heading(data.get("practice_title", "练习"), size=36, color=RED, kind="bold", space_before=30, keep_with_next=True)
         flow.paragraph([(data["practice"], "regular")], space_before=4)
     if data.get("cta"):
         flow.rule()
@@ -516,8 +530,13 @@ def render_tips(data: dict) -> list[Image.Image]:
 
 
 def render_answer(data: dict) -> list[Image.Image]:
-    imgs = [cover([data["question"]], kicker=str(data.get("title_prefix", "结构化每日一练：")),
-                  title_size=64, start_y=230, line_h=100, indent_first=True, indent_all=True)]
+    first = cover([data["question"]], kicker=str(data.get("title_prefix", "结构化每日一练：")),
+                  title_size=64, start_y=230, line_h=100, indent_first=True, indent_all=True)
+    if data.get("cover_meta"):
+        d = ImageDraw.Draw(first)
+        d.text((MARGIN_L, 1210), str(data["cover_meta"]), font=font("regular", 26),
+               fill=(238, 220, 192), anchor="la")
+    imgs = [first]
     if data.get("mindmap"):
         imgs.append(mindmap_page(data["mindmap"]))
     else:
@@ -544,6 +563,31 @@ def render_answer(data: dict) -> list[Image.Image]:
     imgs += flow.finish()
     imgs.append(brand_page())
     return imgs
+
+
+# ---------------- 版面自检 ----------------
+def verify_layout(imgs: list[Image.Image]) -> list[str]:
+    """内容页（排除封面/品牌页）墨迹必须落在 96/96 版心内，且不得压入页脚间隙。"""
+    problems = []
+    n = len(imgs)
+    for idx, img in enumerate(imgs, 1):
+        if idx == 1 or idx == n:
+            continue
+        gray = img.convert("L")
+        mask = gray.crop((0, CONTENT_TOP, W, CONTENT_BOTTOM)).point(
+            lambda v: 255 if v < 200 else 0)
+        box = mask.getbbox()
+        if box:
+            left, right = box[0], box[2] - 1
+            if left < MARGIN_L - 2:
+                problems.append(f"第{idx}页左缘 {left} 越界（版心 {MARGIN_L}）")
+            if right > W - MARGIN_R:
+                problems.append(f"第{idx}页右缘 {right} 超版心 {W - MARGIN_R}")
+        gap = gray.crop((0, CONTENT_BOTTOM + 2, W, FOOTER_TOP)).point(
+            lambda v: 255 if v < 200 else 0)
+        if gap.getbbox():
+            problems.append(f"第{idx}页内容压入页脚间隙")
+    return problems
 
 
 # ---------------- CLI ----------------
@@ -582,6 +626,11 @@ def main(argv=None):
         old.unlink()
 
     imgs = render_tips(data) if args.mode == "tips" else render_answer(data)
+    problems = verify_layout(imgs)
+    if problems:
+        for p in problems:
+            print(f"[FAIL] {p}", file=sys.stderr)
+        return 1
     content_n = len(imgs) - 2
     names = ["01-封面"]
     first = "02-万能展开法" if args.mode == "tips" else (

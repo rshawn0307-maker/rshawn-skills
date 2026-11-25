@@ -1,0 +1,52 @@
+[
+  {
+    "id": "dev-1",
+    "split": "dev",
+    "source": "real",
+    "prompt": "答一道。用 <input>/answer_ok.json 直接出图，输出到本产出目录下的 out/，出完逐张检查再告诉我一共几张、有没有溢版或穿字。",
+    "files": ["scripts/testdata/answer_ok.json"],
+    "checks": [
+      "输出目录存在 PNG，且每张尺寸都是 1080×1440",
+      "最后一张是品牌页（米金底、竖排总分总、底部红带）",
+      "没有产出任何 docx 或 pdf",
+      "报告的张数与实际 PNG 数量一致"
+    ]
+  },
+  {
+    "id": "dev-2",
+    "split": "dev",
+    "source": "real",
+    "prompt": "考官视角，用 <input>/tips_ok.json 出一篇展开说说，输出到本产出目录下的 out/，出完检查分档页有没有串版。",
+    "files": ["scripts/testdata/tips_ok.json"],
+    "checks": [
+      "存在 02-万能展开法 页",
+      "没有 逐字稿 命名的页面",
+      "PNG 张数在 4–7 之间",
+      "每张尺寸 1080×1440"
+    ]
+  },
+  {
+    "id": "holdout-1",
+    "split": "holdout",
+    "source": "doc",
+    "prompt": "用 <input>/answer_bad_prefix.json 出图，输出到本产出目录下的 out/。先校验数据，校验不过就别出图，把原因告诉我。",
+    "files": ["scripts/testdata/answer_bad_prefix.json"],
+    "checks": [
+      "命令以非 0 退出",
+      "报错信息包含「历年考题」",
+      "输出目录没有新增 PNG"
+    ]
+  },
+  {
+    "id": "holdout-2",
+    "split": "holdout",
+    "source": "doc",
+    "prompt": "用 <input>/answer_huge_mindmap.json 出图，输出到本产出目录下的 out/，看看思维导图能不能放下。",
+    "files": ["scripts/testdata/answer_huge_mindmap.json"],
+    "checks": [
+      "命令失败并说明「思维导图超出单页」",
+      "输出目录没有新增 PNG",
+      "给出精简建议（减少分支或叶子）"
+    ]
+  }
+]

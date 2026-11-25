@@ -1,0 +1,28 @@
+{
+  "question": "社区养老服务中心建成后使用率不高，你怎么处理？",
+  "title_prefix": "结构化每日一练：",
+  "break_angle": "先查供给与需求的错位，再改服务清单。",
+  "break_angle_reason": "建成不等于好用，使用率低说明服务没对上老人的真实需求。",
+  "core_views_title": "核心观点",
+  "core_views_intro": "走访、改清单、再宣传三步走。",
+  "core_views": ["先走访摸需求。", "再改服务清单。", "最后做宣传和试运营。"],
+  "opening": "服务中心建成只是起点。",
+  "point1_lead": "第一步走访。",
+  "point1_body": "把周边老人和家属分片走访，记下他们真正需要的项目。",
+  "point2_lead": "第二步改清单。",
+  "point2_body": "把没人用的项目减掉，把助餐、康复、日间照料加上。",
+  "point3_lead": "第三步试运营。",
+  "point3_body": "先开一周体验，边开边改，再正式宣传。",
+  "closing": "服务好不好，看老人来不来。",
+  "mindmap": {
+    "root": "核心观点",
+    "branches": [
+      {"label": "分支一", "children": [{"label": "叶子1"}, {"label": "叶子2"}, {"label": "叶子3"}, {"label": "叶子4"}, {"label": "叶子5"}, {"label": "叶子6"}, {"label": "叶子7"}, {"label": "叶子8"}, {"label": "叶子9"}, {"label": "叶子10"}]},
+      {"label": "分支二", "children": [{"label": "叶子1"}, {"label": "叶子2"}, {"label": "叶子3"}, {"label": "叶子4"}, {"label": "叶子5"}, {"label": "叶子6"}, {"label": "叶子7"}, {"label": "叶子8"}, {"label": "叶子9"}, {"label": "叶子10"}]},
+      {"label": "分支三", "children": [{"label": "叶子1"}, {"label": "叶子2"}, {"label": "叶子3"}, {"label": "叶子4"}, {"label": "叶子5"}, {"label": "叶子6"}, {"label": "叶子7"}, {"label": "叶子8"}, {"label": "叶子9"}, {"label": "叶子10"}]},
+      {"label": "分支四", "children": [{"label": "叶子1"}, {"label": "叶子2"}, {"label": "叶子3"}, {"label": "叶子4"}, {"label": "叶子5"}, {"label": "叶子6"}, {"label": "叶子7"}, {"label": "叶子8"}, {"label": "叶子9"}, {"label": "叶子10"}]},
+      {"label": "分支五", "children": [{"label": "叶子1"}, {"label": "叶子2"}, {"label": "叶子3"}, {"label": "叶子4"}, {"label": "叶子5"}, {"label": "叶子6"}, {"label": "叶子7"}, {"label": "叶子8"}, {"label": "叶子9"}, {"label": "叶子10"}]},
+      {"label": "分支六", "children": [{"label": "叶子1"}, {"label": "叶子2"}, {"label": "叶子3"}, {"label": "叶子4"}, {"label": "叶子5"}, {"label": "叶子6"}, {"label": "叶子7"}, {"label": "叶子8"}, {"label": "叶子9"}, {"label": "叶子10"}]}
+    ]
+  }
+}
