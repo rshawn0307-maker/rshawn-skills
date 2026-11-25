@@ -17,7 +17,7 @@ CLI:
     --line tips 保留（R14 按线校验骨架；技巧线已退役，现行生产用 answer）。
     pending 校验与引擎消费契约同表防漂移：tips=pending_tips.json 15 字段；
     answer=pending_answer.json（question + 引擎 REPLACE_MAP 15 键必填，
-    core_views 恰 3 元素，source/title_prefix 可选，多余字段拒绝——引擎对
+    core_views 恰 3 元素，source/title_prefix/cover_meta 可选，多余字段拒绝——引擎对
     多余键宽容，此处 fail-closed 收紧）。
 
 退出码: 0=全过 / 1=有规则未过（逐条打印 [FAIL] R<n>: 原因）/
@@ -97,7 +97,7 @@ ANSWER_PENDING_STR_FIELDS = [
     "closing",
 ]
 ANSWER_PENDING_LIST_FIELD = "core_views"   # 恰 3 个非空字符串（引擎 core_views[0..2]）
-ANSWER_PENDING_OPTIONAL_FIELDS = ["source", "title_prefix"]
+ANSWER_PENDING_OPTIONAL_FIELDS = ["source", "title_prefix", "cover_meta"]
 
 
 def _missing(value):

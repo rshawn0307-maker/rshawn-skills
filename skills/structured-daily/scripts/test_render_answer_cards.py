@@ -3,7 +3,7 @@
 """test_render_answer_cards —— render_answer_cards.py（答一道 v3 七卡产线）回归测试（沙箱）。
 
 运行：python3 scripts/test_render_answer_cards.py [关键字 ...]
-- 全 16 用例全过 exit 0；全量运行时用例数 < MIN_CASES(16) → exit 1（框架坏/被删 = 假绿，不许）。
+- 全 17 用例全过 exit 0；全量运行时用例数 < MIN_CASES(16) → exit 1（框架坏/被删 = 假绿，不许）。
 - 带关键字时只跑命中的子集（用于定位），命中 0 条 → exit 1（筛不中即失败，不许假绿）。
 - 沙箱纪律（references/shared-engine-safety.md）：全程只写系统临时目录；final 样本为
   TR2 draft_yj-01_final.json 的内嵌只读副本；不触碰真实 vault
@@ -13,7 +13,7 @@ v3 契约（7 卡 1080×1440，见 references/DESIGN.md）：
   01-封面 02-题目 03-答题思路 04-逐字稿一 05-逐字稿二 06-逐字稿三 07-收尾引流
   米白底 #fff8ec · 墨 #271e1b · 枣红 #87110f 唯一强调色；页脚 NN/07，无装饰横线。
 
-覆盖 16 用例：
+覆盖 17 用例：
   case_golden             7 图全契约（尺寸/命名/配色性质/页脚/各卡结构/--check）
   case_issue_increment    progress 已有 done → 期号顺延第002期
   case_long_question      题干 72 字仍可渲染（≤80 硬上限内不 FAIL）
@@ -25,6 +25,7 @@ v3 契约（7 卡 1080×1440，见 references/DESIGN.md）：
   case_wrap_text          wrap_text 只折行不截断 + 避头标点 + require_glyph
   case_outdir_escape      outdir 越出 图片输出/ 拒绝
   case_cover_topic_overflow 封面主题 32 字在 88px 下限档排不下 → 显式 FAIL
+  case_cover_meta          cover_meta 题目信息行：渲染成功且封面像素变化；缺省不占位
   case_real_exam_prefix   真题库来源必须标「历年考题」，否则 FAIL；模拟题库误标给 WARN
   case_layout_constants   v3 版式常量 + 已删常量哨兵 + 金句源/标题/徽标函数
   case_scale_ladder       六档字号梯与相邻比（1.25–1.6）+ 正文硬下限
@@ -694,6 +695,31 @@ def case_cover_topic_overflow(check):
         check(str(len(long_topic)) in out, "报错未指明主题字数: %s" % out[-300:])
         check(not issue_dir(root, "001").exists(), "失败却留了期目录")
         check(not progress_path(root).is_file(), "失败却写了进度")
+
+
+# --------------------------------------------------------------------------
+# 11a-2. 封面题目信息行（cover_meta 可选，真题元信息）
+# --------------------------------------------------------------------------
+@case("case_cover_meta", "cover_meta 题目信息行：带上卡可渲染且与无该行版本像素不同")
+def case_cover_meta(check):
+    with tempfile.TemporaryDirectory(prefix="render_answer_test_") as tmpdir:
+        # 基线：无 cover_meta
+        root_a, final_a = make_sandbox(tmpdir)
+        rc_a, out_a = run_render(root_a, final_a)
+        check(rc_a == 0, "基线渲染失败 exit=%s 输出=%s" % (rc_a, out_a[-300:]))
+        cover_a = (issue_dir(root_a, "001") / CARD_FILES[0]).read_bytes()
+        # 带 cover_meta
+        final_b = dict(SAMPLE)
+        final_b["cover_meta"] = "2024年6月5日 · 咸阳 · 综合管理A"
+        root_b = Path(tmpdir) / "proj_meta"
+        (root_b / "scripts").mkdir(parents=True)
+        final_b_path = root_b / "scripts" / "draft_yj-01_final.json"
+        final_b_path.write_text(json.dumps(final_b, ensure_ascii=False, indent=2),
+                                encoding="utf-8")
+        rc_b, out_b = run_render(root_b, final_b_path)
+        check(rc_b == 0, "cover_meta 渲染失败 exit=%s 输出=%s" % (rc_b, out_b[-300:]))
+        cover_b = (issue_dir(root_b, "001") / CARD_FILES[0]).read_bytes()
+        check(cover_a != cover_b, "cover_meta 未画上封面（与无该行基线像素一致）")
 
 
 # --------------------------------------------------------------------------

@@ -10,11 +10,12 @@ TR1（2026-11-20 答一道单线转型）缩减版：R1-R15 技巧线规则随�
   （不允许假绿）。
 - 沙箱纪律：所有临时 JSON fixture 只写系统临时目录（tempfile），真实 vault 不触碰。
 
-用例构成（11 条）：
+用例构成（13 条）：
 - R0：缺 --meta / --meta 文件不存在；
 - R14 answer：golden 全过 / 缺审题五维记录 / 缺 closing_type /
   review_conclusion 未通过 / blind_test_result 未通过 / 核心字段缺失；
 - answer pending 加载：缺必填字段 / core_views 非 3 元素（exit 2）；
+- answer pending 可选字段：cover_meta 放行 / 多余字段拒绝（exit 2）；
 - R14 tips 骨架：line=="tips" 扩展字段齐全 → exit 0。
 """
 
@@ -158,6 +159,29 @@ def case_golden(check):
         rc, out = run_cli("--line", "answer", "--pending", pending, "--meta", meta)
         check(rc == 0, "exit=%s out=%s" % (rc, out[-300:]))
         check("R0/R14" in out, "未报全过")
+
+
+@case("answer pending 含 cover_meta 可选字段 exit0")
+def case_pending_cover_meta(check):
+    with tempfile.TemporaryDirectory(prefix="rules_test_") as tmp:
+        pending = dict(GOLDEN_ANSWER_PENDING)
+        pending["cover_meta"] = "2024年6月5日 · 咸阳 · 综合管理A"
+        p = write_json(tmp, "pending_cover_meta.json", pending)
+        meta = write_json(tmp, "draft_meta.json", GOLDEN_ANSWER_META)
+        rc, out = run_cli("--line", "answer", "--pending", p, "--meta", meta)
+        check(rc == 0, "exit=%s out=%s" % (rc, out[-300:]))
+
+
+@case("answer pending 多余字段 exit2")
+def case_pending_extra_field(check):
+    with tempfile.TemporaryDirectory(prefix="rules_test_") as tmp:
+        pending = dict(GOLDEN_ANSWER_PENDING)
+        pending["unknown_key"] = "x"
+        p = write_json(tmp, "pending_extra.json", pending)
+        meta = write_json(tmp, "draft_meta.json", GOLDEN_ANSWER_META)
+        rc, out = run_cli("--line", "answer", "--pending", p, "--meta", meta)
+        check(rc == 2, "exit=%s out=%s" % (rc, out[-300:]))
+        check("多余字段" in out, "未报多余字段: %s" % out[-300:])
 
 
 @case("R14 answer 缺审题五维记录拒")

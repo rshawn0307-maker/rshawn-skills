@@ -32,7 +32,8 @@ v3 版式（2026-11-22 opendesign 审查后重设计，7 卡）:
     金棕 #e3c79f 已退役（暖米底＋黄铜＋espresso 深墨＝AI 指纹组合，见 DESIGN.md §9）；
   - 内页页眉＝logo 56 + 字标 28；页脚＝28 微标（去装饰横线，避免页脚抢读）；
   - 01 封面：logo 印章 96 + 右上「第 N 期 · 题型」28 + 88..132px 主题排进枣红色块
-    （圆角 24，色块即视觉锚 ≥8%）+ 56px 副标 1 行；
+    （圆角 24，色块即视觉锚 ≥8%）+ 56px 副标 1 行 + 可选 28px 题目信息行
+    （final `cover_meta`，真题元信息如「2024年6月5日 · 咸阳 · 综合管理A」；缺省不占位）；
   - 02 题目：来源微标 + 题干 56（行高 1.45）+ 枣红 3px 短线 + 破题句 56 枣红 Bold +
     破题理由 36；整组垂直居中，不再留半页空白；
   - 03 答题思路：L1 标题「答题思路」84 + 导语 36 + 三条观点（枣红编号方块 40 + 44px 正文）；
@@ -121,6 +122,7 @@ COVER_ZONE = (240, 1240)     # 封面内容区（色块+副标整组在此垂直
 COVER_PAD_X = 44             # 色块横向内边距（呼吸）
 COVER_PAD_Y = 20             # 色块纵向内边距（紧贴字形，实测面积 11.1% ≤12%）
 COVER_SUB_GAP = 76           # 色块→副标
+COVER_META_GAP = 18          # 副标→题目信息行（cover_meta 可选，真题元信息）
 
 # ---- 卡 02 题目 ----
 Q_LABEL_Y = 300              # 来源微标
@@ -486,8 +488,10 @@ def card1_cover(im, d, p, ctx):
     text_w = max(tw(d, ln, f) for ln in lines)
     field_h = adv * len(lines) + 2 * COVER_PAD_Y
     # 整组（色块 + 副标）在 zone 内垂直居中：上下留白对称，避免下半张死白
+    meta = (ctx.get("cover_meta") or "").strip()
     sub_h = int(round(T_L2 * LH_TITLE))
-    group_h = field_h + COVER_SUB_GAP + sub_h
+    meta_h = (COVER_META_GAP + int(round(T_L5 * LH_MICRO))) if meta else 0
+    group_h = field_h + COVER_SUB_GAP + sub_h + meta_h
     zone_top, zone_bot = COVER_ZONE
     y0 = zone_top + max(0, (zone_bot - zone_top - group_h) // 2)
     rounded(d, (MARGIN, y0, MARGIN + text_w + 2 * COVER_PAD_X, y0 + field_h),
@@ -498,6 +502,9 @@ def card1_cover(im, d, p, ctx):
 
     sub_y = y0 + field_h + COVER_SUB_GAP
     d.text((MARGIN, sub_y), COVER_SUB, font=F_MED(T_L2), fill=INK, anchor="la")
+    if meta:
+        d.text((MARGIN, sub_y + sub_h + COVER_META_GAP), meta,
+               font=F_REG(T_L5), fill=INK3, anchor="la")
     footer(d, 1)
 
 
@@ -965,6 +972,7 @@ def build_ctx(args, p, issue):
     topic = args.topic
     badge = "历年考题" if "历年考题" in (p.get("title_prefix") or "") else "每日一练"
     return {"issue": issue, "type": type_, "topic": topic, "source_badge": badge,
+            "cover_meta": (p.get("cover_meta") or "").strip(),
             "note_title": make_note_title(p, topic)}
 
 
