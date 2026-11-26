@@ -1,7 +1,7 @@
 ---
 name: structured-daily
-description: 一条技能两种出图模式（旧版「总分总」纸感 VI，1080×1440 PNG 直出，不走 Word）。说「考官视角 / 展开说说 / 万能展开法 / 这题怎么展开 / 讲点技巧」→ 技巧线：封面＋分档展开法（AIR/Pro/Pro Max）＋避坑＋品牌页；说「答一道 / 出题 / 每日一练 / 结构化面试练习」→ 答题线：封面＋思维导图＋逐字稿（自动分页）＋收尾引流＋品牌页。两线都走「六条底色＋反程序化门禁」（check_voice：框架密度/取舍判断/推进变化/现场细节/边界意识）；答题线另走完整 10 步门禁（电车站/human-writing/盲测/CHECKPOINT）。渲染引擎 scripts/render_cards.py（PIL 直出，Songti SC＋品牌 logo），内容契约见 references/content-voice.md，视觉契约见 references/DESIGN.md。
-version: 4.1.0（v4 双模式 + 内容反程序化门禁，2026-11-26）
+description: 一条技能两种出图模式（旧版「总分总」纸感 VI，1080×1440 PNG 直出，不走 Word）。说「考官视角 / 展开说说 / 万能展开法 / 这题怎么展开 / 讲点技巧」→ 技巧线：封面＋分档展开法（AIR/Pro/Pro Max）＋避坑＋品牌页；说「答一道 / 出题 / 每日一练 / 结构化面试练习」→ 答题线：封面＋思维导图＋逐字稿（自动分页）＋收尾引流＋品牌页。两线都走「六条底色＋反程序化门禁」（check_voice：框架密度/取舍判断/推进变化/现场细节/边界意识）；答题线另走完整 10 步门禁（humanizer-zh 诊断/改写、盲测、CHECKPOINT）。渲染引擎 scripts/render_cards.py（PIL 直出，Songti SC＋品牌 logo），内容契约见 references/content-voice.md，视觉契约见 references/DESIGN.md。
+version: 4.2.0（v4 双模式 + 内容反程序化 + humanizer-zh 去 AI 味，2026-11-26）
 author: Shawn × AI（2026-11 重构：答一道单线 → 双模式合并；旧 Word 模板效果改为 PNG 直出）
 metadata:
   triggers:
@@ -17,14 +17,14 @@ metadata:
     - 结构化面试练习
     - 做一篇结构化帖子
   outputs:
-    - "答一道：vault 图片输出/第N期-{题型}-{主题}/（6–8 张 1080×1440 PNG + 笔记文案.md）"
+    - "答一道：vault 图片输出/第N期-{题型}-{主题}/（5–8 张 1080×1440 PNG + 笔记文案.md）"
     - "考官视角：vault 图片输出/展开说说-{主题}/（5–7 张 1080×1440 PNG + 笔记文案.md）"
     - "答一道进度：vault 图片输出/progress_answer.json（渲染成功后才追加 done）"
   prerequisites:
     - python3 + Pillow（本机实测 12.x）
     - 字体 Songti SC（/System/Library/Fonts/Supplemental/Songti.ttc）＋ SourceHanSansSC-Bold（~/Library/Fonts）
     - 品牌 logo：~/Desktop/AI工作区/01-Projects/公考橙皮书/assets/logo-zfz.png
-    - 电车站 tramstop-skill（去 AI 味诊断）；human-writing（改写；check_prose 为 skill 内副本）
+    - humanizer-zh（去 AI 味诊断＋改写；check_prose 为 skill 内副本，来源 human-writing v1.2.0）
     - node + ima-skill（仅 IMA 上传，可选）
 ---
 
@@ -37,7 +37,7 @@ metadata:
 | 用户说法 | 模式 | 产物 |
 |---|---|---|
 | 考官视角 / 展开说说 / 万能展开法 / 这题怎么展开 / 讲点技巧 | **tips** | 封面 → 万能展开法总述 → AIR/Pro/Pro Max 分档 → 避坑/练习 → 品牌页（5–7 张） |
-| 答一道 / 出题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子 | **answer** | 封面 → 思维导图 → 逐字稿（自动分页）→ 收尾引流 → 品牌页（6–8 张） |
+| 答一道 / 出题 / 每日一练 / 结构化面试练习 / 做一篇结构化帖子 | **answer** | 封面 → 思维导图 → 逐字稿（自动分页）→ 收尾引流 → 品牌页（5–8 张） |
 
 两条线都禁止输出 Word/PDF；唯一发布载体是 PNG＋笔记文案.md。
 
@@ -77,8 +77,8 @@ metadata:
 | 步 | 动作 | 依据 |
 |---|---|---|
 | 1 | 出题（题库优先：真题库/模拟题库定调版 → 讲义 → 热点自出需先写 `fact_card` 3 个可核查事实；题干 ≤80 字）→ 题干确认弹窗 → 四源读源＋审题五维 → 大纲 7 字段＋逐字稿 8 字段＋**mindmap（≥4 分支/≥12 叶子）** → `draft_meta` 落盘 | `references/content-voice.md`、`references/shared-sourcing.md`、`references/shared-calibration.md` |
-| 2 | 电车站诊断（tramstop 模式一） | `references/shared-gates.md` |
-| 3 | human-writing 改写（另起会话） | 同上 |
+| 2 | humanizer-zh 诊断（读其 31 条 AI 模式清单，扫描大纲与解说段，只出问题清单不改稿；逐字稿引文保真区不扫） | `references/shared-gates.md`、`~/.zcode/skills/humanizer-zh/SKILL.md` |
+| 3 | humanizer-zh 改写（另起会话，按问题清单重写；只动措辞不改答题结构，事实/数字/教学事实源保真） | 同上 |
 | 4 | `check_prose.py` 红线清零 + `check_voice.py` 反程序化 FAIL 清零（引文保真区不进 prose 检查） | `references/content-voice.md`、`references/shared-gates.md` |
 | 5 | 回核读源 | 同上 |
 | 6 | 独立审稿（8 查项，`review_conclusion=="通过"`） | 同上 |
@@ -160,6 +160,7 @@ python3 scripts/render_cards.py --mode answer --final <json> --outdir <临时目
 | skill | `references/DESIGN.md` | 视觉契约唯一事实源（v4：色板/字号梯/组件/两套页型/反模式） |
 | skill | `references/shared-{calibration,sourcing,gates}.md` | 答题线方法论与门禁（不变） |
 | skill | `references/content-voice.md` | **内容契约**：六条底色＋反程序化五条＋内容源优先级＋正面样例 |
+| 外部 | `humanizer-zh`（同 skills 根目录） | 步 2 诊断 / 步 3 改写的唯一去 AI 味 skill（只读；31 条模式，保留事实与答题结构） |
 | skill | `scripts/check_voice.py` / `scripts/test_check_voice.py` | 反程序化门禁（R1 框架密度/R2 开篇取舍/R3 推进变化/R4 现场细节/R5 注水标语/R6 节奏/R7 边界）＋10 用例 |
 | skill | `references/shared-engine-safety.md` | 引擎安全机制与失败回退（v4 口径） |
 | skill | `test-prompts.json` / `scripts/testdata/` | 达尔文测试集与固定输入夹具（dev/holdout 四条）；**测试资产**，评测快照会剔除 `test-prompts.json`，不得把夹具内容当正式选题 |
@@ -192,5 +193,5 @@ python3 scripts/test_content_rules.py     # R0/R14（不变）
 1. **不许新建第二渲染入口**。有人会另写 `render_tips_paged.py` 之类脚本重排——成品一旦出自第二入口，就绕过了 `verify_layout`、回归测试与契约。版面问题改 `render_cards.py` 并补测试，不许旁路。
 2. **不许把 `scripts/testdata/` 的内容当正式选题发布**。夹具里的导图/题面可能互不对应，只用于引擎回归；正式出稿必须自拟且导图与题干对齐。
 3. **不许自审冒充独立审稿**。另起会话/子 agent 才叫独立；做不到就在报告标「自审，未独立」。
-4. **不许注水凑页**。张数由内容与分页决定，禁止为凑 6–8 张加空段或重复观点；张数超出范围先查内容长度，不是加页。
+4. **不许注水凑页**。张数由内容与分页决定，禁止为凑 5–8 张加空段或重复观点；张数超出范围先查内容长度，不是加页。
 5. **不许用中文冒号连接检查文本**。`check_prose` 会把「lead：body」判成红线；用「。」连接后再检。

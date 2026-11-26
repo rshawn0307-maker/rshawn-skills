@@ -183,6 +183,47 @@ class TestRender(unittest.TestCase):
                                  for x in range(w) if px[x, y] < 220), default=0)
                 self.assertLessEqual(right, 984, f"{p.name} 右缘 {right} 越界")
 
+    def test_mindmap_lines_do_not_cross_labels(self):
+        """导图连线不得穿过任何标签文字（DESIGN 5.6 硬规则；长 root 回归）。"""
+        import copy
+        tree = copy.deepcopy(MINDMAP)
+        tree["root"] = "规矩不能让，路要指够"
+        boxes, pts = [], []
+        orig_dl, orig_cb = rc.draw_lines, rc._cubic
+
+        def spy_dl(dr, pos, lines, sizes, lh, fill, **kw):
+            widths = []
+            for line in lines:          # 每行 = [(text, kind), ...]
+                x = pos[0]
+                for t, k in line:
+                    x += rc.font(k, sizes[k]).getlength(t)
+                widths.append(x - pos[0])
+            w = max(widths) if widths else 0
+            boxes.append((pos[0], pos[1], pos[0] + w, pos[1] + lh * len(lines)))
+
+        def spy_cb(dr, p1, p2, color, width=3, steps=26):
+            orig_cb(dr, p1, p2, color, width, steps)
+            mx = (p1[0] + p2[0]) / 2
+            c1, c2 = (mx, p1[1]), (mx, p2[1])
+            for i in range(steps + 1):
+                t = i / steps
+                x = ((1 - t) ** 3 * p1[0] + 3 * (1 - t) ** 2 * t * c1[0]
+                     + 3 * (1 - t) * t ** 2 * c2[0] + t ** 3 * p2[0])
+                y = ((1 - t) ** 3 * p1[1] + 3 * (1 - t) ** 2 * t * c1[1]
+                     + 3 * (1 - t) * t ** 2 * c2[1] + t ** 3 * p2[1])
+                pts.append((x, y))
+
+        rc.draw_lines, rc._cubic = spy_dl, spy_cb
+        try:
+            rc.mindmap_page(tree)
+        finally:
+            rc.draw_lines, rc._cubic = orig_dl, orig_cb
+        bad = [pt for pt in pts for b in boxes
+               if b[0] - 2 <= pt[0] <= b[2] + 2 and b[1] - 2 <= pt[1] <= b[3] + 2]
+        self.assertEqual(bad, [])
+        self.assertGreater(len(pts), 40)
+        self.assertGreater(len(boxes), 6)
+
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()

@@ -61,6 +61,14 @@ class TestAnswer(unittest.TestCase):
         self.assertEqual(fails, [])
         self.assertTrue(any("R7" in w for w in warns))
 
+    def test_renji_detail_words_pass_r4(self):
+        d = copy.deepcopy(GOOD)
+        d["point1_body"] = "亲戚进门先请坐倒水，把话听完再复述确认。"
+        d["point2_body"] = "条款打比方讲透，差什么写在纸上，帮他对接救助渠道。"
+        d["point3_body"] = "礼物当场婉拒，长辈饭桌上劝，让先问规矩成为全家习惯。"
+        fails, _ = cv.check_answer(d)
+        self.assertEqual([f for f in fails if "R4" in f], [])
+
 
 class TestTips(unittest.TestCase):
     def test_tips_fixture_passes(self):

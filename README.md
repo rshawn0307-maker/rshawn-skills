@@ -61,6 +61,7 @@ Shawn 的个人 AI Agent Skill 合集，遵循 Agent Skills 开放标准。每�
 | --- | --- | --- |
 | [doc-format](#doc-format) | 中文文档排版规格官：先确认规格再生成 Word/PDF/公众号 HTML，内置公文/论文/图书/报告等官方核验预设（来源：da-damu） | [查看](#doc-format) |
 | [mimo-v2-5-tts](#mimo-v2-5-tts) | 小米 MiMo V2.5 语音合成：预置音色/音色设计/音色克隆、情绪方言唱歌，导出可发飞书（来源：XiaomiMiMo） | [查看](#mimo-v2-5-tts) |
+| [humanizer-zh](#humanizer-zh) | 中文文本去 AI 味：31 条模式清单，只改表达、保留事实与作者声音（来源：歸藏 op7418） | [查看](#humanizer-zh) |
 
 ## 安装（通用方法）
 
@@ -105,7 +106,7 @@ bash scripts/deploy-local-skill.sh structured-daily --push   # 写入并 commit 
 
 复制 `SKILL.md` 的内容作为项目规则文件（如 `CLAUDE.md` / `AGENTS.md`）的参考，或直接粘贴给 Agent 作为系统提示词。
 
-> 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-daily 依赖 human-writing、tramstop-skill，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
+> 提示：少数 skill 依赖同仓库的兄弟 skill（例如 structured-daily 依赖 humanizer-zh、ima-skill，ima-skill 供多个 skill 调用），建议一起安装到同一个 skills 根目录。
 
 > 提示：huashu-design（约 40MB，含风格标本与案例资源）、huashu-art-motion（约 74MB，含示例素材与渲染引擎脚本）、huashu-md-html（约 15MB，含主题与示例）与 huashu-motion（约 22MB，含 CLI、模板、字体与示例）体积较大，请整目录复制，不要只拷 SKILL.md。
 
@@ -153,7 +154,7 @@ bash scripts/deploy-local-skill.sh structured-daily --push   # 写入并 commit 
 
 #### structured-daily
 
-「结构化每日一练」答一道帖自动生成：出题（热点自出 / 真题库 / 模拟题库）+ 审题五维 + 思路大纲 + 定调版逐字稿（opening+三观点 lead/body+closing，700–800 汉字不含标点，硬边界 680–820，210 秒，破题定调三禁）。流水线＝读源四源（方法论/一本通/题库/教师注）→电车站诊断→human-writing 改写（逐字稿引文保真）→check_prose 红线→回核读源→独立审稿→盲测出厂验收→出图。引擎为 skill 内 `scripts/render_answer_cards.py`（PIL 直出 **7 张 1080×1440 PNG** + 笔记文案.md：封面／题目／答题思路／逐字稿 ×3／收尾；全或无写入、残留清理、期号幂等、7 图 logo 像素校验）。
+「结构化每日一练」答一道帖自动生成：出题（热点自出 / 真题库 / 模拟题库）+ 审题五维 + 思路大纲 + 定调版逐字稿（opening+三观点 lead/body+closing，700–800 汉字不含标点，硬边界 680–820，210 秒，破题定调三禁）。流水线＝读源四源（方法论/一本通/题库/教师注）→humanizer-zh 诊断→humanizer-zh 改写（逐字稿引文保真、不改答题结构）→check_prose 红线→check_voice 反程序化→回核读源→独立审稿→盲测出厂验收→出图。引擎为 skill 内 `scripts/render_cards.py`（PIL 直出双模式 **5–8 张 1080×1440 PNG**，旧版纸感 VI：深枣红封面／米金页脚／思维导图／逐字稿自动分页／品牌页；`verify_layout` 版面门禁、期号进度、全或无写入）。
 
 **v3 版式（2026-11-22 经 OpenDesign 审查后重设计）**：6 卡 → 7 卡（逐字稿按观点拆 3 页，正文 36px→44px 达到竖版正文 ≥42px 的可用性底线）；退役黄铜金饰系，只留枣红一个强调色；封面从满宽色块改左对齐贴字宽块（面积 14%→11.2%）；页脚去装饰横线。视觉契约见 `references/DESIGN.md`（OpenDesign 九段式，**版式唯一事实源**，引擎常量须与它同表）。回归 4 套共 48 用例全绿（渲染 16 ／规则 11 ／prose 10 ／归档 docx 11）。docx 产线（`scripts/fill_answer_post.py` + 模板）已归档保留，不再执行。
 
@@ -365,6 +366,14 @@ macOS / Windows 只读存储分析助手：扫描整机磁盘占用，把占用�
 > 来源：[XiaomiMiMo/MiMo-Skills](https://github.com/XiaomiMiMo/MiMo-Skills)（作者：小米 XiaomiMiMo，MIT 许可）
 
 > 同步：上游更新后可运行 `bash scripts/sync-mimo.sh` 一键拉取最新版。
+
+#### humanizer-zh
+
+中文文本去 AI 味编辑指导：按 31 条模式（A 铺垫代替陈述 / B 公式化节奏 / C 拔高与借权威 / D 公式化排版 / E 聊天残留 / F 中文表达补充）检查空话、重复与模板腔，**只改表达，保留事实、确定程度与作者声音**；模式是线索不是词表，正常的三段、排比、破折号可以保留。自带 `tests/check_structure.py` 做结构回归。
+
+> 来源：[op7418/Humanizer-zh](https://github.com/op7418/Humanizer-zh)（作者：歸藏 op7418，MIT 许可，基于 blader/humanizer v3.0.0 与 PR 39 重构；收录 commit `f4518a8`）
+
+> 同步：上游无独立同步脚本，手动覆盖 SKILL.md/LICENSE/README/tests；`structured-daily` 的步 2/3 用它做诊断与改写。
 
 ## 同步 khazix 来源 skill
 

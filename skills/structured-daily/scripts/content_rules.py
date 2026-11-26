@@ -8,7 +8,7 @@ TR1（2026-11-20，答一道单线转型）：R1-R15 技巧线规则随技巧线
 
 流水线位置（君上裁定，修正 spec B3 内部矛盾）：R0/R14 跑在
 独立审稿（写 review_conclusion）＋盲测试答（写 blind_test_result）
-之后，作最终出厂程序门禁：草稿 → 电车站诊断 → human-writing 改写 →
+之后，作最终出厂程序门禁：草稿 → humanizer-zh 诊断 → humanizer-zh 改写 →
 check_prose 清零 → 回核读源 → 独立审稿 → 盲测试答 → content_rules
 exit0 → CHECKPOINT → 引擎。
 

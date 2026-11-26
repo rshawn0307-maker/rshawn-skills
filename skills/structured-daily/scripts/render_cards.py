@@ -34,6 +34,8 @@ WATERMARK = (246, 243, 238)
 HAIRLINE = (214, 198, 174)
 WHITE = (255, 255, 255)
 
+# 引流句缺省值（schema：cta 可选，缺省沿用固定引流句，全帖只出现一次）
+DEFAULT_CTA = "关注我，后续分享更多面试实战技巧和考场避坑指南，帮你少走弯路，一次上岸"
 BRANCH_COLORS = [
     (46, 111, 158),   # 蓝
     (62, 142, 90),    # 绿
@@ -199,7 +201,8 @@ class Page:
 def cover(title_lines: list[str], kicker: str | None = None,
           footer_note: str = "深耕结构化面试，善用总分总章法",
           title_size: int = 84, start_y: int = 360, line_h: int | None = None,
-          indent_first: bool = False, kicker_size: int = 54, indent_all: bool = False):
+          indent_first: bool = False, kicker_size: int = 54, indent_all: bool = False,
+          cover_meta: str | None = None):
     img = Image.new("RGB", (W, H), RED)
     d = ImageDraw.Draw(img)
     if kicker:
@@ -216,6 +219,9 @@ def cover(title_lines: list[str], kicker: str | None = None,
                        first_indent=(BODY_SIZE * 2 if (indent_first or indent_all) else 0),
                        rest_indent=(BODY_SIZE * 2 if indent_all else 0))
         y += 10
+    # 题目信息行（动态跟随题面末行，避免与底部标语重叠）
+    if cover_meta:
+        d.text((MARGIN_L, y + 36), str(cover_meta), font=font("regular", 26), fill=CREAM, anchor="la")
     # 左滑提示（文字 + 下划线 + 小箭头）
     hint = "左滑开始进步"
     fh = font("regular", 34)
@@ -328,10 +334,10 @@ def mindmap_page(tree: dict) -> Image:
             bus_x = cx - 24
             for k in kids:
                 ccy, ccx, _ = place(k, depth + 1, child_y, color)
-                _cubic(d, (bus_x, y + h_own + 6), (ccx - 24, ccy), color)
+                _cubic(d, (bus_x, y + h_own + 10), (ccx - 24, ccy), color)
                 child_y += k["_h"] + GAP_V
             # 标签圆点 → 子节点总线起点（走文字左侧）
-            d.line((cx - 23, cy, bus_x, y + h_own + 6), fill=color, width=3)
+            d.line((cx - 23, cy, bus_x, y + h_own + 10), fill=color, width=3)
         return cy, cx, h_own
 
     root_y = top + total // 2
@@ -343,7 +349,7 @@ def mindmap_page(tree: dict) -> Image:
     for i, b in enumerate(branches):
         color = BRANCH_COLORS[i % len(BRANCH_COLORS)]
         cy, cx, _ = place(b, 1, y, color)
-        _cubic(d, (root_x0 + root_w + 12, root_y), (cx - 23, cy), color)
+        _cubic(d, (root_x0 - 12, root_y), (cx - 23, cy), color)
         y += b["_h"] + GAP_B
     return page.img
 
@@ -532,11 +538,8 @@ def render_tips(data: dict) -> list[Image.Image]:
 
 def render_answer(data: dict) -> list[Image.Image]:
     first = cover([data["question"]], kicker=str(data.get("title_prefix", "结构化每日一练：")),
-                  title_size=64, start_y=230, line_h=100, indent_first=True, indent_all=True)
-    if data.get("cover_meta"):
-        d = ImageDraw.Draw(first)
-        d.text((MARGIN_L, 1210), str(data["cover_meta"]), font=font("regular", 26),
-               fill=(238, 220, 192), anchor="la")
+                  title_size=64, start_y=230, line_h=100, indent_first=True, indent_all=True,
+                  cover_meta=data.get("cover_meta"))
     imgs = [first]
     if data.get("mindmap"):
         imgs.append(mindmap_page(data["mindmap"]))
@@ -555,12 +558,12 @@ def render_answer(data: dict) -> list[Image.Image]:
         flow.paragraph([(data[f"point{i}_lead"], "regular")], space_before=26, indent=False)
         flow.paragraph([(data[f"point{i}_body"], "regular")], space_before=6, indent=False)
     flow.paragraph([(data["closing"], "regular")], space_before=26)
-    if data.get("cta"):
-        flow.rule()
-        sizes = {"bold": 26}
-        lines = wrap_text([(data["cta"], "bold")], sizes, W - MARGIN_L - MARGIN_R)
-        draw_lines(flow.page.d, (MARGIN_L, flow.y), lines, sizes, 42, RED)
-        flow.y += len(lines) * 42
+    cta = str(data.get("cta") or DEFAULT_CTA)   # schema：缺省沿用固定引流句
+    flow.rule()
+    sizes = {"bold": 26}
+    lines = wrap_text([(cta, "bold")], sizes, W - MARGIN_L - MARGIN_R)
+    draw_lines(flow.page.d, (MARGIN_L, flow.y), lines, sizes, 42, RED)
+    flow.y += len(lines) * 42
     imgs += flow.finish()
     imgs.append(brand_page())
     return imgs
