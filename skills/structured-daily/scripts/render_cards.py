@@ -181,13 +181,19 @@ class Page:
         self.d.rectangle((0, FOOTER_TOP, W, H), fill=CREAM)
         self.d.text((MARGIN_L, FOOTER_TOP + FOOTER_H / 2), "有逻辑 · 有观点 · 有表达",
                     font=font("sans_bold", 30), fill=NAVY, anchor="lm")
-        # 右下角红方块 + 竖排 logo
-        self.d.rectangle((W - 108, FOOTER_TOP, W, H), fill=RED)
-        f = font("sans_bold", 20)
-        y = FOOTER_TOP + 18
+        Page.footer_logo(self.d)
+
+    def footer_logo(d):
+        """右下角：圆角红方块嵌在米金页脚带内，竖排「总分总」。"""
+        tile, gap = 88, 12
+        x0 = W - gap - tile
+        y0 = FOOTER_TOP + (FOOTER_H - tile) // 2
+        d.rounded_rectangle((x0, y0, x0 + tile, y0 + tile), radius=16, fill=RED)
+        f = font("sans_bold", 19)
+        ty = y0 + 12
         for ch in "总分总":
-            self.d.text((W - 54, y), ch, font=f, fill=WHITE, anchor="ma")
-            y += 25
+            d.text((x0 + tile / 2, ty), ch, font=f, fill=WHITE, anchor="ma")
+            ty += 23
 
 
 def cover(title_lines: list[str], kicker: str | None = None,
@@ -228,12 +234,7 @@ def cover(title_lines: list[str], kicker: str | None = None,
     d.rectangle((0, FOOTER_TOP, W, H), fill=CREAM)
     d.text((MARGIN_L, FOOTER_TOP + FOOTER_H / 2), "有逻辑 · 有观点 · 有表达",
            font=font("sans_bold", 30), fill=NAVY, anchor="lm")
-    d.rectangle((W - 108, FOOTER_TOP, W, H), fill=RED)
-    f2 = font("sans_bold", 20)
-    yy = FOOTER_TOP + 18
-    for ch in "总分总":
-        d.text((W - 54, yy), ch, font=f2, fill=WHITE, anchor="ma")
-        yy += 25
+    Page.footer_logo(d)
     return img
 
 

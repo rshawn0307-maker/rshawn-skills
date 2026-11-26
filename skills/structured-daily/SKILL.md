@@ -1,7 +1,7 @@
 ---
 name: structured-daily
-description: 一条技能两种出图模式（旧版「总分总」纸感 VI，1080×1440 PNG 直出，不走 Word）。说「考官视角 / 展开说说 / 万能展开法 / 这题怎么展开 / 讲点技巧」→ 技巧线：封面＋分档展开法（AIR/Pro/Pro Max）＋避坑＋品牌页，过禁用词与独立审稿；说「答一道 / 出题 / 每日一练 / 结构化面试练习」→ 答题线：封面＋思维导图＋逐字稿（自动分页）＋收尾引流＋品牌页，走完整 10 步门禁（电车站/human-writing/check_prose/盲测/CHECKPOINT）。渲染引擎 scripts/render_cards.py（PIL 直出，Songti SC＋品牌 logo），视觉契约见 references/DESIGN.md（v4 纸感 VI）。
-version: 4.0.1（v4 双模式 + 达尔文 E1/E2 修复，2026-11-26）
+description: 一条技能两种出图模式（旧版「总分总」纸感 VI，1080×1440 PNG 直出，不走 Word）。说「考官视角 / 展开说说 / 万能展开法 / 这题怎么展开 / 讲点技巧」→ 技巧线：封面＋分档展开法（AIR/Pro/Pro Max）＋避坑＋品牌页；说「答一道 / 出题 / 每日一练 / 结构化面试练习」→ 答题线：封面＋思维导图＋逐字稿（自动分页）＋收尾引流＋品牌页。两线都走「六条底色＋反程序化门禁」（check_voice：框架密度/取舍判断/推进变化/现场细节/边界意识）；答题线另走完整 10 步门禁（电车站/human-writing/盲测/CHECKPOINT）。渲染引擎 scripts/render_cards.py（PIL 直出，Songti SC＋品牌 logo），内容契约见 references/content-voice.md，视觉契约见 references/DESIGN.md。
+version: 4.1.0（v4 双模式 + 内容反程序化门禁，2026-11-26）
 author: Shawn × AI（2026-11 重构：答一道单线 → 双模式合并；旧 Word 模板效果改为 PNG 直出）
 metadata:
   triggers:
@@ -63,7 +63,7 @@ metadata:
 沿用既有答题线，不改方法论：出题（热点自出 / 真题库 / 模拟题库）→ 审题五维 → 三观点大纲 → 定调版逐字稿（正文 700–800 汉字，硬边界 680–820）→ 门禁 → 出图。
 
 - **封面**：`title_prefix` 作顶部 kicker（每日一练 / 历年考题），`question` 为题面（≤80 字，每行缩进）。
-- **思维导图**（`mindmap`，强烈建议提供）：根「核心观点」＋ 3–4 条分支（每条 3–5 个叶子，可再嵌一层）。这是旧版高流量帖的核心页，缺省时退化为「答题思路」页。
+- **思维导图**（`mindmap`，answer 模式必填）：根「核心观点」＋ **≥4 条分支**（每条 3–5 个叶子，合计 **≥12 个叶子**，可再嵌一层）。叶子必须写具体抓手（「1 个工作日签收」「逐家电话回访」），不写抽象名词。这是旧版高流量帖的核心页；缺省会被 `check_voice` R1 判 FAIL。
 - **逐字稿页**：`opening` ＋ 三组 `pointN_lead/pointN_body` ＋ `closing`，引擎按版面自动分页。
 - **收尾引流**：`closing` 后画分隔线＋`cta` 红字。
 - **品牌页**：引擎固定输出。
@@ -76,10 +76,10 @@ metadata:
 
 | 步 | 动作 | 依据 |
 |---|---|---|
-| 1 | 出题（三选一，题干 ≤80 字，`len()` 自检）→ 题干确认弹窗 → 四源读源＋审题五维 → 大纲 7 字段＋逐字稿 8 字段＋**思维导图树** → `draft_meta` 落盘 | `references/shared-sourcing.md`、`references/shared-calibration.md` |
+| 1 | 出题（题库优先：真题库/模拟题库定调版 → 讲义 → 热点自出需先写 `fact_card` 3 个可核查事实；题干 ≤80 字）→ 题干确认弹窗 → 四源读源＋审题五维 → 大纲 7 字段＋逐字稿 8 字段＋**mindmap（≥4 分支/≥12 叶子）** → `draft_meta` 落盘 | `references/content-voice.md`、`references/shared-sourcing.md`、`references/shared-calibration.md` |
 | 2 | 电车站诊断（tramstop 模式一） | `references/shared-gates.md` |
 | 3 | human-writing 改写（另起会话） | 同上 |
-| 4 | `check_prose.py` 红线清零（引文保真区不进检查） | `references/shared-gates.md` |
+| 4 | `check_prose.py` 红线清零 + `check_voice.py` 反程序化 FAIL 清零（引文保真区不进 prose 检查） | `references/content-voice.md`、`references/shared-gates.md` |
 | 5 | 回核读源 | 同上 |
 | 6 | 独立审稿（8 查项，`review_conclusion=="通过"`） | 同上 |
 | 7 | 盲测试答（四项判据，`blind_test_result=="通过"`） | `references/blind-test-protocol.md` |
@@ -92,7 +92,7 @@ metadata:
 ### 模式 A（考官视角，6 步）
 
 1. 定题：热点/政策/社会现象里选有张力的一问；封面标题 ≤14 字，追问句 ≤10 字。
-2. 写总述＋分档 `points`（每档 2–4 点，lead＋body）。红线自查：把每档「lead＋body」用「。」连接成检查文本（不要用「：」连接，中文冒号会误报），写入临时文件后跑 `python3 scripts/check_prose.py <临时文件>`；体现/彰显/凸显/高度重视/加强管理 等必须清零。
+2. 写总述＋分档 `points`（每档 2–4 点，lead＋body）。两道门禁：①红线自查——把每档「lead＋body」用「。」连接成检查文本（不要用「：」连接），跑 `python3 scripts/check_prose.py <临时文件>`；②反程序化——写 final JSON 后跑 `python3 scripts/check_voice.py --mode tips --final <json>`，FAIL 清零（AIR 整档 ≥1 个具体抓手，Pro/Pro Max 逐点 ≥1）。
 3. 独立审稿：三查「是否每点都能落地」「数字是否有出处」「档位之间是否真递进」。审稿必须换视角：另起会话或派子 agent；无法另起时在报告标「自审，未独立」，不得声称已过独立审稿。
 4. 写 final JSON（`mode=tips`）。
 5. 出图：`python3 scripts/render_cards.py --mode tips --final <json> --outdir <目录>`；引擎先跑 `verify_layout`（内容页不得越 96/96 版心、不得压页脚）。
@@ -111,7 +111,7 @@ metadata:
 - `title_prefix`（默认「结构化每日一练：」）；
 - `cover_meta`（封面题目信息行，如「2024年6月5日 · 咸阳 · 综合管理A」，引擎画在封面题面下方）；
 - `cta`（默认沿用固定引流句）；
-- `mindmap`：`{"root":"核心观点","branches":[{"label":"一、…","children":[{"label":"…"},{"label":"…","children":[…]}]}]}`；分支 3–4 条、叶子合计 ≤18 个，超出会报「思维导图超出单页」需精简。
+- `mindmap`（answer 必填）：`{"root":"核心观点","branches":[{"label":"一、…","children":[{"label":"…"},{"label":"…","children":[…]}]}]}`；分支 ≥4 条、叶子合计 ≥12 个（≤18），叶子 ≥6 字且为具体动作/时限/主体；超出单页会报「思维导图超出单页」需精简。
 
 ### 模式 A（tips）
 
@@ -159,6 +159,8 @@ python3 scripts/render_cards.py --mode answer --final <json> --outdir <临时目
 | skill | `scripts/test_render_cards.py` | 引擎回归测试（双模式渲染、校验规则、导图溢出、折行避头尾） |
 | skill | `references/DESIGN.md` | 视觉契约唯一事实源（v4：色板/字号梯/组件/两套页型/反模式） |
 | skill | `references/shared-{calibration,sourcing,gates}.md` | 答题线方法论与门禁（不变） |
+| skill | `references/content-voice.md` | **内容契约**：六条底色＋反程序化五条＋内容源优先级＋正面样例 |
+| skill | `scripts/check_voice.py` / `scripts/test_check_voice.py` | 反程序化门禁（R1 框架密度/R2 开篇取舍/R3 推进变化/R4 现场细节/R5 注水标语/R6 节奏/R7 边界）＋10 用例 |
 | skill | `references/shared-engine-safety.md` | 引擎安全机制与失败回退（v4 口径） |
 | skill | `test-prompts.json` / `scripts/testdata/` | 达尔文测试集与固定输入夹具（dev/holdout 四条）；**测试资产**，评测快照会剔除 `test-prompts.json`，不得把夹具内容当正式选题 |
 | skill | `references/blind-test-protocol.md` | 答题线盲测协议（不变） |
@@ -171,7 +173,8 @@ python3 scripts/render_cards.py --mode answer --final <json> --outdir <临时目
 ## 自测（改引擎必跑）
 
 ```bash
-python3 scripts/test_render_cards.py      # 新引擎：双模式/校验/导图/折行
+python3 scripts/test_render_cards.py      # 渲染：双模式/校验/导图/折行/右缘
+python3 scripts/test_check_voice.py       # 内容：反程序化门禁 10 用例
 python3 scripts/test_check_prose.py       # check_prose（不变）
 python3 scripts/test_content_rules.py     # R0/R14（不变）
 ```

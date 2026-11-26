@@ -1,7 +1,7 @@
 ---
 design_system:
   name: 总分总 · 纸感双线 VI
-  version: 4.0.0（本文件是版式契约版本；技能版本见 SKILL.md 4.0.0）
+  version: 4.0.0（本文件是版式契约版本；技能版本见 SKILL.md 4.1.0）
   canvas: 1080x1440
   renderer: PIL / PNG（scripts/render_cards.py，非 web、非 Word）
   modes:
